@@ -1,0 +1,67 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "isAdmin": { "type": "boolean" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Product details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "image": { "type": "string" },
+        "images": { "type": "array" },
+        "category": { "type": "string" },
+        "colors": { "type": "array" },
+        "sizes": { "type": "array" },
+        "rating": { "type": "number" }
+      },
+      "required": ["id", "name", "price"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "items": { "type": "array" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "processing", "shipped", "delivered", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "shippingAddress": { "type": "object" },
+        "trackingId": { "type": "string" }
+      },
+      "required": ["userId", "items", "total", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of products"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders"
+    },
+    "/admins/{userId}": {
+      "schema": "object",
+      "description": "Collection to whitelist admin UIDs"
+    }
+  }
+}
