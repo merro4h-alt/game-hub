@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Search, Package, MapPin, Clock, CheckCircle2, ArrowRight, Truck } from 'lucide-react';
+import { Search, Package, MapPin, Clock, CheckCircle2, ArrowRight, Truck, Globe } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../lib/firebase';
@@ -9,11 +9,21 @@ import { doc, getDoc } from 'firebase/firestore';
 interface OrderInfo {
   trackingId: string;
   status: 'pending' | 'processing' | 'shipped' | 'delivered';
+  fulfillment?: {
+    provider: string;
+    status: string;
+    supplierId?: string;
+    estimatedDispatch?: string;
+  };
   customerName: string;
   total: number;
   items: any[];
   createdAt: string;
   address: string;
+  shippingAddress?: {
+    fullName: string;
+    address: string;
+  };
 }
 
 const TrackOrderPage: React.FC = () => {
@@ -156,9 +166,19 @@ const TrackOrderPage: React.FC = () => {
                   <h2 className="text-3xl font-bold mb-2">#{order.trackingId}</h2>
                   <p className="text-white/40">{texts.statusSteps[order.status]}</p>
                 </div>
-                <div className="flex items-center gap-4 bg-white/10 px-6 py-3 rounded-2xl border border-white/5">
-                  <Clock size={20} className="text-brand-gold" />
-                  <span className="font-mono text-sm">{new Date(order.createdAt).toLocaleDateString(isArabic ? 'ar-EG' : 'en-US', { dateStyle: 'long' })}</span>
+                <div className="flex flex-wrap items-center gap-4 bg-white/10 px-6 py-3 rounded-2xl border border-white/5">
+                  <div className="flex items-center gap-2 pr-4 border-r border-white/10">
+                    <Clock size={18} className="text-brand-gold" />
+                    <span className="font-mono text-sm">{new Date(order.createdAt).toLocaleDateString(isArabic ? 'ar-EG' : 'en-US', { dateStyle: 'long' })}</span>
+                  </div>
+                  {order.fulfillment && (
+                    <div className="flex items-center gap-2">
+                       <Globe size={18} className="text-brand-gold" />
+                       <span className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">
+                         {isArabic ? `عبر شبكة ${order.fulfillment.provider}` : `via ${order.fulfillment.provider} Network`}
+                       </span>
+                    </div>
+                  )}
                 </div>
               </div>
 

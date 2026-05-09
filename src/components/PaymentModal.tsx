@@ -1,10 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, CreditCard, ShieldCheck, Lock, Truck, Banknote, MapPin } from 'lucide-react';
+import { X, CreditCard, ShieldCheck, Lock, Truck, MapPin, Globe, Banknote } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../StoreContext';
 import { db, auth } from '../lib/firebase';
 import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import StripePayment from './StripePayment';
+
+const countries = [
+  { code: 'IQ', name: 'Iraq', nameAr: 'العراق', dialCode: '+964' },
+  { code: 'SA', name: 'Saudi Arabia', nameAr: 'المملكة العربية السعودية', dialCode: '+966' },
+  { code: 'AE', name: 'United Arab Emirates', nameAr: 'الإمارات العربية المتحدة', dialCode: '+971' },
+  { code: 'JO', name: 'Jordan', nameAr: 'الأردن', dialCode: '+962' },
+  { code: 'EG', name: 'Egypt', nameAr: 'مصر', dialCode: '+20' },
+  { code: 'KW', name: 'Kuwait', nameAr: 'الكويت', dialCode: '+965' },
+  { code: 'QA', name: 'Qatar', nameAr: 'قطر', dialCode: '+974' },
+  { code: 'BH', name: 'Bahrain', nameAr: 'البحرين', dialCode: '+973' },
+  { code: 'OM', name: 'Oman', nameAr: 'عمان', dialCode: '+968' },
+  { code: 'US', name: 'United States', nameAr: 'الولايات المتحدة', dialCode: '+1' },
+  { code: 'GB', name: 'United Kingdom', nameAr: 'المملكة المتحدة', dialCode: '+44' },
+];
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -12,22 +27,71 @@ interface PaymentModalProps {
   total: number;
 }
 
+const COUNTRY_ADJUSTMENT_LOCAL: Record<string, number> = {
+  'IQ': 0.5,
+  'SA': 1.2,
+  'AE': 1.1,
+  'JO': 1.0,
+  'US': 2.5,
+  'DEFAULT': 1.5
+};
+
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) => {
   const { t, i18n } = useTranslation();
   const { clearCart, cart } = useStore();
   const isArabic = i18n.language === 'ar';
 
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cod' | 'paypal'>('card');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cod' | 'paypal' | 'wallet'>('wallet');
+  const [selectedWallet, setSelectedWallet] = useState<'zaincash' | 'asiahawala' | 'mastercard'>('zaincash');
+  const [selectedCountry, setSelectedCountry] = useState('IQ');
+  const [phonePrefix, setPhonePrefix] = useState('+964');
+  const [shippingProviders, setShippingProviders] = useState<any[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState('aramex');
+  const [shippingFee, setShippingFee] = useState(0);
+  const [shippingSpeed, setShippingSpeed] = useState('');
   const [formData, setFormData] = useState({
-    cardNumber: '',
-    expiry: '',
-    cvv: '',
     name: '',
     address: '',
-    phone: ''
+    phone: '',
+    city: '',
+    email: ''
   });
 
-  const mastercardAccount = import.meta.env.VITE_MASTERCARD_ACCOUNT || '0000-0000-0000-0000';
+  useEffect(() => {
+    // Fetch available providers once
+    fetch('/api/shipping-providers')
+      .then(res => res.json())
+      .then(data => setShippingProviders(data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    // Update phone prefix and default provider when country changes
+    const country = countries.find(c => c.code === selectedCountry);
+    if (country) {
+      setPhonePrefix(country.dialCode);
+      if (selectedCountry === 'IQ') {
+        setSelectedProvider('al-waseet');
+      } else {
+        setSelectedProvider('standard');
+      }
+    }
+  }, [selectedCountry]);
+
+  useEffect(() => {
+    // Fetch shipping rate based on country and provider
+    fetch(`/api/shipping-rate?country=${selectedCountry}&provider=${selectedProvider}`)
+      .then(res => res.json())
+      .then(data => {
+        setShippingFee(data.rate);
+        setShippingSpeed(data.speed);
+      })
+      .catch(() => setShippingFee(20)); // Fallback
+  }, [selectedCountry, selectedProvider]);
+
+  const fullPhoneNumber = `${phonePrefix} ${formData.phone}`;
+
+  const finalTotal = total + shippingFee;
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -36,62 +100,68 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
   const WHATSAPP_NUMBER = '9647837814009';
 
   const getWhatsAppMessage = (info: any) => {
-    const methodLabel = paymentMethod === 'cod' ? (isArabic ? 'الدفع عند الاستلام' : 'Cash on Delivery') : 
-                       paymentMethod === 'card' ? (isArabic ? 'بطاقة ائتمان' : 'Credit Card') : 
-                       (isArabic ? 'باي بال' : 'PayPal');
+    const methodLabel = paymentMethod === 'cod' ? (isArabic ? 'الدفع عند الاستلام 🚚' : 'Cash on Delivery 🚚') : 
+                       paymentMethod === 'card' ? (isArabic ? 'تم الدفع بالبطاقة ✅' : 'Paid by Card ✅') : 
+                       paymentMethod === 'wallet' ? (isArabic ? `تحويل محفظة (${selectedWallet === 'zaincash' ? 'زين كاش' : 'آسيا حوالة'}) 📱` : `Wallet Transfer (${selectedWallet === 'zaincash' ? 'ZainCash' : 'AsiaHawala'}) 📱`) :
+                       (isArabic ? 'باي بال 💰' : 'PayPal 💰');
     
-    const itemsText = (info.items || []).map((item: any) => `- ${item.name} (${item.quantity}x)`).join('\n');
+    // Formatting items with price
+    const itemsText = (info.items || []).map((item: any) => 
+      `▫️ ${item.name} (${item.quantity}x) - $${((item.discountPrice ?? item.price) * item.quantity).toFixed(2)}`
+    ).join('\n');
     
     return encodeURIComponent(
-      `*طلب جديد من متجرنا*\n\n` +
-      `*طريقة الدفع:* ${methodLabel}\n` +
-      `*رقم التتبع:* ${info.trackingId}\n` +
+      `🛍️ *طلب جديد من المتجر: ${info.trackingId}*\n\n` +
+      `👤 *معلومات العميل:*\n` +
+      `• الاسم: ${formData.name}\n` +
+      `• الهاتف: ${fullPhoneNumber}\n` +
+      `• البريد: ${formData.email || 'N/A'}\n\n` +
+      `📍 *العنوان:* \n${countries.find(c => c.code === selectedCountry)?.name || selectedCountry} - ${formData.address}\n\n` +
+      `📦 *المنتجات:*\n${itemsText}\n\n` +
+      `💳 *طريقة الدفع:* ${methodLabel}\n` +
+      `🚚 *شركة الشحن:* ${shippingProviders.find(p => p.id === selectedProvider)?.name || selectedProvider}\n` +
       `--------------------------\n` +
-      `*اسم العميل:* ${formData.name}\n` +
-      `*العنوان:* ${formData.address}\n` +
-      `*رقم الهاتف:* ${formData.phone}\n` +
+      `💰 *المجموع:* $${total.toFixed(2)}\n` +
+      `🚚 *الشحن:* $${shippingFee.toFixed(2)}\n` +
+      `✨ *الإجمالي:* $${(total + shippingFee).toFixed(2)}\n` +
       `--------------------------\n` +
-      `*المنتجات:*\n${itemsText}\n` +
-      `--------------------------\n` +
-      `*الإجمالي:* $${total.toFixed(2)}\n\n` +
-      `تم الطلب بنجاح، يرجى تأكيد الاستلام.`
+      `🔗 *رابط التتبع:* ${info.trackingLink}\n` +
+      `⏰ *التاريخ:* ${new Date().toLocaleString()}`
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
-    // Generate tracking ID
-    const trackingId = "AH-" + Math.random().toString(36).substring(2, 6).toUpperCase() + "-" + Math.random().toString(36).substring(2, 6).toUpperCase();
-
-    // For COD, we try to open WhatsApp immediately as a direct response to click
-    if (paymentMethod === 'cod') {
-      const msg = getWhatsAppMessage({
-        trackingId,
-        items: [...cart]
-      });
-      const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
-      window.open(waUrl, '_blank');
+    if (!formData.name || !formData.address || !formData.phone) {
+      alert(isArabic ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
+      return;
     }
 
     setIsProcessing(true);
     
+    const trackingId = "AH-" + Math.random().toString(36).substring(2, 6).toUpperCase() + "-" + Math.random().toString(36).substring(2, 6).toUpperCase();
+
     try {
-      // Save order to Firestore directly for better Vercel/Static support
       const orderData = {
         userId: auth.currentUser?.uid || 'anonymous',
         shippingAddress: {
           fullName: formData.name,
-          email: auth.currentUser?.email || (formData.name.toLowerCase().replace(/\s+/g, '.') + '@example.com'),
+          email: formData.email || auth.currentUser?.email || (formData.name.toLowerCase().replace(/\s+/g, '.') + '@example.com'),
           address: formData.address,
-          city: formData.address.split(',')[0]?.trim() || '',
-          country: 'Iraq',
+          city: formData.city || formData.address.split(',')[0]?.trim() || '',
+          country: countries.find(c => c.code === selectedCountry)?.name || selectedCountry,
           zipCode: '',
-          phone: formData.phone // Added phone to shippingAddress or top level
+          phone: fullPhoneNumber
         },
-        phone: formData.phone, // keep at top level too for easy access
+        phone: fullPhoneNumber,
         paymentMethod,
-        total,
+        walletProvider: paymentMethod === 'wallet' ? selectedWallet : null,
+        shippingProvider: selectedProvider,
+        shippingSpeed,
+        total: finalTotal,
+        subtotal: total,
+        shippingFee,
         items: cart.map(item => ({
           id: item.id,
           name: item.name,
@@ -111,54 +181,43 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
       const newOrderInfo = {
         trackingId,
         trackingLink: `${window.location.origin}/track/${trackingId}`,
-        whatsappSent: true, // Assuming success if we open WhatsApp or save to DB
+        whatsappSent: true,
         items: [...cart]
       };
       
+      // Send detailed WhatsApp notification
+      const msg = getWhatsAppMessage(newOrderInfo);
+      const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
+      window.open(waUrl, '_blank');
+
       setOrderInfo(newOrderInfo);
       setIsProcessing(false);
       setIsSuccess(true);
       clearCart();
-      
-      if (paymentMethod !== 'cod') {
-        setTimeout(() => {
-          onClose();
-          setIsSuccess(false);
-          setOrderInfo(null);
-        }, 15000);
-      }
     } catch (error) {
       console.error('Order submission error:', error);
       setIsProcessing(false);
-      // Even if firestore fails, we might still show success if they have the tracking number from whatsapp
-      setIsSuccess(true);
-      clearCart();
+      alert(isArabic ? 'حدث خطأ أثناء معالجة الطلب' : 'Error processing order');
     }
   };
 
   const texts = {
     title: isArabic ? 'الدفع الآمن' : 'Secure Checkout',
-    subtitle: isArabic ? 'اختر طريقة الدفع المفضلة لديك' : 'Choose your preferred payment method',
+    subtitle: isArabic ? 'حدد الدولة وطريقة الدفع' : 'Select country and payment method',
     card: isArabic ? 'بطاقة ائتمان' : 'Credit Card',
     cod: isArabic ? 'الدفع عند الاستلام' : 'Cash on Delivery',
     total: isArabic ? 'الإجمالي المطلوب' : 'Total to Pay',
-    cardNumber: isArabic ? 'رقم البطاقة' : 'Card Number',
-    expiry: isArabic ? 'تاريخ الانتهاء' : 'Expiry Date',
-    cvv: 'CVV',
-    holderName: isArabic ? 'اسم صاحب البطاقة' : 'Cardholder Name',
     address: isArabic ? 'عنوان الشحن' : 'Shipping Address',
     phone: isArabic ? 'رقم الهاتف' : 'Phone Number',
-    payNow: isArabic ? `دفع الآن $${total.toFixed(2)}` : `Pay Now $${total.toFixed(2)}`,
     confirmOrder: isArabic ? 'تأكيد الطلب' : 'Confirm Order',
     paypal: isArabic ? 'باي بال' : 'PayPal',
-    paypalTitle: isArabic ? 'الدفع عبر باي بال' : 'PayPal Payment',
-    paypalDesc: isArabic ? 'سيتم توجيهك إلى صفحة باي بال لإكمال عملية الدفع بأمان.' : 'You will be redirected to PayPal to complete your payment securely.',
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
     success: isArabic ? 'تم الطلب بنجاح!' : 'Order Successful!',
     successSub: isArabic ? 'طلبك قيد التنفيذ وسنقوم بالتواصل معك.' : 'Your order is being processed and we will contact you.',
     trackingText: isArabic ? 'رقم التتبع الخاص بك:' : 'Your Tracking Number:',
     trackNow: isArabic ? 'تتبع طلبك الآن' : 'Track Order Now',
-    secure: isArabic ? 'مشفر وآمن' : 'Encrypted and Secure'
+    secure: isArabic ? 'مشفر وآمن' : 'Encrypted and Secure',
+    wallet: isArabic ? 'محفظة إلكترونية' : 'E-Wallet'
   };
 
   return (
@@ -177,375 +236,356 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg bg-brand-cream rounded-[2rem] sm:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            className="relative w-full max-w-lg bg-brand-cream rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
-            {/* Header - Fixed */}
-            <div className="bg-brand-charcoal p-6 sm:p-8 text-brand-cream relative flex-shrink-0">
-               <button 
+            {/* Header */}
+            <div className="bg-brand-charcoal p-6 sm:p-8 text-brand-cream flex-shrink-0">
+              <button 
                 onClick={onClose}
                 className={`absolute top-6 ${isArabic ? 'left-6' : 'right-6'} p-2 text-brand-cream/40 hover:text-white transition-colors`}
               >
                 <X size={24} />
               </button>
               
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand-gold rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand-gold/20">
-                      {paymentMethod === 'card' ? <CreditCard size={20} /> : paymentMethod === 'cod' ? <Truck size={20} /> : (
-                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                          <path d="M20.067 8.478c.492.88.556 2.014.307 3.232-.401 1.966-1.559 3.327-3.51 3.327h-1.638l-.669 3.255a.6.6 0 01-.588.479h-3.155a.3.3 0 01-.295-.36l.758-3.693h-2.183l-.758 3.693a.3.3 0 01-.295.36h-3.155a.6.6 0 01-.588-.479l1.637-7.971c.148-.724.787-1.24 1.524-1.24h7.026c2.81 0 4.673 1.258 5.385 3.398zm-4.704 3.737c.758 0 1.257-.591 1.411-1.344.154-.753-.195-1.344-.954-1.344h-2.909l-.554 2.688h3.006z"/>
-                        </svg>
-                      )}
-                    </div>
-                    <div>
-                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{texts.title}</h2>
-                      <p className="text-brand-cream/60 text-xs sm:text-sm font-light mt-0.5">{texts.subtitle}</p>
-                    </div>
-                  </div>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-10 h-10 bg-brand-gold rounded-2xl flex items-center justify-center text-white">
+                  <Lock size={20} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">{texts.title}</h2>
+                  <p className="text-brand-cream/60 text-xs">{texts.subtitle}</p>
+                </div>
+              </div>
 
-                  {/* Payment Method Switcher */}
-                  {!isSuccess && (
-                    <div className="flex bg-white/5 p-1.5 rounded-2xl mb-6 flex-wrap gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('card')}
-                        className={`flex-1 min-w-[80px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 ${
-                          paymentMethod === 'card' ? 'bg-brand-gold text-white shadow-xl shadow-brand-gold/20' : 'text-brand-cream/50 hover:text-white hover:bg-white/5'
-                        }`}
-                      >
-                        <CreditCard size={16} />
-                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">{texts.card}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('paypal')}
-                        className={`flex-1 min-w-[80px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 ${
-                          paymentMethod === 'paypal' ? 'bg-brand-gold text-white shadow-xl shadow-brand-gold/20' : 'text-brand-cream/50 hover:text-white hover:bg-white/5'
-                        }`}
-                      >
-                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                          <path d="M20.067 8.478c.492.88.556 2.014.307 3.232-.401 1.966-1.559 3.327-3.51 3.327h-1.638l-.669 3.255a.6.6 0 01-.588.479h-3.155a.3.3 0 01-.295-.36l.758-3.693h-2.183l-.758 3.693a.3.3 0 01-.295.36h-3.155a.6.6 0 01-.588-.479l1.637-7.971c.148-.724.787-1.24 1.524-1.24h7.026c2.81 0 4.673 1.258 5.385 3.398zm-4.704 3.737c.758 0 1.257-.591 1.411-1.344.154-.753-.195-1.344-.954-1.344h-2.909l-.554 2.688h3.006z"/>
-                        </svg>
-                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">{texts.paypal}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('cod')}
-                        className={`flex-1 min-w-[80px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 ${
-                          paymentMethod === 'cod' ? 'bg-brand-gold text-white shadow-xl shadow-brand-gold/20' : 'text-brand-cream/50 hover:text-white hover:bg-white/5'
-                        }`}
-                      >
-                        <Truck size={16} />
-                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">{texts.cod}</span>
-                      </button>
-                    </div>
-                  )}
-
-              <div className="bg-white/10 rounded-2xl p-4 flex justify-between items-center">
-                <span className="text-brand-cream/60 font-light text-sm">{texts.total}</span>
-                <span className="text-xl sm:text-2xl font-mono font-bold text-brand-gold">${total.toFixed(2)}</span>
+              {/* Order Summary */}
+              <div className="bg-white/10 rounded-2xl p-4 space-y-2">
+                <div className="flex justify-between items-center text-xs text-brand-cream/60">
+                   <span>{isArabic ? 'المجموع الفرعي' : 'Subtotal'}</span>
+                   <span>${total.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs text-brand-cream/60">
+                   <span>{isArabic ? 'الشحن الدولي' : 'Shipping Fee'}</span>
+                   <span>${shippingFee.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-white/10">
+                  <span className="text-brand-cream/80 font-medium text-sm">{texts.total}</span>
+                  <span className="text-xl font-mono font-bold text-brand-gold">${finalTotal.toFixed(2)}</span>
+                </div>
               </div>
             </div>
 
-            {/* Scrollable Form Content */}
-            <div className="p-6 sm:p-10 overflow-y-auto flex-1 custom-scrollbar bg-white">
+            {/* Content */}
+            <div className="p-6 sm:p-10 overflow-y-auto flex-1 bg-white">
               {isSuccess ? (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center justify-center py-10 text-center"
-                >
-                  <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white mb-6 animate-bounce">
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white mb-6 shadow-xl shadow-green-100">
                     <ShieldCheck size={40} />
                   </div>
                   <h3 className="text-2xl font-bold text-brand-charcoal mb-2">{texts.success}</h3>
-                  <p className="text-brand-charcoal/60 font-light max-w-xs mb-8">{texts.successSub}</p>
+                  <p className="text-brand-charcoal/60 text-sm mb-10 max-w-xs leading-relaxed">{texts.successSub}</p>
                   
                   {orderInfo && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="w-full space-y-4"
-                    >
-                      <div className="bg-brand-charcoal/5 border border-brand-charcoal/10 rounded-3xl p-6">
-                        <p className="text-[10px] uppercase font-bold tracking-widest text-brand-charcoal/40 mb-2">
-                          {texts.trackingText}
-                        </p>
-                        <p className="text-2xl font-mono font-bold text-brand-gold mb-6">
-                          {orderInfo.trackingId}
-                        </p>
-                        <button
-                          onClick={() => window.location.href = `/track/${orderInfo.trackingId}`}
-                          className="w-full bg-brand-gold text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-brand-charcoal transition-all mb-4"
-                        >
-                          <MapPin size={18} /> {texts.trackNow}
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            const message = getWhatsAppMessage(orderInfo);
-                            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
-                          }}
-                          className={`w-full ${paymentMethod === 'cod' ? 'animate-pulse scale-105' : ''} bg-[#25D366] text-white font-black py-5 rounded-2xl flex flex-col items-center justify-center gap-1 hover:opacity-90 transition-all shadow-xl shadow-green-500/30 border-2 border-white/20`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-                              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                            </svg>
-                            <span className="text-lg">
-                              {paymentMethod === 'cod' 
-                                ? (isArabic ? 'تأكيد الطلب عبر واتساب' : 'Confirm Order via WhatsApp')
-                                : (isArabic ? 'إرسال الفاتورة عبر واتساب' : 'Send Invoice via WhatsApp')}
-                            </span>
-                          </div>
-                          <span className="text-[10px] opacity-80 uppercase tracking-tighter">
-                            {isArabic ? 'انقر لإرسال المعلومات فوراً' : 'Click to send info immediately'}
-                          </span>
-                        </button>
-                        
-                        {orderInfo.whatsappSent === false && paymentMethod === 'cod' && (
-                          <p className="text-[10px] text-red-500 font-bold bg-red-50 p-2 rounded-lg border border-red-100">
-                             {isArabic ? '⚠️ يرجى النقر على الزر أعلاه لإرسال التنبيه اليدوي لتعطل الإرسال التلقائي' : '⚠️ Please click button above to send manual alert'}
-                          </p>
-                        )}
+                    <div className="w-full bg-brand-charcoal/5 border-2 border-dashed border-brand-charcoal/10 rounded-3xl p-8">
+                       <div className="flex items-center justify-center gap-2 mb-4 bg-brand-gold/10 py-2 px-4 rounded-full w-fit mx-auto">
+                        <ShieldCheck size={14} className="text-brand-gold" />
+                        <span className="text-[10px] font-bold text-brand-gold uppercase tracking-widest">
+                          {isArabic ? 'تتم المعالجة عبر شبكة الموردين العالمية ✅' : 'Processed via Global Supplier Network ✅'}
+                        </span>
                       </div>
-                    </motion.div>
-                  )}
-                </motion.div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {paymentMethod === 'card' ? (
-                    <>
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest text-brand-charcoal/40">{texts.cardNumber}</label>
-                        <div className="relative group">
-                          <input
-                            required
-                            type="text"
-                            placeholder="0000 0000 0000 0000"
-                            className="w-full bg-brand-charcoal/[0.03] border-2 border-brand-charcoal/[0.05] rounded-2xl px-12 py-4 focus:bg-white focus:border-brand-gold/50 focus:ring-4 focus:ring-brand-gold/10 transition-all outline-none text-brand-charcoal font-medium placeholder:text-brand-charcoal/30 flex items-center"
-                            value={formData.cardNumber}
-                            onChange={(e) => setFormData({...formData, cardNumber: e.target.value})}
-                          />
-                          <div className={`absolute ${isArabic ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-brand-charcoal/30 group-focus-within:text-brand-gold transition-colors`}>
-                            <CreditCard size={20} aria-hidden="true" />
-                          </div>
-                          <div className={`absolute ${isArabic ? 'left-5' : 'right-5'} top-1/2 -translate-y-1/2 flex gap-1.5`}>
-                            <div className="w-8 h-5 bg-orange-500 rounded-md shadow-sm" />
-                            <div className="w-8 h-5 bg-blue-600 rounded-md shadow-sm" />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-5">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-charcoal/40 ml-1">{texts.expiry}</label>
-                          <input
-                            required
-                            type="text"
-                            placeholder="MM / YY"
-                            className="w-full bg-brand-charcoal/[0.03] border-2 border-brand-charcoal/[0.05] rounded-2xl px-5 py-4 focus:bg-white focus:border-brand-gold/50 focus:ring-4 focus:ring-brand-gold/10 transition-all outline-none text-brand-charcoal font-medium placeholder:text-brand-charcoal/30"
-                            value={formData.expiry}
-                            onChange={(e) => setFormData({...formData, expiry: e.target.value})}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-charcoal/40 ml-1">{texts.cvv}</label>
-                          <input
-                            required
-                            type="password"
-                            placeholder="***"
-                            maxLength={3}
-                            className="w-full bg-brand-charcoal/[0.03] border-2 border-brand-charcoal/[0.05] rounded-2xl px-5 py-4 focus:bg-white focus:border-brand-gold/50 focus:ring-4 focus:ring-brand-gold/10 transition-all outline-none text-brand-charcoal font-medium placeholder:text-brand-charcoal/30 text-center"
-                            value={formData.cvv}
-                            onChange={(e) => setFormData({...formData, cvv: e.target.value})}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-5">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-charcoal/40 ml-1">{texts.holderName}</label>
-                          <input
-                            required
-                            type="text"
-                            placeholder={isArabic ? 'الاسم بالكامل' : 'FULL NAME'}
-                            className="w-full bg-brand-charcoal/[0.03] border-2 border-brand-charcoal/[0.05] rounded-2xl px-5 py-4 focus:bg-white focus:border-brand-gold/50 focus:ring-4 focus:ring-brand-gold/10 transition-all outline-none text-brand-charcoal font-medium placeholder:text-brand-charcoal/30 uppercase tracking-widest"
-                            value={formData.name}
-                            onChange={(e) => setFormData({...formData, name: e.target.value})}
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-charcoal/40 ml-1">{texts.phone}</label>
-                            <input
-                              required
-                              type="tel"
-                              placeholder={isArabic ? '0000 000 000' : '+000 000 000'}
-                              className="w-full bg-brand-charcoal/[0.03] border-2 border-brand-charcoal/[0.05] rounded-2xl px-5 py-4 focus:bg-white focus:border-brand-gold/50 focus:ring-4 focus:ring-brand-gold/10 transition-all outline-none text-brand-charcoal font-medium placeholder:text-brand-charcoal/30"
-                              value={formData.phone}
-                              onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-charcoal/40 ml-1">{texts.address}</label>
-                            <input
-                              required
-                              type="text"
-                              placeholder={isArabic ? 'المدينة، الحي' : 'City, District'}
-                              className="w-full bg-brand-charcoal/[0.03] border-2 border-brand-charcoal/[0.05] rounded-2xl px-5 py-4 focus:bg-white focus:border-brand-gold/50 focus:ring-4 focus:ring-brand-gold/10 transition-all outline-none text-brand-charcoal font-medium placeholder:text-brand-charcoal/30"
-                              value={formData.address}
-                              onChange={(e) => setFormData({...formData, address: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  ) : paymentMethod === 'paypal' ? (
-                    <div className="space-y-6">
-                      <div className="bg-blue-50/50 p-8 rounded-[2.5rem] text-center border-2 border-blue-100 shadow-xl shadow-blue-500/5 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="relative z-10 flex flex-col items-center">
-                          <div className="w-16 h-16 bg-white rounded-2xl shadow-lg flex items-center justify-center mb-6">
-                             <svg viewBox="0 0 24 24" fill="#003087" className="w-8 h-8">
-                               <path d="M20.067 8.478c.492.88.556 2.014.307 3.232-.401 1.966-1.559 3.327-3.51 3.327h-1.638l-.669 3.255a.6.6 0 01-.588.479h-3.155a.3.3 0 01-.295-.36l.758-3.693h-2.183l-.758 3.693a.3.3 0 01-.295.36h-3.155a.6.6 0 01-.588-.479l1.637-7.971c.148-.724.787-1.24 1.524-1.24h7.026c2.81 0 4.673 1.258 5.385 3.398zm-4.704 3.737c.758 0 1.257-.591 1.411-1.344.154-.753-.195-1.344-.954-1.344h-2.909l-.554 2.688h3.006z"/>
-                             </svg>
-                          </div>
-                          <h4 className="text-xl font-bold text-[#003087] mb-2">{texts.paypalTitle}</h4>
-                          <p className="text-blue-900/60 font-medium text-sm leading-relaxed max-w-[240px]">
-                            {texts.paypalDesc}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-5">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-charcoal/40 ml-1">{texts.holderName}</label>
-                          <input
-                            required
-                            type="text"
-                            placeholder={isArabic ? 'الاسم بالكامل' : 'FULL NAME'}
-                            className="w-full bg-brand-charcoal/[0.03] border-2 border-brand-charcoal/[0.05] rounded-2xl px-5 py-4 focus:bg-white focus:border-brand-gold/50 focus:ring-4 focus:ring-brand-gold/10 transition-all outline-none text-brand-charcoal font-medium placeholder:text-brand-charcoal/30 uppercase tracking-widest"
-                            value={formData.name}
-                            onChange={(e) => setFormData({...formData, name: e.target.value})}
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-charcoal/40 ml-1">{texts.phone}</label>
-                            <input
-                              required
-                              type="tel"
-                              placeholder={isArabic ? '0000 000 000' : '+000 000 000'}
-                              className="w-full bg-brand-charcoal/[0.03] border-2 border-brand-charcoal/[0.05] rounded-2xl px-5 py-4 focus:bg-white focus:border-brand-gold/50 focus:ring-4 focus:ring-brand-gold/10 transition-all outline-none text-brand-charcoal font-medium placeholder:text-brand-charcoal/30"
-                              value={formData.phone}
-                              onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-charcoal/40 ml-1">{texts.address}</label>
-                            <input
-                              required
-                              type="text"
-                              placeholder={isArabic ? 'المدينة، الحي' : 'City, District'}
-                              className="w-full bg-brand-charcoal/[0.03] border-2 border-brand-charcoal/[0.05] rounded-2xl px-5 py-4 focus:bg-white focus:border-brand-gold/50 focus:ring-4 focus:ring-brand-gold/10 transition-all outline-none text-brand-charcoal font-medium placeholder:text-brand-charcoal/30"
-                              value={formData.address}
-                              onChange={(e) => setFormData({...formData, address: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                      </div>
+                      <p className="text-[10px] uppercase font-black tracking-widest text-brand-charcoal/30 mb-2">{texts.trackingText}</p>
+                      <p className="text-3xl font-mono font-bold text-brand-gold mb-8 tracking-tighter">{orderInfo.trackingId}</p>
+                      <button
+                        onClick={() => window.location.href = `/track/${orderInfo.trackingId}`}
+                        className="w-full bg-brand-charcoal text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-brand-gold transition-all shadow-lg active:scale-95"
+                      >
+                        <MapPin size={18} /> {texts.trackNow}
+                      </button>
                     </div>
-                  ) : (
-                    <>
-                      <div className="space-y-5">
-                        <div className="bg-[#25D366]/10 p-5 rounded-2xl border-2 border-[#25D366]/10 flex gap-4 text-sm items-center">
-                          <div className="w-10 h-10 bg-[#25D366] rounded-full flex items-center justify-center text-white shrink-0 shadow-lg shadow-green-500/20">
-                            <Truck size={20} />
-                          </div>
-                          <p className="text-brand-charcoal font-medium text-xs leading-relaxed">
-                            {isArabic 
-                              ? 'سيتم تحويلك إلى واتساب فور تأكيد الطلب لإرسال معلومات التوصيل وضمان سرعة التنفيذ.'
-                              : 'You will be redirected to WhatsApp after confirmation to send delivery details and ensure fast processing.'}
-                          </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {/* Payment Selection Toggles */}
+                  <div className="flex bg-brand-charcoal/[0.03] p-1.5 rounded-2xl gap-1.5 border border-brand-charcoal/5 overflow-x-auto no-scrollbar">
+                    {(['card', 'cod', 'wallet', 'paypal'] as const).map((method) => (
+                      <button
+                        key={method}
+                        onClick={() => setPaymentMethod(method)}
+                        className={`min-w-[80px] flex-1 py-4 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border-2 ${
+                          paymentMethod === method 
+                            ? 'bg-brand-charcoal text-white border-brand-charcoal shadow-xl shadow-brand-charcoal/20 scale-[1.02]' 
+                            : 'bg-white text-brand-charcoal/40 border-brand-charcoal/5 hover:border-brand-gold/30 hover:text-brand-gold'
+                        }`}
+                      >
+                        {method === 'card' ? <CreditCard size={18} /> : 
+                         method === 'cod' ? <Truck size={18} /> : 
+                         method === 'wallet' ? <Globe size={18} /> : 
+                         <Banknote size={18} />}
+                        <span className="text-[7px] font-black uppercase tracking-[0.1em] whitespace-nowrap">{texts[method as keyof typeof texts]}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* Customer Information Section */}
+                    <div className="space-y-4">
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2">
+                        <MapPin size={12} /> {isArabic ? 'معلومات الشحن' : 'Shipping Info'}
+                      </h4>
+                      
+                      <div className="space-y-4">
+                        {/* Country Selection */}
+                        <div className="relative group">
+                          <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-charcoal/40 z-10">{isArabic ? 'الدولة' : 'Country'}</label>
+                          <select
+                            value={selectedCountry}
+                            onChange={(e) => setSelectedCountry(e.target.value)}
+                            className="w-full bg-white border-2 border-brand-charcoal/10 rounded-2xl px-12 py-5 focus:border-brand-gold outline-none text-brand-charcoal font-bold appearance-none transition-all shadow-sm"
+                          >
+                            {countries.map(c => (
+                              <option key={c.code} value={c.code}>{isArabic ? c.nameAr : c.name}</option>
+                            ))}
+                          </select>
+                          <Globe size={20} className={`absolute ${isArabic ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-brand-gold`} />
                         </div>
 
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-charcoal/40 ml-1">{isArabic ? 'الاسم الكامل' : 'Full Name'}</label>
+                        {/* Shipping Provider Selection */}
+                        <div className="space-y-3">
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold">{isArabic ? 'شركة الشحن' : 'Shipping Provider'}</label>
+                          <div className="grid grid-cols-1 gap-2">
+                            {shippingProviders
+                              .filter(p => {
+                                if (selectedCountry === 'IQ') return true; // Show all for Iraq including Al-Waseet
+                                return p.id !== 'al-waseet'; // Hide Al-Waseet for other countries
+                              })
+                              .map((p) => (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setSelectedProvider(p.id)}
+                                className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${
+                                  selectedProvider === p.id 
+                                    ? 'border-brand-gold bg-brand-gold/5 shadow-sm' 
+                                    : 'border-brand-charcoal/5 hover:border-brand-charcoal/10'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedProvider === p.id ? 'bg-brand-gold text-white' : 'bg-brand-charcoal/5 text-brand-charcoal/40'}`}>
+                                    <Truck size={14} />
+                                  </div>
+                                  <div className={isArabic ? 'text-right' : 'text-left'}>
+                                    <span className="block text-sm font-bold text-brand-charcoal">{p.name}</span>
+                                    <span className="block text-[10px] text-brand-charcoal/40 font-medium">{isArabic ? `توصيل خلال: ${p.speed}` : `Delivery: ${p.speed}`}</span>
+                                  </div>
+                                </div>
+                                <div className={`text-sm font-bold ${selectedProvider === p.id ? 'text-brand-gold' : 'text-brand-charcoal/60'}`}>
+                                  ${(Math.round(p.base * (COUNTRY_ADJUSTMENT_LOCAL[selectedCountry] || 1.5))).toFixed(2)}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Name Input */}
+                        <div className="relative">
+                          <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{isArabic ? 'الاسم بالكامل' : 'Full Name'}</label>
                           <input
                             required
                             type="text"
-                            placeholder={isArabic ? 'أدخل اسمك الكامل' : 'Enter your full name'}
-                            className="w-full bg-brand-charcoal/[0.03] border-2 border-brand-charcoal/[0.05] rounded-2xl px-5 py-4 focus:bg-white focus:border-brand-gold/50 focus:ring-4 focus:ring-brand-gold/10 transition-all outline-none text-brand-charcoal font-medium placeholder:text-brand-charcoal/30"
+                            placeholder="John Doe"
+                            className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm"
                             value={formData.name}
                             onChange={(e) => setFormData({...formData, name: e.target.value})}
                           />
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-charcoal/40 ml-1">{isArabic ? 'رقم الهاتف' : 'Phone Number'}</label>
-                          <input
-                            required
-                            type="tel"
-                            placeholder={isArabic ? 'مثال: 078xxxxxxx' : 'Example: 078xxxxxxx'}
-                            className="w-full bg-brand-charcoal/[0.03] border-2 border-brand-charcoal/[0.05] rounded-2xl px-5 py-4 focus:bg-white focus:border-brand-gold/50 focus:ring-4 focus:ring-brand-gold/10 transition-all outline-none text-brand-charcoal font-medium placeholder:text-brand-charcoal/30"
-                            value={formData.phone}
-                            onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                          />
+
+                        {/* Contact Details Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="relative">
+                            <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{isArabic ? 'رقم الهاتف' : 'Phone'}</label>
+                            <div className="flex bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl overflow-hidden focus-within:bg-white focus-within:border-brand-gold transition-all shadow-sm">
+                              <select
+                                value={phonePrefix}
+                                onChange={(e) => setPhonePrefix(e.target.value)}
+                                className="bg-transparent border-none pl-4 pr-1 py-5 text-sm font-bold text-brand-charcoal outline-none cursor-pointer appearance-none"
+                                style={{ width: '80px' }}
+                              >
+                                {countries.map(c => (
+                                  <option key={c.code} value={c.dialCode}>{c.dialCode} ({c.code})</option>
+                                ))}
+                              </select>
+                              <div className="w-[1px] h-6 bg-brand-charcoal/10 self-center" />
+                              <input
+                                required
+                                type="tel"
+                                placeholder="770 000 0000"
+                                className="flex-1 bg-transparent border-none px-4 py-5 outline-none text-brand-charcoal font-bold"
+                                value={formData.phone}
+                                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                              />
+                            </div>
+                          </div>
+                          <div className="relative">
+                            <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{isArabic ? 'البريد (اختياري)' : 'Email'}</label>
+                            <input
+                              type="email"
+                              placeholder="email@example.com"
+                              className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm"
+                              value={formData.email}
+                              onChange={(e) => setFormData({...formData, email: e.target.value})}
+                            />
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-charcoal/40 ml-1">{isArabic ? 'العنوان بالتفصيل' : 'Detailed Address'}</label>
+
+                        {/* Detailed Address Section */}
+                        <div className="relative">
+                          <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{isArabic ? 'العنوان بالتفصيل' : 'Detailed Address'}</label>
                           <textarea
                             required
-                            placeholder={isArabic ? 'المدينة، المنطقة، اسم الشارع' : 'City, Area, Street Name'}
-                            rows={3}
-                            className="w-full bg-brand-charcoal/[0.03] border-2 border-brand-charcoal/[0.05] rounded-2xl px-5 py-4 focus:bg-white focus:border-brand-gold/50 focus:ring-4 focus:ring-brand-gold/10 transition-all outline-none text-brand-charcoal font-medium placeholder:text-brand-charcoal/30 resize-none"
+                            rows={2}
+                            placeholder={isArabic ? 'المنطقة، الزقاق، المعالم القريبة...' : 'District, Street, Landmarks...'}
+                            className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm resize-none"
                             value={formData.address}
                             onChange={(e) => setFormData({...formData, address: e.target.value})}
                           />
                         </div>
                       </div>
-                    </>
-                  )}
+                    </div>
 
-                  <div className="flex items-center gap-2 text-brand-charcoal/60 text-[10px] uppercase font-bold tracking-widest mb-4">
-                    <Lock size={12} /> {texts.secure}
-                  </div>
-
-                  <div className="bg-brand-charcoal/5 border border-brand-charcoal/10 rounded-2xl p-4 mb-6">
-                    <h4 className="text-xs font-bold uppercase tracking-widest text-brand-charcoal/60 mb-2">
-                      {t('order.cancellationPolicy.title')}
-                    </h4>
-                    <p className="text-[11px] font-light text-brand-charcoal/70 leading-relaxed">
-                      {t('order.cancellationPolicy.text')}
-                    </p>
-                  </div>
-
-                  <button
-                    disabled={isProcessing}
-                    type="submit"
-                    className="w-full bg-brand-charcoal text-white font-bold py-5 rounded-[2rem] flex items-center justify-center gap-3 hover:bg-brand-gold hover:shadow-2xl hover:shadow-brand-gold/30 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-brand-charcoal/10 group"
-                  >
-                    {isProcessing ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                        {texts.processing}
+                    {/* Global Fulfillment Trust Badge */}
+                    <div className="bg-brand-charcoal/[0.02] p-4 rounded-2xl border border-brand-charcoal/5 flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-brand-gold/10 flex items-center justify-center flex-shrink-0">
+                        <Globe size={14} className="text-brand-gold" />
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        {paymentMethod === 'cod' && (
-                          <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 transition-transform group-hover:scale-110">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                        )}
-                        {paymentMethod === 'paypal' && (
-                          <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 transition-transform group-hover:scale-110">
-                            <path d="M20.067 8.478c.492.88.556 2.014.307 3.232-.401 1.966-1.559 3.327-3.51 3.327h-1.638l-.669 3.255a.6.6 0 01-.588.479h-3.155a.3.3 0 01-.295-.36l.758-3.693h-2.183l-.758 3.693a.3.3 0 01-.295.36h-3.155a.6.6 0 01-.588-.479l1.637-7.971c.148-.724.787-1.24 1.524-1.24h7.026c2.81 0 4.673 1.258 5.385 3.398zm-4.704 3.737c.758 0 1.257-.591 1.411-1.344.154-.753-.195-1.344-.954-1.344h-2.909l-.554 2.688h3.006z"/>
-                          </svg>
-                        )}
-                        <span className="text-lg tracking-tight">{paymentMethod === 'card' ? texts.payNow : (paymentMethod === 'cod' ? (isArabic ? 'تأكيد الطلب عبر واتساب' : 'Confirm Order via WhatsApp') : (isArabic ? 'متابعة إلى باي بال' : 'Continue to PayPal'))}</span>
+                      <div className={isArabic ? 'text-right' : 'text-left'}>
+                        <p className="text-[10px] font-bold text-brand-charcoal uppercase tracking-tighter">
+                          {isArabic ? 'نظام شحن عالمي ذكي' : 'Smart Global Fulfillment'}
+                        </p>
+                        <p className="text-[9px] text-brand-charcoal/50 leading-relaxed">
+                          {isArabic 
+                            ? 'يتم معالجة طلبك تلقائياً عبر أكبر شبكة موردين عالمية لضمان الجودة وأفضل سعر شحن مباشر.' 
+                            : 'Your order is automatically processed through a global supplier network to ensure quality and the best direct shipping rates.'}
+                        </p>
                       </div>
-                    )}
-                  </button>
-                </form>
+                    </div>
+
+                    {/* Payment Execution Section */}
+                    <div className="pt-6 border-t border-brand-charcoal/5">
+                      {paymentMethod === 'card' ? (
+                        <div className="space-y-6">
+                           <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2 mb-4">
+                             <CreditCard size={12} /> {isArabic ? 'بيانات البطاقة البنكية' : 'Card Details'}
+                           </h4>
+                           <div className="bg-brand-charcoal/[0.02] p-6 rounded-3xl border-2 border-brand-charcoal/5">
+                            <StripePayment 
+                              amount={finalTotal} 
+                              onSuccess={() => handleSubmit()} 
+                              onError={(err) => alert(err)} 
+                              isArabic={isArabic}
+                            />
+                           </div>
+                        </div>
+                      ) : paymentMethod === 'wallet' ? (
+                        <div className="space-y-6">
+                           <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2 mb-4">
+                             <Globe size={12} /> {isArabic ? 'اختر المحفظة والتحويل' : 'Select Wallet & Transfer'}
+                           </h4>
+                           <div className="grid grid-cols-3 gap-2 mb-4">
+                              <button 
+                                onClick={() => setSelectedWallet('zaincash')}
+                                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${selectedWallet === 'zaincash' ? 'border-[#ffcb05] bg-[#ffcb05]/20' : 'border-brand-charcoal/5 bg-white'}`}
+                              >
+                                <div className="w-9 h-9 rounded-full bg-[#ffcb05] flex items-center justify-center text-black font-black text-[11px] shadow-sm">ZC</div>
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[10px] font-black text-brand-charcoal leading-tight">ZainCash</span>
+                                  <span className="text-[8px] font-bold text-brand-charcoal/60 leading-tight">زين كاش</span>
+                                </div>
+                              </button>
+                              <button 
+                                onClick={() => setSelectedWallet('asiahawala')}
+                                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${selectedWallet === 'asiahawala' ? 'border-[#ed1c24] bg-[#ed1c24]/20' : 'border-brand-charcoal/5 bg-white'}`}
+                              >
+                                <div className="w-9 h-9 rounded-full bg-[#ed1c24] flex items-center justify-center text-white font-black text-[11px] shadow-sm">AH</div>
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[10px] font-black text-brand-charcoal leading-tight">AsiaHawala</span>
+                                  <span className="text-[8px] font-bold text-brand-charcoal/60 leading-tight">آسيا حوالة</span>
+                                </div>
+                              </button>
+                              <button 
+                                onClick={() => setSelectedWallet('mastercard')}
+                                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${selectedWallet === 'mastercard' ? 'border-brand-charcoal bg-brand-charcoal/10' : 'border-brand-charcoal/5 bg-white'}`}
+                              >
+                                <div className="w-9 h-9 rounded-full bg-brand-charcoal flex items-center justify-center text-white font-black text-[11px] shadow-sm">MC</div>
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[10px] font-black text-brand-charcoal leading-tight">MasterCard</span>
+                                  <span className="text-[8px] font-bold text-brand-charcoal/60 leading-tight">ماستركارد</span>
+                                </div>
+                              </button>
+                           </div>
+
+                           <div className="bg-brand-charcoal/5 p-6 rounded-3xl border border-brand-charcoal/10 text-center space-y-3">
+                              <p className="text-xs text-brand-charcoal/60 leading-relaxed">
+                                {isArabic 
+                                  ? `يرجى تحويل مبلغ (${finalTotal.toFixed(2)}$) إلى ${selectedWallet === 'mastercard' ? 'رقم البطاقة' : 'الرقم'} التالي، ثم اضغط تأكيد السداد:` 
+                                  : `Please transfer ($${finalTotal.toFixed(2)}) to the following ${selectedWallet === 'mastercard' ? 'Card Number' : 'Number'}, then verify:`}
+                              </p>
+                              <p className="text-xl font-mono font-black text-brand-charcoal tracking-widest bg-white py-3 rounded-xl border border-brand-charcoal/5">
+                                {selectedWallet === 'zaincash' ? '07837814009' : 
+                                 selectedWallet === 'mastercard' ? '7116787909' : 
+                                 '078XXXXXXX'}
+                              </p>
+                              <p className="text-[9px] text-brand-gold font-bold uppercase">
+                                {isArabic ? 'يرجى إرسال صورة التحويل عبر الواتساب بعد الطلب' : 'Please send transfer screenshot via WhatsApp after order'}
+                              </p>
+                           </div>
+
+                           <button
+                             disabled={isProcessing}
+                             onClick={() => handleSubmit()}
+                             type="button"
+                             className="w-full bg-brand-charcoal text-white font-bold py-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-brand-gold shadow-2xl shadow-brand-charcoal/20 transition-all disabled:opacity-50 active:scale-95 group"
+                           >
+                             {isProcessing ? (
+                               <span className="flex items-center gap-2">
+                                  <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                  {texts.processing}
+                               </span>
+                             ) : (
+                               <>
+                                 <ShieldCheck className="group-hover:scale-110 transition-transform" />
+                                 {texts.confirmOrder}
+                               </>
+                             )}
+                           </button>
+                        </div>
+                      ) : (
+                        <button
+                          disabled={isProcessing}
+                          onClick={() => handleSubmit()}
+                          type="button"
+                          className="w-full bg-brand-charcoal text-white font-bold py-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-brand-gold shadow-2xl shadow-brand-charcoal/20 transition-all disabled:opacity-50 active:scale-95 group"
+                        >
+                          {isProcessing ? (
+                            <span className="flex items-center gap-2">
+                               <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                               {texts.processing}
+                            </span>
+                          ) : (
+                            <>
+                              {paymentMethod === 'cod' ? <Truck className="group-hover:translate-x-1 transition-transform" /> : <Banknote />}
+                              {texts.confirmOrder}
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               )}
+            </div>
+            
+            <div className="p-4 bg-brand-charcoal/5 text-center flex items-center justify-center gap-2 text-[10px] text-brand-charcoal/40 uppercase font-black tracking-widest">
+              <ShieldCheck size={12} /> {texts.secure}
             </div>
           </motion.div>
         </div>

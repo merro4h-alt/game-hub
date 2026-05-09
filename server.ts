@@ -2,9 +2,13 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import Stripe from "stripe";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Initialize Stripe (lazy load it inside routes if needed, but here is fine for demonstration)
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
 async function startServer() {
   const app = express();
@@ -14,6 +18,70 @@ async function startServer() {
   
   // Simulated database for orders
   const orders: any[] = [];
+
+  // AutoDS Integration Simulation
+  const autoDS = {
+    syncOrder: (order: any) => {
+      console.log(`[AutoDS] Order #${order.trackingId} synced with AutoDS Fulfillment Service.`);
+      return {
+        status: 'synched',
+        supplierId: 'SUP-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+        estimatedDispatch: '24-48 hours'
+      };
+    }
+  };
+
+  // Shipping providers logic (Simulated rates for Dropshipping Model)
+  const SHIPPING_PROVIDERS = [
+    { id: 'standard', name: 'شحن قياسي (Standard Shipping)', base: 0, multiplier: 1.0, speed: '10-15 days' },
+    { id: 'express', name: 'شحن سريع (Express Shipping)', base: 15, multiplier: 1.2, speed: '5-9 days' },
+    { id: 'al-waseet', name: 'شركة الوسيط - توصيل محلي (Al-Waseet)', base: 5, multiplier: 1.0, speed: '2-4 days' }
+  ];
+
+  const COUNTRY_ADJUSTMENT: Record<string, number> = {
+    'IQ': 0.5, // Discount for local
+    'SA': 1.2,
+    'AE': 1.1,
+    'JO': 1.0,
+    'US': 2.5,
+    'DEFAULT': 1.5
+  };
+
+  app.get("/api/shipping-providers", (req, res) => {
+    res.json(SHIPPING_PROVIDERS);
+  });
+
+  app.get("/api/shipping-rate", (req, res) => {
+    const country = req.query.country as string;
+    const providerId = req.query.provider as string;
+    
+    const provider = SHIPPING_PROVIDERS.find(p => p.id === providerId) || SHIPPING_PROVIDERS[1]; // Fallback to Aramex
+    const countryMod = COUNTRY_ADJUSTMENT[country] || COUNTRY_ADJUSTMENT['DEFAULT'];
+    
+    const rate = Math.round(provider.base * provider.multiplier * countryMod);
+    res.json({ 
+      rate, 
+      provider: provider.name,
+      speed: provider.speed
+    });
+  });
+
+  app.post("/api/create-payment-intent", async (req, res) => {
+    if (!stripe) {
+      return res.status(500).json({ error: "Stripe is not configured" });
+    }
+    try {
+      const { amount, currency = 'usd' } = req.body;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // convert to cents
+        currency,
+        automatic_payment_methods: { enabled: true },
+      });
+      res.json({ clientSecret: paymentIntent.client_secret });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
 
   app.get("/api/track/:id", (req, res) => {
     const order = orders.find(o => o.trackingId === req.params.id);
@@ -30,10 +98,16 @@ async function startServer() {
     // Generate tracking ID
     const trackingId = "AH-" + Math.random().toString(36).substring(2, 6).toUpperCase() + "-" + Math.random().toString(36).substring(2, 6).toUpperCase();
     
+    const fulfillmentInfo = autoDS.syncOrder({ ...orderData, trackingId });
+
     const newOrder = {
       ...orderData,
       trackingId,
       status: 'pending',
+      fulfillment: {
+        provider: 'AutoDS',
+        ...fulfillmentInfo
+      },
       createdAt: new Date().toISOString()
     };
     
@@ -41,7 +115,9 @@ async function startServer() {
     console.log("Order saved:", trackingId);
 
     const { name, phone, address, total, items, emailTo } = orderData;
-    const trackingLink = `https://ais-dev-6ft3dpnmbas5ey35iluk4k-816940702897.europe-west2.run.app/track/${trackingId}`;
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.headers.host;
+    const trackingLink = `${protocol}://${host}/track/${trackingId}`;
 
     try {
       // Lazy import nodemailer and twilio

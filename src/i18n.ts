@@ -242,6 +242,9 @@ i18n
     interpolation: {
       escapeValue: false,
     },
+    react: {
+      useSuspense: false, // Prevent white/black screens during translation loading
+    },
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],

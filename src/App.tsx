@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { StoreProvider } from './StoreContext';
@@ -62,8 +63,26 @@ function AppContent() {
   const { isLoading: storeLoading } = useStore();
   const { loading: authLoading } = useAuth();
   const { t, i18n } = useTranslation();
+  const [isSafetyTimeoutReached, setIsSafetyTimeoutReached] = useState(false);
 
-  if (storeLoading || authLoading) {
+  useEffect(() => {
+    console.log("App loading state:", { storeLoading, authLoading });
+    const timer = setTimeout(() => {
+      if (storeLoading || authLoading) {
+        console.warn("Safety timeout reached! Forcing app display despite loading states.");
+        setIsSafetyTimeoutReached(true);
+      }
+    }, 5000); // Increased to 5 seconds to give more time to slow connections
+    
+    // Add a global fallback to show something if the app is still black
+    if (typeof window !== 'undefined') {
+      (window as any).forceLive = () => setIsSafetyTimeoutReached(true);
+    }
+    
+    return () => clearTimeout(timer);
+  }, [storeLoading, authLoading]);
+
+  if ((storeLoading || authLoading) && !isSafetyTimeoutReached) {
     return (
       <div className="fixed inset-0 bg-[#0A0A0B] flex flex-col items-center justify-center z-[9999]">
         <div className="flex items-center gap-3 mb-8 animate-pulse">
@@ -83,6 +102,11 @@ function AppContent() {
           <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em] mt-4">
             {i18n.language === 'ar' ? 'جاري التحميل...' : 'Loading Excellence...'}
           </p>
+          
+          {/* Debug info for user if loading takes too long */}
+          <div className="mt-12 text-[10px] text-white/20 font-mono">
+            Status: {storeLoading ? 'Store[L]' : 'Store[OK]'} | {authLoading ? 'Auth[L]' : 'Auth[OK]'}
+          </div>
         </div>
         <style>{`
           @keyframes loading {

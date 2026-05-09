@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
-import { auth, checkIfAdmin, loginWithGoogle, logout } from './lib/firebase';
+import { auth, checkIfAdmin, loginWithGoogle, logout, onAuthStateListener } from './lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -21,8 +21,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let isMounted = true;
+    console.log("AuthProvider mounted, subcribing to auth changes...");
     
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateListener(async (currentUser) => {
+      console.log("Auth state changed:", currentUser?.email || 'Logged out');
       if (!isMounted) return;
       
       setUser(currentUser);
@@ -30,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (currentUser) {
         try {
           const adminStatus = await checkIfAdmin(currentUser);
+          console.log("Admin status for", currentUser.email, ":", adminStatus);
           if (isMounted) setIsAdmin(adminStatus);
         } catch (error) {
           console.error("Auth check failed", error);
@@ -40,6 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       setLoading(false);
+      console.log("Auth loading finished.");
     }, (error) => {
       console.error("Auth status change error:", error);
       if (isMounted) setLoading(false);

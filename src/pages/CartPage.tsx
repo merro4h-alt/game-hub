@@ -6,8 +6,6 @@ import { useStore } from '../StoreContext';
 import PaymentModal from '../components/PaymentModal';
 import { useTranslation } from 'react-i18next';
 
-import { createShopifyCheckout } from '../services/shopifyService';
-
 const CartPage: React.FC = () => {
   const { 
     cart, 
@@ -34,32 +32,8 @@ const CartPage: React.FC = () => {
     if (result.success) setDiscountCodeInput('');
   };
 
-  const handleCheckout = async () => {
-    const lineItems = cart
-      .filter(item => item.variantId)
-      .map(item => ({
-        variantId: item.variantId!,
-        quantity: item.quantity
-      }));
-
-    if (lineItems.length > 0) {
-      setIsCheckingOut(true);
-      try {
-        const checkoutUrl = await createShopifyCheckout(lineItems);
-        setIsCheckingOut(false);
-        if (checkoutUrl) {
-          window.location.href = checkoutUrl;
-        } else {
-          setIsPaymentModalOpen(true);
-        }
-      } catch (error) {
-        console.error('Checkout error:', error);
-        setIsCheckingOut(false);
-        setIsPaymentModalOpen(true);
-      }
-    } else {
-      setIsPaymentModalOpen(true);
-    }
+  const handleCheckout = () => {
+    setIsPaymentModalOpen(true);
   };
 
   const texts = {
@@ -396,7 +370,7 @@ const CartPage: React.FC = () => {
       <PaymentModal 
         isOpen={isPaymentModalOpen} 
         onClose={() => setIsPaymentModalOpen(false)} 
-        total={totalPrice} 
+        total={appliedDiscount ? discountedTotal : totalPrice} 
       />
     </div>
   );

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, CartItem } from './types';
 import { INITIAL_PRODUCTS } from './constants';
-import { fetchShopifyProducts } from './services/shopifyService';
 
 interface StoreContextType {
   products: Product[];
@@ -40,27 +39,40 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('trendifi_products');
-    let loadedProducts: Product[] = saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-    
-    // Cleanup: Map old categories to new ones if they exist
-    return loadedProducts.map(p => {
-      let category = p.category;
-      if (category as any === 'Fashion & Beauty') category = 'New';
-      if (category as any === 'Cosmetic') category = 'Best Seller';
-      if (category as any === 'Sport' || category as any === 'Gifts & Sets') category = 'Offers';
-      return { ...p, category };
-    });
+    try {
+      const saved = localStorage.getItem('trendifi_products');
+      let loadedProducts: Product[] = saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+      
+      // Cleanup: Map old categories to new ones if they exist
+      return loadedProducts.map(p => {
+        let category = p.category;
+        if (category as any === 'Fashion & Beauty') category = 'New';
+        if (category as any === 'Cosmetic') category = 'Best Seller';
+        if (category as any === 'Sport' || category as any === 'Gifts & Sets') category = 'Offers';
+        return { ...p, category };
+      });
+    } catch (e) {
+      console.warn("Failed to load products from localStorage, using initial products", e);
+      return INITIAL_PRODUCTS;
+    }
   });
 
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('trendifi_cart');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('trendifi_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
   });
 
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; percent: number } | null>(() => {
-    const saved = localStorage.getItem('trendifi_discount');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('trendifi_discount');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
   });
 
   const [hasPurchased, setHasPurchased] = useState<boolean>(() => {
@@ -101,31 +113,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   useEffect(() => {
-    const loadShopifyProducts = async () => {
-      const shopifyProducts = await fetchShopifyProducts();
-      if (shopifyProducts.length > 0) {
-        const mappedProducts: Product[] = shopifyProducts.map(sp => ({
-          id: sp.id,
-          variantId: sp.variants.edges[0]?.node.id,
-          name: sp.title,
-          description: sp.description,
-          price: parseFloat(sp.variants.edges[0]?.node.price.amount || '0'),
-          image: sp.images.edges[0]?.node.url || '',
-          images: sp.images.edges.map(e => e.node.url),
-          category: 'New',
-          colors: [],
-          sizes: [],
-          rating: 4.5 + Math.random() * 0.5,
-        }));
-
-        setProducts(prev => {
-          const shopifyIds = new Set(mappedProducts.map(p => p.id));
-          const filteredPrev = prev.filter(p => !shopifyIds.has(p.id));
-          return [...mappedProducts, ...filteredPrev];
-        });
-      }
-    };
-    loadShopifyProducts();
+    // Initial loading safety timer - reduced since API is removed
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -243,11 +233,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     p.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  useEffect(() => {
-    // Simulate initial loading or wait for Shopify fetch
-    const timer = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <StoreContext.Provider value={{ 
