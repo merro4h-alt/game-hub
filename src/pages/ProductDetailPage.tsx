@@ -91,12 +91,16 @@ const ProductDetailPage: React.FC = () => {
               <AnimatePresence mode="wait">
                 <motion.img
                   key={activeImageIndex}
-                  src={allImages[activeImageIndex]}
+                  src={allImages[activeImageIndex] || 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600'}
                   alt={product.name}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.4 }}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600';
+                  }}
                   className={`w-full h-full object-contain p-8 ${isZoomed ? 'opacity-0' : 'opacity-100'}`}
                   referrerPolicy="no-referrer"
                 />
@@ -149,7 +153,16 @@ const ProductDetailPage: React.FC = () => {
                   activeImageIndex === idx ? 'border-brand-gold scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
                 }`}
               >
-                <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <img 
+                  src={img || 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600'} 
+                  alt={`Thumbnail ${idx}`} 
+                  className="w-full h-full object-cover" 
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600';
+                  }}
+                  referrerPolicy="no-referrer" 
+                />
               </button>
             ))}
           </div>

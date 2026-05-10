@@ -218,6 +218,32 @@ Total: $${total.toFixed(2)}
     }
   });
 
+  app.get("/api/fetch-url", async (req, res) => {
+    const { url } = req.query;
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ error: "URL is required" });
+    }
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8'
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      const html = await response.text();
+      res.send(html);
+    } catch (error: any) {
+      console.error("Proxy fetch error:", error.message);
+      res.status(500).json({ error: "Failed to fetch URL content. It might be blocked or private." });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

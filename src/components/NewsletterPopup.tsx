@@ -105,7 +105,7 @@ export const NewsletterPopup = () => {
                           onChange={(e) => setEmail(e.target.value)}
                           required
                           placeholder={isArabic ? 'البريد الإلكتروني' : 'Enter your email'}
-                          className="w-full pl-12 pr-4 py-4 bg-brand-cream/50 border border-brand-charcoal/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20 focus:border-[#4F46E5] transition-all font-medium"
+                          className="w-full pl-12 pr-4 py-4 bg-brand-cream/50 border border-brand-charcoal/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20 focus:border-[#4F46E5] transition-all font-medium text-brand-charcoal"
                         />
                       </div>
                       <button 

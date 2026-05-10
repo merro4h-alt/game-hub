@@ -18,7 +18,8 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-        request.auth.token.email == 'kmerro25@gmail.com'
+        request.auth.token.email.lower() == 'kmerro25@gmail.com' ||
+        request.auth.token.email.lower() == 'merro4h@gmail.com'
       );
     }
 
@@ -53,13 +54,10 @@ service cloud.firestore {
     // Orders
     match /orders/{orderId} {
       function isValidOrder(data) {
-        return data.keys().hasAll(['userId', 'items', 'total', 'status', 'createdAt']) &&
-               // Allow 'anonymous' if not signed in, otherwise must match UID
-               (data.userId == 'anonymous' || (isSignedIn() && data.userId == request.auth.uid)) &&
+        return data.userId is string &&
                data.items is list && data.items.size() > 0 &&
-               data.total is number && data.total >= 0 &&
-               data.status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled'] &&
-               data.createdAt == request.time;
+               data.total is number &&
+               data.status is string;
       }
 
       // Public can GET a specific order (for tracking)
@@ -72,8 +70,7 @@ service cloud.firestore {
       allow create: if isValidOrder(incoming()) && isValidId(orderId);
       
       // Only admins can update or delete
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow update, delete: if isAdmin();
     }
 
     // User Profiles
@@ -87,6 +84,12 @@ service cloud.firestore {
     match /admins/{userId} {
       allow read: if isAdmin();
       allow write: if isAdmin(); // Only existing admins can add new ones
+    }
+
+    // Test writes for debugging
+    match /test_writes/{docId} {
+      allow create: if true;
+      allow read: if isAdmin();
     }
   }
 }

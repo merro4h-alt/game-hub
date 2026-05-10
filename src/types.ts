@@ -12,6 +12,8 @@ export interface Product {
   colorImages?: Record<string, string>;
   sizes: string[];
   rating: number;
+  supplierName?: string;
+  supplierUrl?: string;
 }
 
 export interface CartItem extends Product {
@@ -32,6 +34,7 @@ export interface Order {
   shippingAddress: {
     fullName: string;
     email: string;
+    phone: string;
     address: string;
     city: string;
     country: string;

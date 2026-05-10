@@ -51,14 +51,14 @@ const ContactPage: React.FC = () => {
                   <label className="text-xs font-bold uppercase tracking-widest text-white/50">First Name</label>
                   <input 
                     type="text" 
-                    className="w-full bg-white/5 border border-white/10 text-white outline-none p-4 rounded-2xl focus:ring-2 focus:ring-brand-gold transition-all"
+                    className="w-full bg-white/5 border border-white/10 text-brand-charcoal dark:text-white outline-none p-4 rounded-2xl focus:ring-2 focus:ring-brand-gold transition-all"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-white/50">Last Name</label>
                   <input 
                     type="text" 
-                    className="w-full bg-white/5 border border-white/10 text-white outline-none p-4 rounded-2xl focus:ring-2 focus:ring-brand-gold transition-all"
+                    className="w-full bg-white/5 border border-white/10 text-brand-charcoal dark:text-white outline-none p-4 rounded-2xl focus:ring-2 focus:ring-brand-gold transition-all"
                   />
                 </div>
               </div>
@@ -66,14 +66,14 @@ const ContactPage: React.FC = () => {
                 <label className="text-xs font-bold uppercase tracking-widest text-white/50">Email Address</label>
                 <input 
                   type="email" 
-                  className="w-full bg-white/5 border border-white/10 text-white outline-none p-4 rounded-2xl focus:ring-2 focus:ring-brand-gold transition-all"
+                  className="w-full bg-white/5 border border-white/10 text-brand-charcoal dark:text-white outline-none p-4 rounded-2xl focus:ring-2 focus:ring-brand-gold transition-all"
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-white/50">Message</label>
                 <textarea 
                   rows={4}
-                  className="w-full bg-white/5 border border-white/10 text-white outline-none p-4 rounded-2xl focus:ring-2 focus:ring-brand-gold transition-all resize-none"
+                  className="w-full bg-white/5 border border-white/10 text-brand-charcoal dark:text-white outline-none p-4 rounded-2xl focus:ring-2 focus:ring-brand-gold transition-all resize-none"
                 />
               </div>
               <button className="w-full bg-brand-gold text-[#0A0A0B] font-bold py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-white transition-all shadow-lg hover:shadow-xl">

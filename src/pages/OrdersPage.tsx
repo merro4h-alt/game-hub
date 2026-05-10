@@ -25,15 +25,22 @@ const OrdersPage: React.FC = () => {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ordersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Order[];
+      const ordersData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          id: doc.id
+        };
+      }) as Order[];
       setOrders(ordersData);
       setLoading(false);
     }, (error) => {
       console.error("Error fetching orders:", error);
-      setLoading(false);
+      import('../lib/firebase').then(({ handleFirestoreError, OperationType }) => {
+        handleFirestoreError(error, OperationType.LIST, 'orders');
+      }).catch(() => {
+        setLoading(false);
+      });
     });
 
     return () => unsubscribe();

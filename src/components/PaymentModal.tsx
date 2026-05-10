@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, CreditCard, ShieldCheck, Lock, Truck, MapPin, Globe, Banknote } from 'lucide-react';
+import { X, CreditCard, ShieldCheck, Lock, Truck, MapPin, Globe, Banknote, Percent } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../StoreContext';
 import { db, auth } from '../lib/firebase';
@@ -41,10 +41,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
   const { clearCart, cart } = useStore();
   const isArabic = i18n.language === 'ar';
 
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cod' | 'paypal' | 'wallet'>('wallet');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cod' | 'applepay' | 'bnpl' | 'wallet'>('card');
+  const [selectedBNPL, setSelectedBNPL] = useState<'tabby' | 'tamara'>('tabby');
   const [selectedWallet, setSelectedWallet] = useState<'zaincash' | 'asiahawala' | 'mastercard'>('zaincash');
-  const [selectedCountry, setSelectedCountry] = useState('IQ');
-  const [phonePrefix, setPhonePrefix] = useState('+964');
+  const [selectedCountry, setSelectedCountry] = useState('SA'); // Default to SA for better payment coverage
+  const [phonePrefix, setPhonePrefix] = useState('+966');
   const [shippingProviders, setShippingProviders] = useState<any[]>([]);
   const [selectedProvider, setSelectedProvider] = useState('aramex');
   const [shippingFee, setShippingFee] = useState(0);
@@ -176,7 +177,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
         createdAt: serverTimestamp()
       };
 
-      await setDoc(doc(db, 'orders', trackingId), orderData);
+      try {
+        await setDoc(doc(db, 'orders', trackingId), orderData);
+      } catch (error) {
+        const { handleFirestoreError, OperationType } = await import('../lib/firebase');
+        handleFirestoreError(error, OperationType.WRITE, `orders/${trackingId}`);
+      }
 
       const newOrderInfo = {
         trackingId,
@@ -194,10 +200,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
       setIsProcessing(false);
       setIsSuccess(true);
       clearCart();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Order submission error:', error);
       setIsProcessing(false);
-      alert(isArabic ? 'حدث خطأ أثناء معالجة الطلب' : 'Error processing order');
+      // Improve error message display
+      const displayMsg = error instanceof Error ? error.message : String(error);
+      alert((isArabic ? 'حدث خطأ أثناء معالجة الطلب: ' : 'Error processing order: ') + displayMsg);
     }
   };
 
@@ -206,6 +214,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
     subtitle: isArabic ? 'حدد الدولة وطريقة الدفع' : 'Select country and payment method',
     card: isArabic ? 'بطاقة ائتمان' : 'Credit Card',
     cod: isArabic ? 'الدفع عند الاستلام' : 'Cash on Delivery',
+    applepay: isArabic ? 'Apple Pay' : 'Apple Pay',
+    bnpl: isArabic ? 'تقسيط (تابي/تمارا)' : 'Installments',
     total: isArabic ? 'الإجمالي المطلوب' : 'Total to Pay',
     address: isArabic ? 'عنوان الشحن' : 'Shipping Address',
     phone: isArabic ? 'رقم الهاتف' : 'Phone Number',
@@ -307,21 +317,25 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                 <div className="space-y-8">
                   {/* Payment Selection Toggles */}
                   <div className="flex bg-brand-charcoal/[0.03] p-1.5 rounded-2xl gap-1.5 border border-brand-charcoal/5 overflow-x-auto no-scrollbar">
-                    {(['card', 'cod', 'wallet', 'paypal'] as const).map((method) => (
+                    {(['card', 'applepay', 'cod', 'bnpl', 'wallet'] as const).map((method) => (
                       <button
                         key={method}
                         onClick={() => setPaymentMethod(method)}
-                        className={`min-w-[80px] flex-1 py-4 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border-2 ${
+                        className={`min-w-[75px] flex-1 py-4 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border-2 ${
                           paymentMethod === method 
                             ? 'bg-brand-charcoal text-white border-brand-charcoal shadow-xl shadow-brand-charcoal/20 scale-[1.02]' 
                             : 'bg-white text-brand-charcoal/40 border-brand-charcoal/5 hover:border-brand-gold/30 hover:text-brand-gold'
                         }`}
                       >
                         {method === 'card' ? <CreditCard size={18} /> : 
+                         method === 'applepay' ? <div className="font-bold text-[10px]"> Pay</div> :
                          method === 'cod' ? <Truck size={18} /> : 
+                         method === 'bnpl' ? <Percent size={18} /> :
                          method === 'wallet' ? <Globe size={18} /> : 
                          <Banknote size={18} />}
-                        <span className="text-[7px] font-black uppercase tracking-[0.1em] whitespace-nowrap">{texts[method as keyof typeof texts]}</span>
+                        <span className="text-[7px] font-black uppercase tracking-[0.1em] whitespace-nowrap">
+                          {method === 'applepay' ? 'Apple Pay' : texts[method as keyof typeof texts]}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -474,7 +488,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                       {paymentMethod === 'card' ? (
                         <div className="space-y-6">
                            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2 mb-4">
-                             <CreditCard size={12} /> {isArabic ? 'بيانات البطاقة البنكية' : 'Card Details'}
+                             <CreditCard size={12} /> {isArabic ? 'بطاقة بنكية / مـدى' : 'Card / Mada Info'}
                            </h4>
                            <div className="bg-brand-charcoal/[0.02] p-6 rounded-3xl border-2 border-brand-charcoal/5">
                             <StripePayment 
@@ -484,6 +498,45 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                               isArabic={isArabic}
                             />
                            </div>
+                           <div className="flex gap-2 justify-center opacity-40">
+                             <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Mada_Logo.svg" alt="Mada" className="h-4" />
+                             <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4" />
+                             <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-4" />
+                           </div>
+                        </div>
+                      ) : paymentMethod === 'applepay' ? (
+                        <div className="space-y-4">
+                           <div className="bg-black text-white p-6 rounded-2xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-brand-charcoal transition-all" onClick={() => handleSubmit()}>
+                              <div className="font-bold text-2xl flex items-center gap-2"> Pay</div>
+                              <p className="text-[10px] uppercase font-black tracking-widest opacity-60">
+                                {isArabic ? 'اضغط للدفع السريع' : 'TAP TO PAY SECURELY'}
+                              </p>
+                           </div>
+                        </div>
+                      ) : paymentMethod === 'bnpl' ? (
+                        <div className="space-y-6">
+                           <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2 mb-4">
+                             <Percent size={12} /> {isArabic ? 'اختر مزود التقسيط' : 'Select BNPL Provider'}
+                           </h4>
+                           <div className="grid grid-cols-2 gap-4">
+                              <button 
+                                onClick={() => setSelectedBNPL('tabby')}
+                                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${selectedBNPL === 'tabby' ? 'border-[#38ff6a] bg-[#38ff6a]/10' : 'bg-white border-brand-charcoal/5'}`}
+                              >
+                                <span className="font-black text-xl text-black">tabby</span>
+                                <span className="text-[9px] font-bold opacity-60">{isArabic ? 'قسّمها على 4 دفعات' : 'Split in 4 payments'}</span>
+                              </button>
+                              <button 
+                                onClick={() => setSelectedBNPL('tamara')}
+                                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${selectedBNPL === 'tamara' ? 'border-[#ffa726] bg-[#ffa726]/10' : 'bg-white border-brand-charcoal/5'}`}
+                              >
+                                <span className="font-black text-xl text-[#ffa726]">tamara</span>
+                                <span className="text-[9px] font-bold opacity-60">{isArabic ? 'قسّمها على 3 دفعات' : 'Split in 3 payments'}</span>
+                              </button>
+                           </div>
+                           <button onClick={() => handleSubmit()} className="w-full bg-brand-charcoal text-white font-bold py-5 rounded-2xl uppercase tracking-widest text-xs">
+                             {isArabic ? 'تأكيد الطلب بالتقسيط' : 'Confirm BNPL Order'}
+                           </button>
                         </div>
                       ) : paymentMethod === 'wallet' ? (
                         <div className="space-y-6">

@@ -18,7 +18,8 @@ const Navbar: React.FC = () => {
     totalItems, 
     setIsAddModalOpen, 
     searchQuery, 
-    setSearchQuery
+    setSearchQuery,
+    filteredProducts
   } = useStore();
   const { user, isAdmin, login, signout } = useAuth();
   const [isLoginLoading, setIsLoginLoading] = useState(false);
@@ -46,7 +47,7 @@ const Navbar: React.FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/shop`);
+      navigate(`/shop?search=${encodeURIComponent(searchQuery)}`);
       setIsSearchOpen(false);
     }
   };
@@ -54,6 +55,7 @@ const Navbar: React.FC = () => {
   const navLinks = [
     { name: t('nav.home'), path: '/' },
     { name: t('nav.shop'), path: '/shop' },
+    { name: t('nav.dropShipping'), path: '/drop-shipping' },
     { name: t('nav.about'), path: '/about' },
     { name: t('nav.contact'), path: '/contact' },
     { name: t('nav.trackOrder'), path: '/track' },
@@ -381,7 +383,7 @@ const Navbar: React.FC = () => {
                       placeholder={t('nav.search')}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-transparent border-none outline-none ring-0 focus:ring-0 text-base font-medium placeholder:text-brand-charcoal/20 text-brand-charcoal py-3"
+                      className="w-full bg-transparent border-none outline-none ring-0 focus:ring-0 text-base font-medium placeholder:text-brand-charcoal/20 text-brand-charcoal py-3 rtl:text-right"
                       autoFocus
                     />
                   </form>
@@ -395,6 +397,49 @@ const Navbar: React.FC = () => {
                 </button>
               </div>
 
+              {/* Live Search Results */}
+              <AnimatePresence>
+                {searchQuery.trim().length > 1 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="mt-2 bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/40 max-h-[60vh] overflow-y-auto no-scrollbar"
+                  >
+                    <div className="p-2">
+                       {filteredProducts.length > 0 ? (
+                         filteredProducts.map(product => (
+                           <button
+                             key={product.id}
+                             onClick={() => {
+                               navigate(`/product/${product.id}`);
+                               setIsSearchOpen(false);
+                               setSearchQuery('');
+                             }}
+                             className="w-full flex items-center gap-4 p-3 hover:bg-brand-charcoal/5 rounded-2xl transition-all group"
+                           >
+                             <div className="w-12 h-12 rounded-xl overflow-hidden bg-brand-cream flex-shrink-0">
+                               <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                             </div>
+                             <div className="flex-grow text-left rtl:text-right">
+                               <h4 className="text-sm font-bold text-brand-charcoal">{product.name}</h4>
+                               <p className="text-[10px] text-brand-charcoal/40 uppercase tracking-widest">{product.category}</p>
+                             </div>
+                             <div className="text-brand-gold font-black text-xs">
+                               ${product.discountPrice || product.price}
+                             </div>
+                           </button>
+                         ))
+                       ) : (
+                         <div className="p-8 text-center">
+                           <p className="text-brand-charcoal/40 text-sm font-medium">{t('shop.noProducts')}</p>
+                         </div>
+                       )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -405,7 +450,11 @@ const Navbar: React.FC = () => {
                 {['New Arrivals', 'Best Sellers', 'Skin Care'].map((tag) => (
                   <button 
                     key={tag}
-                    onClick={() => setSearchQuery(tag)}
+                    onClick={() => {
+                      setSearchQuery(tag);
+                      navigate(`/shop?search=${encodeURIComponent(tag)}`);
+                      setIsSearchOpen(false);
+                    }}
                     className="text-white/80 bg-white/5 hover:bg-white/15 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-bold transition-all border border-white/5"
                   >
                     {tag}

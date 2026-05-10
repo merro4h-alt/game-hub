@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, Plus, Save, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
 import { useStore } from '../StoreContext';
 import { COLORS_OPTIONS, SIZES_CLOTHES, SIZES_SHOES, COSMETIC_SIZES } from '../constants';
@@ -12,7 +13,9 @@ interface AddProductModalProps {
 }
 
 const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, editingProduct }) => {
+  const { t, i18n } = useTranslation();
   const { addToProducts, updateProduct } = useStore();
+  const isArabic = i18n.language === 'ar';
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -25,6 +28,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
     imagePreview: '',
     images: [] as string[],
     colorImages: {} as Record<string, string>,
+    supplierName: '',
+    supplierUrl: '',
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -43,6 +48,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
         imagePreview: editingProduct.image,
         images: editingProduct.images || [editingProduct.image],
         colorImages: editingProduct.colorImages || {},
+        supplierName: editingProduct.supplierName || '',
+        supplierUrl: editingProduct.supplierUrl || '',
       });
     } else {
       setFormData({
@@ -57,6 +64,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
         imagePreview: '',
         images: [],
         colorImages: {},
+        supplierName: '',
+        supplierUrl: '',
       });
     }
   }, [editingProduct, isOpen]);
@@ -184,7 +193,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const parsedPrice = parseFloat(formData.price);
@@ -208,13 +217,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
       colorImages: formData.colorImages,
       sizes: formData.sizes.length > 0 ? formData.sizes : ['One Size'],
       rating: editingProduct ? editingProduct.rating : 5,
+      supplierName: formData.supplierName,
+      supplierUrl: formData.supplierUrl,
     };
 
     try {
       if (editingProduct) {
-        updateProduct(productData);
+        await updateProduct(productData);
       } else {
-        addToProducts(productData);
+        await addToProducts(productData);
       }
       
       onClose();
@@ -231,10 +242,12 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
         imagePreview: '',
         images: [],
         colorImages: {},
+        supplierName: '',
+        supplierUrl: '',
       });
     } catch (error) {
       console.error('Error saving product:', error);
-      alert('تعذر حفظ المنتج. قد تكون الصور كبيرة جداً.');
+      alert('تعذر حفظ المنتج. يرجى محاولة تقليل حجم الصور أو التأكد من الصلاحيات.');
     }
   };
 
@@ -246,13 +259,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-brand-charcoal/60 backdrop-blur-sm"
-          />
+            <div className="absolute inset-0 bg-brand-charcoal/30 backdrop-blur-[2px]" onClick={onClose} />
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -260,11 +267,19 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
             className="relative bg-brand-cream w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl p-8 no-scrollbar"
           >
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-bold tracking-tight">
-                {editingProduct ? 'Edit Product' : 'Add New Product'}
+              <h2 className="text-3xl font-black tracking-tighter text-brand-charcoal uppercase">
+                {editingProduct 
+                  ? (isArabic ? 'تعديل المنتج' : 'Edit Product') 
+                  : (isArabic ? 'إضافة منتج جديد' : 'Add New Product')}
+                {!isArabic && !editingProduct && <span className="block text-[10px] text-brand-gold mt-1 tracking-[0.3em]">Fresh Inventory</span>}
+                {isArabic && !editingProduct && <span className="block text-[10px] text-brand-gold mt-1 tracking-[0.3em] font-sans">ADD NEW PRODUCT</span>}
               </h2>
-              <button onClick={onClose} className="p-2 hover:bg-brand-charcoal/5 rounded-full transition-colors">
-                <X size={24} />
+              <button 
+                onClick={onClose} 
+                className="p-3 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-2xl transition-all shadow-sm group border border-red-100"
+                title={isArabic ? 'إغلاق' : 'Close Modal'}
+              >
+                <X size={24} className="group-hover:rotate-90 transition-transform duration-300" />
               </button>
             </div>
 
@@ -275,7 +290,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {formData.images.map((img, idx) => (
                     <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-brand-charcoal/10 group bg-white shadow-sm">
-                      <img src={img} className="w-full h-full object-contain p-1" alt={`Preview ${idx}`} />
+                      <img 
+                        src={img || 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600'} 
+                        className="w-full h-full object-contain p-1" 
+                        alt={`Preview ${idx}`}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600';
+                        }}
+                        referrerPolicy="no-referrer"
+                      />
                       <div className="absolute top-2 right-2 flex flex-col gap-2">
                         <button 
                           type="button"
@@ -288,7 +312,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                               image: newImages.length === 0 ? null : formData.image
                             });
                           }}
-                          className="p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                          className="p-1.5 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-all hover:scale-110"
                           title="Remove Image"
                         >
                           <X size={12} />
@@ -336,7 +360,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold focus:border-transparent outline-none"
+                    className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold focus:border-transparent outline-none text-brand-charcoal"
                     placeholder="e.g. Silk Evening Dress"
                   />
                 </div>
@@ -348,7 +372,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                     step="0.01"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold focus:border-transparent outline-none"
+                    className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold focus:border-transparent outline-none text-brand-charcoal"
                     placeholder="99.99"
                   />
                 </div>
@@ -359,9 +383,35 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                     step="0.01"
                     value={formData.discountPrice}
                     onChange={(e) => setFormData({ ...formData, discountPrice: e.target.value })}
-                    className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold focus:border-transparent outline-none"
+                    className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold focus:border-transparent outline-none text-brand-charcoal"
                     placeholder="79.99"
                   />
+                </div>
+              </div>
+
+              <div className="space-y-4 p-6 bg-brand-gold/5 rounded-3xl border border-brand-gold/10">
+                <label className="text-xs font-black uppercase tracking-[0.2em] text-brand-gold">{isArabic ? 'بيانات المورد (دروبشيبينج)' : 'Supplier Data (Dropshipping)'}</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase text-brand-charcoal/40">{isArabic ? 'اسم المورد / المنصة' : 'Supplier / Platform Name'}</label>
+                    <input
+                      type="text"
+                      value={formData.supplierName}
+                      onChange={(e) => setFormData({ ...formData, supplierName: e.target.value })}
+                      className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold outline-none text-brand-charcoal"
+                      placeholder={isArabic ? 'مثال: علي إكسبريس' : 'e.g. AliExpress'}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase text-brand-charcoal/40">{isArabic ? 'رابط المصدر' : 'Source URL'}</label>
+                    <input
+                      type="url"
+                      value={formData.supplierUrl}
+                      onChange={(e) => setFormData({ ...formData, supplierUrl: e.target.value })}
+                      className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold outline-none text-brand-charcoal"
+                      placeholder="https://..."
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -370,7 +420,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value as Product['category'], sizes: [] })}
-                  className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold focus:border-transparent outline-none appearance-none"
+                  className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold focus:border-transparent outline-none appearance-none text-brand-charcoal font-medium"
                 >
                   <option>New</option>
                   <option>Best Seller</option>
@@ -385,7 +435,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                   rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold focus:border-transparent outline-none resize-none"
+                  className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold focus:border-transparent outline-none resize-none text-brand-charcoal"
                   placeholder="Tell us about this product..."
                 />
               </div>
@@ -429,7 +479,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                             <button 
                               type="button"
                               onClick={() => handleColorImageChange(color, '')}
-                              className="text-[10px] text-red-500 font-bold uppercase hover:underline"
+                              className="text-[10px] text-red-600 font-black uppercase hover:underline hover:text-red-700 transition-colors"
                             >
                               Clear
                             </button>
@@ -438,7 +488,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                         
                         <label className="relative flex flex-col items-center justify-center aspect-square w-full rounded-xl border-2 border-dashed border-brand-charcoal/10 hover:border-brand-gold transition-all cursor-pointer overflow-hidden bg-brand-cream/30 group">
                           {formData.colorImages[color] ? (
-                            <img src={formData.colorImages[color]} className="w-full h-full object-cover" />
+                            <img 
+                              src={formData.colorImages[color]} 
+                              className="w-full h-full object-cover" 
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600';
+                              }}
+                              referrerPolicy="no-referrer"
+                            />
                           ) : (
                             <div className="flex flex-col items-center gap-2 text-brand-charcoal/30 group-hover:text-brand-gold transition-colors">
                               <Plus size={20} />
@@ -478,18 +536,24 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={isProcessing}
-                className={`w-full bg-brand-gold text-white font-bold py-4 rounded-2xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-charcoal'}`}
-              >
-                {isProcessing ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  editingProduct ? <Save size={20} /> : <Plus size={20} />
-                )}
-                {isProcessing ? 'Processing Images...' : (editingProduct ? 'Save Changes' : 'Create Product')}
-              </button>
+              <div className="pt-6">
+                <button
+                  type="submit"
+                  disabled={isProcessing}
+                  className={`w-full bg-brand-gold text-white font-bold py-4 rounded-2xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-charcoal'}`}
+                >
+                  {isProcessing ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    editingProduct ? <Save size={20} /> : <Plus size={20} />
+                  )}
+                  {isProcessing 
+                    ? (isArabic ? 'جاري المعالجة...' : 'Processing Images...') 
+                    : (editingProduct 
+                      ? (isArabic ? 'حفظ التغييرات' : 'Save Changes') 
+                      : (isArabic ? 'إضافة المنتج' : 'Create Product'))}
+                </button>
+              </div>
             </form>
           </motion.div>
         </div>

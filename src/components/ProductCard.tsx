@@ -59,8 +59,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              src={product.colorImages?.[selectedColor] || product.image}
+              src={product.colorImages?.[selectedColor] || product.image || 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600'}
               alt={product.name}
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600';
+              }}
               className="w-full h-full object-contain p-4 rounded-[3rem] transition-transform duration-1000 group-hover:scale-110"
               referrerPolicy="no-referrer"
             />

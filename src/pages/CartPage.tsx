@@ -212,7 +212,7 @@ const CartPage: React.FC = () => {
                       placeholder={texts.promoCode}
                       value={discountCodeInput}
                       onChange={(e) => setDiscountCodeInput(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-brand-gold transition-all text-brand-cream placeholder:text-brand-cream/30"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-brand-gold transition-all text-white placeholder:text-brand-cream/30"
                     />
                   </div>
                   <button 

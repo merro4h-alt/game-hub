@@ -19,6 +19,7 @@ import TrackOrderPage from './pages/TrackOrderPage';
 import OrdersPage from './pages/OrdersPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import AdminDashboard from './pages/AdminDashboard';
+import DropShippingPage from './pages/DropShippingPage';
 import AddProductModal from './components/AddProductModal';
 import { ChatWidget } from './components/ChatWidget';
 import { useStore } from './StoreContext';
@@ -135,6 +136,7 @@ function AppContent() {
           <Route path="/track/:trackingId" element={<TrackOrderPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/drop-shipping" element={<DropShippingPage />} />
           <Route path="/product/:productId" element={<ProductDetailPage />} />
         </Routes>
       </main>

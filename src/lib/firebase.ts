@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, User } from 'firebase/auth';
-import { getFirestore, doc, getDoc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, getDocFromServer, collection, getDocs, updateDoc, deleteDoc, setDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, Timestamp } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 let app: any;
@@ -28,6 +28,57 @@ try {
 }
 
 export { db, auth };
+
+/**
+ * Firestore Error Handling according to instructions
+ */
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth?.currentUser?.uid,
+      email: auth?.currentUser?.email,
+      emailVerified: auth?.currentUser?.emailVerified,
+      isAnonymous: auth?.currentUser?.isAnonymous,
+      tenantId: auth?.currentUser?.tenantId,
+      providerInfo: auth?.currentUser?.providerData?.map((provider: any) => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 /**
  * Custom auth listener that handles both real and mock auth objects
@@ -69,16 +120,30 @@ export const logout = () => {
 
 // Check if user is admin
 export const checkIfAdmin = async (user: User | null): Promise<boolean> => {
-  if (!user) return false;
+  if (!user) {
+    console.log("checkIfAdmin: No user provided");
+    return false;
+  }
   
-  // Whitelist based on email
-  if (user.email === 'kmerro25@gmail.com') return true;
+  console.log("checkIfAdmin: Checking status for", user.email, " (UID:", user.uid, ")");
+  
+  // Whitelist based on email - case insensitive comparison just in case
+  const whitelistedEmails = ['kmerro25@gmail.com', 'merro4h@gmail.com'];
+  if (user.email) {
+    const isWhitelisted = whitelistedEmails.some(e => e.toLowerCase() === user.email?.toLowerCase());
+    console.log("checkIfAdmin: User email is", user.email, "Matched whitelist:", isWhitelisted);
+    if (isWhitelisted) return true;
+  }
   
   try {
     const adminDoc = await getDoc(doc(db, 'admins', user.uid));
-    return adminDoc.exists();
+    const exists = adminDoc.exists();
+    console.log("checkIfAdmin: Admin document exists:", exists);
+    return exists;
   } catch (error) {
-    console.error("Error checking admin status:", error);
+    console.error("Error checking admin status from Firestore:", error);
+    // If it's a permission error, it means we definitely aren't an admin 
+    // according to rules (unless rules are broken)
     return false;
   }
 };

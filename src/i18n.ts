@@ -13,7 +13,8 @@ const resources = {
         "contact": "Contact",
         "search": "Search products...",
         "cart": "Cart",
-        "trackOrder": "Track Order"
+        "trackOrder": "Track Order",
+        "dropShipping": "Drop Shipping"
       },
       "order": {
         "status": {
@@ -127,7 +128,8 @@ const resources = {
         "contact": "اتصل بنا",
         "search": "ابحث عن المنتجات...",
         "cart": "السلة",
-        "trackOrder": "تتبع الطلب"
+        "trackOrder": "تتبع الطلب",
+        "dropShipping": "الدروبشيبينج"
       },
       "order": {
         "status": {

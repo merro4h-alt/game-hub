@@ -137,7 +137,7 @@ export const ChatWidget: React.FC = () => {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={t('order.chat.inputPlaceholder')}
-                  className={`w-full bg-brand-charcoal/5 border-none rounded-2xl py-4 ${isRtl ? 'pr-6 pl-14' : 'pl-6 pr-14'} text-sm focus:ring-1 focus:ring-brand-gold outline-none`}
+                  className={`w-full bg-brand-charcoal/5 border-none rounded-2xl py-4 ${isRtl ? 'pr-6 pl-14' : 'pl-6 pr-14'} text-sm text-brand-charcoal focus:ring-1 focus:ring-brand-gold outline-none`}
                 />
                 <button 
                   type="submit"

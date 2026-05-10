@@ -251,7 +251,7 @@ export const BeautyAIConsultant = () => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={isArabic ? 'اكتب رسالتك...' : 'Type your message...'}
-                  className="w-full ps-6 pe-14 py-4 bg-brand-cream/50 dark:bg-white/5 border border-brand-charcoal/5 dark:border-white/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all text-sm font-medium dark:text-white"
+                  className="w-full ps-6 pe-14 py-4 bg-brand-cream/50 dark:bg-white/5 border border-brand-charcoal/5 dark:border-white/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all text-sm font-medium text-brand-charcoal dark:text-white"
                 />
                 <button
                   type="submit"
