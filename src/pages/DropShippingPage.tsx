@@ -14,10 +14,39 @@ const DropShippingPage: React.FC = () => {
     formRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormStatus('loading');
-    setTimeout(() => setFormStatus('success'), 1500);
+    
+    try {
+      const formData = new FormData(e.target as HTMLFormElement);
+      const data = {
+        fullName: formData.get('fullName'),
+        phone: formData.get('phone'),
+        address: formData.get('address'),
+        email: formData.get('email'),
+        storeUrl: formData.get('storeUrl') || '',
+        experience: formData.get('experience'),
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        type: 'dropshipping_application'
+      };
+
+      // Import database tools dynamically
+      const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+      const { db } = await import('../lib/firebase');
+
+      await addDoc(collection(db, 'dropshipping_applications'), {
+        ...data,
+        createdAt: serverTimestamp()
+      });
+
+      setFormStatus('success');
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      alert(isArabic ? 'حدث خطأ أثناء إرسال الطلب. يرجى المحاولة مرة أخرى.' : 'Error submitting application. Please try again.');
+      setFormStatus('idle');
+    }
   };
 
   const benefits = [
@@ -184,12 +213,28 @@ const DropShippingPage: React.FC = () => {
                 <div className="w-20 h-20 bg-brand-gold rounded-full flex items-center justify-center text-white mb-6 shadow-xl shadow-brand-gold/20">
                   <CheckCircle2 size={40} />
                 </div>
-                <h3 className="text-2xl font-black text-white uppercase mb-2">
-                  {isArabic ? 'تم إرسال طلبك' : 'Application Sent'}
+                <h3 className="text-2xl font-black text-white uppercase mb-4 leading-tight">
+                  {isArabic ? 'تم استلام طلب الانضمام بنجاح!' : 'Application Received Successfully!'}
                 </h3>
-                <p className="text-white/60 font-medium">
-                  {isArabic ? 'سنقوم بمراجعة طلبك والرد عليك في غضون 24 ساعة.' : "We'll review your application and respond within 24 hours."}
-                </p>
+                <div className="space-y-4 max-w-sm">
+                  <p className="text-white/70 font-medium text-sm leading-relaxed">
+                    {isArabic 
+                      ? 'نشكرك على اهتمامك بـ Trendifi. يقوم فريقنا حالياً بمراجعة معلوماتك للتأكد من مطابقتها لمعايير الشراكة لدينا.' 
+                      : 'Thank you for your interest in Trendifi. Our team is currently reviewing your information to ensure it matches our partnership criteria.'}
+                  </p>
+                  <p className="text-brand-gold font-bold text-sm leading-relaxed">
+                    {isArabic 
+                      ? 'سيقوم أحد مستشارينا بالتواصل معك عبر الهاتف أو البريد الإلكتروني خلال 24 ساعة لتزويدك بكافة التفاصيل وبدء عملك كتاجر.' 
+                      : 'One of our specialists will contact you via phone or email within 24 hours to provide full details and start your journey as a merchant.'}
+                  </p>
+                </div>
+
+                <button 
+                  onClick={() => window.location.href = '/'}
+                  className="mt-8 px-8 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all border border-white/10"
+                >
+                  {isArabic ? 'العودة للرئيسية' : 'Back to Home'}
+                </button>
               </motion.div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -198,6 +243,7 @@ const DropShippingPage: React.FC = () => {
                     <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{isArabic ? 'الاسم بالكامل' : 'Full Name'}</label>
                     <input 
                       required
+                      name="fullName"
                       type="text" 
                       className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
                       placeholder={isArabic ? 'أحمد محمد' : 'John Doe'}
@@ -207,6 +253,7 @@ const DropShippingPage: React.FC = () => {
                     <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{isArabic ? 'رقم الهاتف' : 'Phone Number'}</label>
                     <input 
                       required
+                      name="phone"
                       type="tel" 
                       className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
                       placeholder="+966 50 XXX XXXX"
@@ -218,6 +265,7 @@ const DropShippingPage: React.FC = () => {
                   <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{isArabic ? 'العنوان الكامل' : 'Full Address'}</label>
                   <input 
                     required
+                    name="address"
                     type="text" 
                     className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
                     placeholder={isArabic ? 'الدولة، المدينة، الحي، الشارع' : 'Country, City, District, Street'}
@@ -228,6 +276,7 @@ const DropShippingPage: React.FC = () => {
                   <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{isArabic ? 'البريد الإلكتروني' : 'Email Address'}</label>
                   <input 
                     required
+                    name="email"
                     type="email" 
                     className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
                     placeholder="john@example.com"
@@ -237,6 +286,7 @@ const DropShippingPage: React.FC = () => {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-white/40 px-1">{isArabic ? 'رابط متجرك (اختياري)' : 'Store URL (Optional)'}</label>
                   <input 
+                    name="storeUrl"
                     type="url" 
                     className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
                     placeholder="https://mystore.com"
@@ -246,6 +296,7 @@ const DropShippingPage: React.FC = () => {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-white/40 px-1">{isArabic ? 'هل لديك خبرة سابقة؟' : 'Previous Experience?'}</label>
                   <select 
+                    name="experience"
                     className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all appearance-none"
                   >
                     <option value="none" className="bg-brand-charcoal">{isArabic ? 'لا توجد خبرة' : 'No experience'}</option>

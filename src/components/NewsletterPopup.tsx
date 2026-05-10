@@ -48,9 +48,10 @@ export const NewsletterPopup = () => {
           >
             <button 
               onClick={handleClose}
-              className="absolute top-6 right-6 z-10 p-2 hover:bg-brand-cream rounded-full transition-colors"
+              className={`absolute top-4 ${isArabic ? 'left-4' : 'right-4'} z-[20] p-2.5 bg-white shadow-xl border border-brand-charcoal/10 text-brand-charcoal hover:bg-red-500 hover:text-white rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-brand-gold/20`}
+              aria-label="Close"
             >
-              <X size={20} />
+              <X size={20} className="stroke-[3]" />
             </button>
 
             <div className="flex flex-col md:flex-row h-full">

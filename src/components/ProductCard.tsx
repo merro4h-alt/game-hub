@@ -34,12 +34,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
   };
 
   const confirmDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     deleteProduct(product.id);
     setIsDeleting(false);
   };
 
   const cancelDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     setIsDeleting(false);
   };
@@ -52,7 +54,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
       className="group relative"
     >
       <Link to={`/product/${product.id}`} className="block">
-        <div className="relative aspect-[3/4] overflow-hidden rounded-[3rem] bg-[#F4F4F5] mb-4 border border-brand-charcoal/5 group-hover:border-[#4F46E5]/20 group-hover:shadow-2xl group-hover:shadow-indigo-500/10 transition-all duration-700">
+        <div className="relative aspect-square overflow-hidden rounded-[3rem] bg-[#F4F4F5] mb-4 border border-brand-charcoal/5 group-hover:border-[#4F46E5]/20 group-hover:shadow-2xl group-hover:shadow-indigo-500/10 transition-all duration-700">
           <AnimatePresence mode="wait">
             <motion.img
               key={selectedColor}
@@ -65,7 +67,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
                 const target = e.target as HTMLImageElement;
                 target.src = 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600';
               }}
-              className="w-full h-full object-contain p-4 rounded-[3rem] transition-transform duration-1000 group-hover:scale-110"
+              className="w-full h-full object-cover rounded-[3rem] transition-transform duration-1000 group-hover:scale-110"
               referrerPolicy="no-referrer"
             />
           </AnimatePresence>

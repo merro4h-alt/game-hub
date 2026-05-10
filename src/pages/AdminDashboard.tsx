@@ -21,7 +21,7 @@ import {
 const AdminDashboard: React.FC = () => {
   const { i18n } = useTranslation();
   const { products, deleteProduct, setIsAddModalOpen, setEditingProduct, addToProducts } = useStore();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, login, signout } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +36,7 @@ const AdminDashboard: React.FC = () => {
       id: 'win_1',
       name: 'Smart Neck Massager Pro',
       price: 29.99,
-      image: 'https://images.unsplash.com/photo-1591530945491-3bc516140801?auto=format&fit=crop&q=80&w=600',
+      image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=600',
       category: 'New',
       colors: ['White', 'Black'],
       sizes: ['One Size'],
@@ -48,7 +48,7 @@ const AdminDashboard: React.FC = () => {
       id: 'win_2',
       name: 'Portable Lint Remover',
       price: 12.50,
-      image: 'https://images.unsplash.com/photo-1583473848882-f9a5bb7ff2ee?auto=format&fit=crop&q=80&w=600',
+      image: 'https://images.unsplash.com/photo-1550505393-fa7b6ad5e888?auto=format&fit=crop&q=80&w=600',
       category: 'Best Seller',
       colors: ['Green', 'Gold'],
       sizes: ['Standard'],
@@ -60,7 +60,7 @@ const AdminDashboard: React.FC = () => {
       id: 'win_3',
       name: 'Wireless Car Vacuum',
       price: 45.00,
-      image: 'https://images.unsplash.com/photo-1621905252507-b35482cf84b4?auto=format&fit=crop&q=80&w=600',
+      image: 'https://images.unsplash.com/photo-1534346506306-69974f762699?auto=format&fit=crop&q=80&w=600',
       category: 'New',
       colors: ['Black'],
       sizes: ['Mini'],
@@ -153,7 +153,7 @@ const AdminDashboard: React.FC = () => {
         <div className="bg-white/5 p-6 rounded-[2rem] border border-white/10 space-y-4">
           {!user ? (
             <button 
-              onClick={() => useAuth().login()}
+              onClick={() => login()}
               className="w-full bg-[#4F46E5] text-white py-5 rounded-2xl font-black text-lg hover:bg-[#4338CA] transition-all shadow-2xl shadow-indigo-500/40 hover:-translate-y-1"
             >
               {i18n.language === 'ar' ? 'تسجيل الدخول باستخدام جوجل' : 'Login with Google'}
@@ -161,7 +161,7 @@ const AdminDashboard: React.FC = () => {
           ) : (
             <div className="space-y-4">
                 <button 
-                onClick={() => useAuth().signout()}
+                onClick={() => signout()}
                 className="w-full bg-white/10 text-white py-5 rounded-2xl font-black text-lg hover:bg-white/20 transition-all border border-white/10"
                 >
                 {i18n.language === 'ar' ? 'تسجيل الخروج وتبديل الحساب' : 'Logout & Switch Account'}
@@ -200,7 +200,7 @@ const AdminDashboard: React.FC = () => {
                             alert(`Write Success! ID: ${docRef.id}`);
                           } catch (e: any) {
                             alert(`Write Failed: ${e.message}`);
-                            console.error(e);
+                            console.warn(e);
                           }
                         }}
                         className="mt-4 flex-1 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border border-green-500/20"
@@ -214,6 +214,7 @@ const AdminDashboard: React.FC = () => {
           
           <div className="flex flex-col gap-2 pt-4">
                <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Steps to Fix Access:</p>
+               
                <div className="flex flex-col gap-2">
                    <p className="text-[10px] text-white/60">1. Open the CORRECT project in Firebase Console (افتح المشروع الصحيح):</p>
                    <a 
@@ -526,6 +527,7 @@ const AdminDashboard: React.FC = () => {
                           </select>
                           <button 
                             onClick={() => {
+                                console.log('Add New Product button clicked in Dashboard');
                                 setEditingProduct(null);
                                 setIsAddModalOpen(true);
                             }}
@@ -553,7 +555,9 @@ const AdminDashboard: React.FC = () => {
                                           <Edit size={14} />
                                       </button>
                                       <button 
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
                                             if (confirm(i18n.language === 'ar' ? 'هل أنت متأكد من حذف هذا المنتج؟' : 'Are you sure you want to delete this product?')) {
                                                 deleteProduct(product.id);
                                             }
@@ -635,32 +639,37 @@ const AdminDashboard: React.FC = () => {
                                      >
                                          <ExternalLink size={14} /> {i18n.language === 'ar' ? 'عرض المصدر' : 'SOURCE'}
                                      </a>
-                                     <button 
+                                    <button 
                                         onClick={async () => {
-                                            const newProd: Product = {
-                                                id: 'p_' + Math.random().toString(36).substr(2, 9),
-                                                name: prod.name,
-                                                price: Math.round(prod.price * 1.8), // Auto margin
-                                                discountPrice: Math.round(prod.price * 1.5),
-                                                category: prod.category as any,
-                                                description: prod.description,
-                                                image: prod.image,
-                                                images: [prod.image],
-                                                colors: prod.colors,
-                                                sizes: prod.sizes,
-                                                rating: 5,
-                                                supplierName: prod.supplierName,
-                                                supplierUrl: prod.supplierUrl,
-                                                colorImages: {}
-                                            };
-                                            await addToProducts(newProd);
-                                            alert(i18n.language === 'ar' ? 'تم إضافة المنتج لمتجرك بنجاح!' : 'Product imported to your store successfully!');
-                                            setActiveTab('products');
+                                            try {
+                                                const newProd: Product = {
+                                                    id: 'p_' + Math.random().toString(36).substr(2, 9),
+                                                    name: prod.name,
+                                                    price: Math.round(prod.price * 1.8), // Auto margin
+                                                    discountPrice: Math.round(prod.price * 1.5),
+                                                    category: prod.category as any,
+                                                    description: prod.description,
+                                                    image: prod.image,
+                                                    images: [prod.image],
+                                                    colors: prod.colors,
+                                                    sizes: prod.sizes,
+                                                    rating: 5,
+                                                    supplierName: prod.supplierName,
+                                                    supplierUrl: prod.supplierUrl,
+                                                    colorImages: {}
+                                                };
+                                                await addToProducts(newProd);
+                                                alert(i18n.language === 'ar' ? 'تم إضافة المنتج لمتجرك بنجاح!' : 'Product imported to your store successfully!');
+                                                setActiveTab('products');
+                                            } catch (err: any) {
+                                                console.warn("Manual import failed:", err);
+                                                alert(i18n.language === 'ar' ? 'فشل إضافة المنتج. تحقق من الصلاحيات.' : 'Failed to add product. Check permissions.');
+                                            }
                                         }}
                                         className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-brand-gold text-brand-charcoal text-[10px] font-black uppercase tracking-widest shadow-xl shadow-brand-gold/20 hover:-translate-y-1 transition-all"
-                                     >
-                                         <Plus size={14} /> {i18n.language === 'ar' ? 'إضافة للمتجر' : 'IMPORT'}
-                                     </button>
+                                    >
+                                        <Plus size={14} /> {i18n.language === 'ar' ? 'إضافة للمتجر' : 'IMPORT'}
+                                    </button>
                                  </div>
                              </div>
                          </div>

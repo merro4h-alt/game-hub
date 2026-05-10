@@ -81,7 +81,7 @@ const ProductDetailPage: React.FC = () => {
         
         {/* Advanced Gallery Section */}
         <div className="space-y-6">
-          <div className="relative group rounded-[2.5rem] overflow-hidden bg-white/5 border border-white/5 aspect-[4/5]">
+          <div className="relative group rounded-[2.5rem] overflow-hidden bg-white/5 border border-white/5 aspect-square">
             <motion.div 
               className="w-full h-full cursor-zoom-in relative"
               onMouseEnter={() => setIsZoomed(true)}
@@ -101,7 +101,7 @@ const ProductDetailPage: React.FC = () => {
                     const target = e.target as HTMLImageElement;
                     target.src = 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600';
                   }}
-                  className={`w-full h-full object-contain p-8 ${isZoomed ? 'opacity-0' : 'opacity-100'}`}
+                  className={`w-full h-full object-cover ${isZoomed ? 'opacity-0' : 'opacity-100'}`}
                   referrerPolicy="no-referrer"
                 />
               </AnimatePresence>

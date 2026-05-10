@@ -41,7 +41,7 @@ service cloud.firestore {
     match /products/{productId} {
       function isValidProduct(data) {
         return data.keys().hasAll(['name', 'price']) &&
-               data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+               data.name is string && data.name.size() > 0 && data.name.size() <= 500 &&
                data.price is number && data.price >= 0;
       }
 

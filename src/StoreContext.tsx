@@ -83,6 +83,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const q = query(collection(db, 'products'), orderBy('name'));
         
         const unsubscribe = onSnapshot(q, (snapshot) => {
+          console.log(`Received products update context: ${snapshot.size} products total`);
           const productsData = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -111,7 +112,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (unsubscribe) {
+        console.log("Unsubscribing from products listener");
+        unsubscribe();
+      }
     };
   }, []);
 
@@ -141,12 +145,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addToProducts = async (product: Product) => {
+    console.log('Attempting to add product to Firestore (id:', product.id, ')');
     try {
-      const { db, handleFirestoreError, OperationType } = await import('./lib/firebase');
+      const { db } = await import('./lib/firebase');
       const { doc, setDoc } = await import('firebase/firestore');
       await setDoc(doc(db, 'products', product.id), product);
+      console.log('Successfully added product to Firestore');
     } catch (error) {
-      console.error('Error adding product:', error);
+      console.warn('Error adding product to Firestore:', error);
+      const { handleFirestoreError, OperationType } = await import('./lib/firebase');
+      handleFirestoreError(error, OperationType.WRITE, `products/${product.id}`);
     }
   };
 
@@ -156,7 +164,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const { doc, setDoc } = await import('firebase/firestore');
       await setDoc(doc(db, 'products', updatedProduct.id), updatedProduct);
     } catch (error) {
-      console.error('Error updating product:', error);
+      console.warn('Error updating product:', error);
+      const { handleFirestoreError, OperationType } = await import('./lib/firebase');
+      handleFirestoreError(error, OperationType.WRITE, `products/${updatedProduct.id}`);
     }
   };
 
@@ -169,7 +179,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.log(`Deleting product with ID: ${productId}`);
       await deleteDoc(doc(db, 'products', productId));
     } catch (error) {
-      console.error('Error deleting product:', error);
+      console.warn('Error deleting product:', error);
       const { handleFirestoreError, OperationType } = await import('./lib/firebase');
       handleFirestoreError(error, OperationType.DELETE, `products/${productId}`);
     }

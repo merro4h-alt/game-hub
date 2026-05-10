@@ -131,7 +131,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
     );
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent, cardholderName?: string) => {
     if (e) e.preventDefault();
 
     if (!formData.name || !formData.address || !formData.phone) {
@@ -157,6 +157,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
         },
         phone: fullPhoneNumber,
         paymentMethod,
+        cardholderName: cardholderName || null,
         walletProvider: paymentMethod === 'wallet' ? selectedWallet : null,
         shippingProvider: selectedProvider,
         shippingSpeed,
@@ -188,7 +189,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
         trackingId,
         trackingLink: `${window.location.origin}/track/${trackingId}`,
         whatsappSent: true,
-        items: [...cart]
+        items: [...cart],
+        cardholderName: cardholderName
       };
       
       // Send detailed WhatsApp notification
@@ -249,39 +251,29 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
             className="relative w-full max-w-lg bg-brand-cream rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
             {/* Header */}
-            <div className="bg-brand-charcoal p-6 sm:p-8 text-brand-cream flex-shrink-0">
-              <button 
-                onClick={onClose}
-                className={`absolute top-6 ${isArabic ? 'left-6' : 'right-6'} p-2 text-brand-cream/40 hover:text-white transition-colors`}
-              >
-                <X size={24} />
-              </button>
-              
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-10 h-10 bg-brand-gold rounded-2xl flex items-center justify-center text-white">
-                  <Lock size={20} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold">{texts.title}</h2>
-                  <p className="text-brand-cream/60 text-xs">{texts.subtitle}</p>
-                </div>
+            <div className={`${paymentMethod === 'card' ? 'bg-[#008296]' : 'bg-brand-charcoal'} p-4 text-white flex-shrink-0 relative`}>
+              <div className="flex items-center justify-between">
+                <button 
+                  onClick={onClose}
+                  className="text-[10px] font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
+                >
+                  {isArabic ? 'إلغاء' : 'CANCEL'}
+                </button>
+                <h2 className="text-sm font-bold absolute left-1/2 -translate-x-1/2">
+                  {paymentMethod === 'card' 
+                    ? (isArabic ? 'اختر طريقة الدفع' : 'Select a Payment Method') 
+                    : texts.title}
+                </h2>
+                <div className="w-10"></div> {/* Spacer for symmetry */}
               </div>
+            </div>
 
-              {/* Order Summary */}
-              <div className="bg-white/10 rounded-2xl p-4 space-y-2">
-                <div className="flex justify-between items-center text-xs text-brand-cream/60">
-                   <span>{isArabic ? 'المجموع الفرعي' : 'Subtotal'}</span>
-                   <span>${total.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs text-brand-cream/60">
-                   <span>{isArabic ? 'الشحن الدولي' : 'Shipping Fee'}</span>
-                   <span>${shippingFee.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center pt-2 border-t border-white/10">
-                  <span className="text-brand-cream/80 font-medium text-sm">{texts.total}</span>
-                  <span className="text-xl font-mono font-bold text-brand-gold">${finalTotal.toFixed(2)}</span>
-                </div>
-              </div>
+            {/* Order Summary */}
+            <div className={`${paymentMethod === 'card' ? 'bg-[#f7f7f7]' : 'bg-brand-charcoal/5'} p-4 border-b border-brand-charcoal/5 flex justify-between items-center`}>
+              <span className="text-brand-charcoal/80 font-bold text-xs uppercase tracking-wider">
+                {isArabic ? 'إجمالي الطلب:' : 'Order Total:'}
+              </span>
+              <span className="text-xl font-bold text-[#b12704]">${finalTotal.toFixed(2)}</span>
             </div>
 
             {/* Content */}
@@ -296,11 +288,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                   
                   {orderInfo && (
                     <div className="w-full bg-brand-charcoal/5 border-2 border-dashed border-brand-charcoal/10 rounded-3xl p-8">
-                       <div className="flex items-center justify-center gap-2 mb-4 bg-brand-gold/10 py-2 px-4 rounded-full w-fit mx-auto">
-                        <ShieldCheck size={14} className="text-brand-gold" />
-                        <span className="text-[10px] font-bold text-brand-gold uppercase tracking-widest">
-                          {isArabic ? 'تتم المعالجة عبر شبكة الموردين العالمية ✅' : 'Processed via Global Supplier Network ✅'}
-                        </span>
+                       <div className="flex flex-col items-center justify-center gap-2 mb-6">
+                        <div className="flex items-center gap-2 bg-brand-gold/10 py-2 px-4 rounded-full w-fit mx-auto">
+                          <ShieldCheck size={14} className="text-brand-gold" />
+                          <span className="text-[10px] font-bold text-brand-gold uppercase tracking-widest">
+                            {isArabic ? 'تتم المعالجة عبر شبكة الموردين العالمية ✅' : 'Processed via Global Supplier Network ✅'}
+                          </span>
+                        </div>
+                        {orderInfo.cardholderName && (
+                          <div className="mt-2 text-brand-charcoal/60 text-xs font-bold bg-white/50 px-4 py-2 rounded-xl border border-brand-charcoal/5">
+                            {isArabic ? 'صاحب البطاقة: ' : 'Cardholder: '}
+                            <span className="text-brand-charcoal">{orderInfo.cardholderName}</span>
+                          </div>
+                        )}
                       </div>
                       <p className="text-[10px] uppercase font-black tracking-widest text-brand-charcoal/30 mb-2">{texts.trackingText}</p>
                       <p className="text-3xl font-mono font-bold text-brand-gold mb-8 tracking-tighter">{orderInfo.trackingId}</p>
@@ -493,7 +493,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                            <div className="bg-brand-charcoal/[0.02] p-6 rounded-3xl border-2 border-brand-charcoal/5">
                             <StripePayment 
                               amount={finalTotal} 
-                              onSuccess={() => handleSubmit()} 
+                              onSuccess={(name) => handleSubmit(undefined, name)} 
                               onError={(err) => alert(err)} 
                               isArabic={isArabic}
                             />

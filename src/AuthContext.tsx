@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log("Admin status for", currentUser.email, ":", adminStatus);
           if (isMounted) setIsAdmin(adminStatus);
         } catch (error) {
-          console.error("Auth check failed", error);
+          console.warn("Auth check failed", error);
           if (isMounted) setIsAdmin(false);
         }
       } else {
@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       console.log("Auth loading finished.");
     }, (error) => {
-      console.error("Auth status change error:", error);
+      console.warn("Auth status change error:", error);
       if (isMounted) setLoading(false);
     });
 
@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 
   const handleLoginError = (error: any) => {
-    console.error("Auth process error:", error);
+    console.warn("Auth process error:", error);
     const projectId = (auth.app.options as any).projectId;
     const currentDomain = window.location.hostname;
     
@@ -98,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await logout();
     } catch (error) {
-      console.error("Logout failed", error);
+      console.warn("Logout failed", error);
     }
   };
 

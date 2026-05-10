@@ -87,8 +87,8 @@ export const extractProductFromUrl = async (url: string) => {
         "name": "string",
         "price": number,
         "description": "string (shortened summary)",
-        "image": "string (MUST be the absolute URL to the main product image. Prefer ae01.alicdn.com for AliExpress or m.media-amazon.com for Amazon)",
-        "images": ["string (additional absolute image URLs)"],
+        "image": "string (MUST be the absolute URL to the main product image. Ensure it starts with https://. Prefer ae01.alicdn.com for AliExpress or m.media-amazon.com for Amazon)",
+        "images": ["string (additional absolute image URLs starting with https://)"],
         "colors": ["string"],
         "sizes": ["string"]
       }
