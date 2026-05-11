@@ -6,6 +6,7 @@ import { useStore } from '../StoreContext';
 import { useAlert } from '../contexts/AlertContext';
 import { db, auth } from '../lib/firebase';
 import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { SHIPPING_PROVIDERS } from '../constants';
 import StripePayment from './StripePayment';
 
 const countries = [
@@ -58,8 +59,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
   const [selectedWallet, setSelectedWallet] = useState<'zaincash' | 'asiahawala' | 'wallet' | 'nass' | 'fast' | 'bank'>('zaincash');
   const [selectedCountry, setSelectedCountry] = useState('SA'); // Default to SA for better payment coverage
   const [phonePrefix, setPhonePrefix] = useState('+966');
-  const [shippingProviders, setShippingProviders] = useState<any[]>([]);
-  const [selectedProvider, setSelectedProvider] = useState('aramex');
+  const [shippingProviders, setShippingProviders] = useState<any[]>(SHIPPING_PROVIDERS);
+  const [selectedProvider, setSelectedProvider] = useState('standard');
   const [shippingFee, setShippingFee] = useState(0);
   const [shippingSpeed, setShippingSpeed] = useState('');
   const [formData, setFormData] = useState({
@@ -338,27 +339,30 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                 </div>
               ) : (
                 <div className="space-y-8">
-                  {/* Payment Selection Toggles */}
-                  <div className="flex bg-brand-charcoal/[0.03] p-1.5 rounded-2xl gap-1.5 border border-brand-charcoal/5 overflow-x-auto no-scrollbar">
+                  {/* Payment Selection Toggles - Always visible at top */}
+                  <div className="flex bg-brand-charcoal/[0.05] p-2 rounded-2xl gap-2 border border-brand-charcoal/10 overflow-x-auto no-scrollbar scroll-smooth">
                     {(['card', 'qicard', 'applepay', 'cod', 'wallet', 'bank', 'payoneer'] as const).map((method) => (
                       <button
                         key={method}
+                        type="button"
                         onClick={() => setPaymentMethod(method)}
-                        className={`min-w-[75px] flex-1 py-4 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border-2 ${
+                        className={`min-w-[85px] flex-1 py-4 rounded-xl flex flex-col items-center justify-center gap-1.5 transition-all border-2 ${
                           paymentMethod === method 
-                            ? 'bg-brand-charcoal text-white border-brand-charcoal shadow-xl shadow-brand-charcoal/20 scale-[1.02]' 
+                            ? 'bg-brand-charcoal text-white border-brand-charcoal shadow-xl shadow-brand-charcoal/20 scale-[1.02] z-10' 
                             : 'bg-white text-brand-charcoal/40 border-brand-charcoal/5 hover:border-brand-gold/30 hover:text-brand-gold'
                         }`}
                       >
-                        {method === 'card' ? <CreditCard size={18} /> : 
-                         method === 'qicard' ? <img src="https://media.licdn.com/dms/image/C4D0BAQG0_L_F9w4zYw/company-logo_200_200/0/1630571946808?e=2147483647&v=beta&t=7u7u8u" alt="Qi Card" className="w-5 h-5 rounded-full" onError={(e) => e.currentTarget.style.display = 'none'} /> :
-                         method === 'applepay' ? <div className="font-bold text-[10px]"> Pay</div> :
-                         method === 'cod' ? <Truck size={18} /> : 
-                         method === 'wallet' ? <Globe size={18} /> : 
-                         method === 'bank' ? <Banknote size={18} /> :
-                         method === 'payoneer' ? <img src="https://icon.horse/icon/payoneer.com" alt="Payoneer" className="w-5 h-5 rounded-sm" /> :
-                         <Banknote size={18} />}
-                        <span className="text-[7px] font-black uppercase tracking-[0.1em] whitespace-nowrap">
+                        <div className="flex items-center justify-center h-5 w-5">
+                          {method === 'card' ? <CreditCard size={18} /> : 
+                           method === 'qicard' ? <img src="https://media.licdn.com/dms/image/C4D0BAQG0_L_F9w4zYw/company-logo_200_200/0/1630571946808?e=2147483647&v=beta&t=7u7u8u" alt="Qi Card" className="w-full h-full rounded-full object-cover" /> :
+                           method === 'applepay' ? <div className="font-bold text-[10px] leading-none"> Pay</div> :
+                           method === 'cod' ? <Truck size={18} /> : 
+                           method === 'wallet' ? <Globe size={18} /> : 
+                           method === 'bank' ? <Banknote size={18} /> :
+                           method === 'payoneer' ? <img src="https://icon.horse/icon/payoneer.com" alt="Payoneer" className="w-full h-full rounded-sm object-contain" /> :
+                           <Banknote size={18} />}
+                        </div>
+                        <span className="text-[8px] font-black uppercase tracking-[0.05em] whitespace-nowrap">
                           {method === 'applepay' ? 'Apple Pay' : texts[method as keyof typeof texts]}
                         </span>
                       </button>

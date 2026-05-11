@@ -55,3 +55,9 @@ export const COLORS_OPTIONS = [
 export const SIZES_CLOTHES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 export const SIZES_SHOES = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45'];
 export const COSMETIC_SIZES = ['30ml', '50ml', '100ml', '200ml'];
+
+export const SHIPPING_PROVIDERS = [
+  { id: 'standard', name: 'شحن قياسي (Standard Shipping)', base: 0, multiplier: 1.0, speed: '10-15 days' },
+  { id: 'express', name: 'شحن سريع (Express Shipping)', base: 15, multiplier: 1.2, speed: '5-9 days' },
+  { id: 'al-waseet', name: 'شركة الوسيط - توصيل محلي (Al-Waseet)', base: 0, multiplier: 1.0, speed: '2-4 days' }
+];
