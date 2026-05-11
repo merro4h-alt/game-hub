@@ -162,7 +162,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
     ).join('\n');
     
     return encodeURIComponent(
-      `🛍️ *طلب جديد من المتجر: ${info.trackingId}*\n\n` +
+      `🛍️ *طلب جديد من Trendifi: ${info.trackingId}*\n\n` +
       `👤 *معلومات العميل:*\n` +
       `• الاسم: ${formData.name}\n` +
       `• الهاتف: ${fullPhoneNumber}\n` +
@@ -281,44 +281,61 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
     wallet: t('checkout.wallet')
   };
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 ${isArabic ? 'font-arabic' : ''}`} dir={isArabic ? 'rtl' : 'ltr'}>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-brand-charcoal/80 backdrop-blur-sm"
-          />
-          
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg bg-brand-cream rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-          >
-            {/* Header */}
-            <div className={`${paymentMethod === 'card' ? 'bg-[#008296]' : 'bg-brand-charcoal'} p-4 text-white flex-shrink-0 relative`}>
-              <div className="flex items-center justify-between">
-                <button 
-                  onClick={onClose}
-                  className="text-[10px] font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
-                >
-                  {t('checkout.cancel')}
-                </button>
-                <h2 className="text-sm font-bold absolute left-1/2 -translate-x-1/2">
-                  {paymentMethod === 'card' 
-                    ? (isArabic ? 'اختر طريقة الدفع' : 'Select a Payment Method') 
-                    : texts.title}
-                </h2>
-                <div className="w-10"></div> {/* Spacer for symmetry */}
+  const paymentMethodColors: Record<string, string> = {
+    card: '#008296',
+    crypto: '#f7931a',
+    cod: '#22c55e',
+    wallet: '#ffcb05'
+  };
+
+    const methodLabel = paymentMethod === 'cod' ? (isArabic ? 'دفع عند الاستلام' : 'Cash on Delivery') : 
+                       paymentMethod === 'card' ? (isArabic ? 'بطاقة بنكية' : 'Bank Card') : 
+                       paymentMethod === 'crypto' ? (isArabic ? 'عملات رقمية' : 'Crypto') :
+                       paymentMethod === 'wallet' ? (isArabic ? 'محفظة إلكترونية' : 'E-Wallet') :
+                       '';
+
+    return (
+      <AnimatePresence>
+        {isOpen && (
+          <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 ${isArabic ? 'font-arabic' : ''}`} dir={isArabic ? 'rtl' : 'ltr'}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="absolute inset-0 bg-brand-charcoal/80 backdrop-blur-sm"
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-brand-cream rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              {/* Header */}
+              <div 
+                className="p-4 text-white flex-shrink-0 relative transition-colors duration-500"
+                style={{ backgroundColor: paymentMethodColors[paymentMethod] || '#000000' }}
+              >
+                <div className="flex items-center justify-between">
+                  <button 
+                    onClick={onClose}
+                    className="text-[10px] font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
+                  >
+                    {t('checkout.cancel')}
+                  </button>
+                  <h2 className="text-sm font-bold absolute left-1/2 -translate-x-1/2 uppercase tracking-widest">
+                    {methodLabel}
+                  </h2>
+                  <div className="w-10"></div> {/* Spacer for symmetry */}
+                </div>
               </div>
-            </div>
 
             {/* Order Summary */}
-            <div className={`${paymentMethod === 'card' ? 'bg-[#f7f7f7]' : 'bg-brand-charcoal/5'} p-4 border-b border-brand-charcoal/5 flex justify-between items-center`}>
+            <div 
+              className="p-4 border-b border-brand-charcoal/5 flex justify-between items-center transition-colors duration-500"
+              style={{ backgroundColor: `${paymentMethodColors[paymentMethod]}08` }}
+            >
               <span className="text-brand-charcoal/80 font-bold text-xs uppercase tracking-wider">
                 {t('checkout.orderTotal')}
               </span>
@@ -384,16 +401,21 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                         )}
                         <div className={`flex items-center justify-center h-12 w-12 rounded-2xl transition-all shadow-sm ${
                           paymentMethod === method 
-                            ? (method === 'crypto' ? 'bg-[#f7931a] text-white rotate-3 scale-110' : 'bg-brand-gold text-white rotate-3 scale-110')
+                            ? 'text-white rotate-3 scale-110'
                             : 'bg-brand-charcoal/5 text-brand-charcoal/30 grayscale'
-                        }`}>
+                        }`}
+                        style={{ backgroundColor: paymentMethod === method ? paymentMethodColors[method] : '' }}
+                        >
                           {method === 'card' ? <CreditCard size={24} strokeWidth={2} /> : 
                            method === 'cod' ? <Truck size={24} strokeWidth={2} /> : 
                            method === 'wallet' ? <Smartphone size={24} strokeWidth={2} /> : 
                            method === 'crypto' ? <Coins size={24} strokeWidth={2} /> :
                            <Banknote size={24} />}
                         </div>
-                        <span className={`text-[10px] font-black uppercase tracking-wider whitespace-nowrap text-center transition-all ${paymentMethod === method ? 'text-brand-charcoal' : 'text-brand-charcoal/40'}`}>
+                        <span 
+                          className={`text-[10px] font-black uppercase tracking-wider whitespace-nowrap text-center transition-all ${paymentMethod === method ? '' : 'text-brand-charcoal/40'}`}
+                          style={{ color: paymentMethod === method ? paymentMethodColors[method] : '' }}
+                        >
                           {method === 'wallet' ? (isArabic ? 'محفظة' : 'Wallet') :
                            method === 'crypto' ? (isArabic ? 'عملات رقمية' : 'Crypto') :
                            texts[method as keyof typeof texts]}
