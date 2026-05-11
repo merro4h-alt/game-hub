@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email.lower() == 'kmerro25@gmail.com' ||
+        request.auth.token.email.lower() == 'merro4h@gmail.com'
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Collections ---
+
+    // Products
+    match /products/{productId} {
+      function isValidProduct(data) {
+        return data.keys().hasAll(['name', 'price']) &&
+               data.name is string && data.name.size() > 0 && data.name.size() <= 500 &&
+               data.price is number && data.price >= 0;
+      }
+
+      allow read: if true;
+      allow create: if isAdmin() && isValidProduct(incoming()) && isValidId(productId);
+      allow update: if isAdmin() && isValidProduct(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      function isValidOrder(data) {
+        return data.userId is string &&
+               data.items is list && data.items.size() > 0 &&
+               data.total is number &&
+               data.status is string;
+      }
+
+      // Public can GET a specific order (for tracking)
+      allow get: if true;
+      
+      // Only admins or the owner can LIST orders
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      
+      // Anyone can create an order (guest checkout)
+      allow create: if isValidOrder(incoming()) && isValidId(orderId);
+      
+      // Only admins can update or delete
+      allow update, delete: if isAdmin();
+    }
+
+    // User Profiles
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isSignedIn() && request.auth.uid == userId && 
+                   (!incoming().keys().contains('isAdmin') || isAdmin());
+    }
+
+    // Admins Whitelist
+    match /admins/{userId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin(); // Only existing admins can add new ones
+    }
+
+    // Test writes for debugging
+    match /test_writes/{docId} {
+      allow create: if true;
+      allow read: if isAdmin();
+    }
+  }
+}
