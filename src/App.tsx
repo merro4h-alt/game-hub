@@ -8,8 +8,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { StoreProvider } from './StoreContext';
 import { AuthProvider } from './AuthContext';
+import { AlertProvider } from './contexts/AlertContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import Logo from './components/Logo';
 import HomePage from './pages/HomePage';
 import ShopPage from './pages/ShopPage';
 import AboutPage from './pages/AboutPage';
@@ -49,13 +51,15 @@ export default function App() {
 
   return (
     <Router>
-      <AuthProvider>
-        <StoreProvider>
-          <div className={`flex flex-col min-h-screen font-sans ${dir === 'rtl' ? 'font-arabic' : ''}`} dir={dir}>
-            <AppContent />
-          </div>
-        </StoreProvider>
-      </AuthProvider>
+      <AlertProvider>
+        <AuthProvider>
+          <StoreProvider>
+            <div className={`flex flex-col min-h-screen font-sans ${dir === 'rtl' ? 'font-arabic' : ''}`} dir={dir}>
+              <AppContent />
+            </div>
+          </StoreProvider>
+        </AuthProvider>
+      </AlertProvider>
     </Router>
   );
 }
@@ -86,15 +90,11 @@ function AppContent() {
   if ((storeLoading || authLoading) && !isSafetyTimeoutReached) {
     return (
       <div className="fixed inset-0 bg-[#0A0A0B] flex flex-col items-center justify-center z-[9999]">
-        <div className="flex items-center gap-3 mb-8 animate-pulse">
-          <span className="text-4xl font-black italic tracking-tighter text-white">
-            Trendi<span className="text-[#4F46E5]">fi</span>
+        <div className="flex items-center gap-4 mb-8 animate-pulse">
+          <span className="text-6xl font-black italic tracking-tighter text-white">
+            Trendi<span className="text-[#A78BFA]">fi</span>
           </span>
-          <div className="w-12 h-12 bg-gradient-to-br from-[#4F46E5] to-[#7C3AED] rounded-[14px] flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 rotate-6">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 -rotate-6">
-               <path d="M12 19V5M5 12l7-7 7 7" />
-            </svg>
-          </div>
+          <Logo className="w-16 h-16" variant="gradient" />
         </div>
         <div className="flex flex-col items-center gap-2">
           <div className="w-48 h-1 bg-white/5 rounded-full overflow-hidden">

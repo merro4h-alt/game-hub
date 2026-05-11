@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { ShoppingBag, Menu, X, Search, Globe, ChevronDown, User as UserIcon, LogOut, ShieldCheck, Package, LayoutDashboard, Sparkles } from 'lucide-react';
 import { useStore } from '../StoreContext';
+import Logo from './Logo';
 import { useAuth } from '../AuthContext';
 import { useRef, useEffect } from 'react';
 
@@ -81,15 +82,11 @@ const Navbar: React.FC = () => {
             </button>
 
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 group flex-shrink-0">
-              <span className="text-2xl sm:text-4xl font-black italic tracking-tighter text-brand-charcoal">
-                Trendi<span className="text-[#4F46E5]">fi</span>
+            <Link to="/" className="flex items-center gap-4 group flex-shrink-0">
+              <span className="text-4xl sm:text-6xl font-black italic tracking-tighter text-brand-charcoal">
+                Trendi<span className="text-[#6366F1]">fi</span>
               </span>
-              <div className="relative flex w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#4F46E5] to-[#7C3AED] rounded-lg sm:rounded-[14px] flex-shrink-0 items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-500 shadow-indigo-500/20 rotate-6">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 sm:w-8 sm:h-8 -rotate-6">
-                   <path d="M12 19V5M5 12l7-7 7 7" />
-                </svg>
-              </div>
+              <Logo className="w-10 h-10 sm:w-14 sm:h-14 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500" variant="gradient" />
             </Link>
 
             {/* Desktop Nav (Now on the Left) */}
@@ -114,14 +111,14 @@ const Navbar: React.FC = () => {
                     className="text-xs font-bold bg-[#4F46E5] text-white px-4 py-2 rounded-full hover:bg-[#4338CA] transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20"
                   >
                     <LayoutDashboard size={14} />
-                    {i18n.language === 'ar' ? 'لوحة المبيعات' : 'Sales Dashboard'}
+                    {t('admin.dashboard')}
                   </Link>
                   <button 
                     onClick={() => setIsAddModalOpen(true)}
                     className="text-xs font-bold bg-brand-charcoal text-white px-4 py-2 rounded-full hover:bg-brand-gold transition-all flex items-center gap-2"
                   >
                     <ShieldCheck size={14} />
-                    {i18n.language === 'ar' ? 'إضافة منتج' : 'Add Product'}
+                    {t('admin.addProduct')}
                   </button>
                 </div>
               )}
@@ -206,7 +203,7 @@ const Navbar: React.FC = () => {
                               <span className="text-[8px] font-black text-brand-gold">540 PTS</span>
                             </div>
                           </div>
-                          {isAdmin && <p className="text-[10px] text-brand-gold font-bold uppercase tracking-widest">{i18n.language === 'ar' ? 'مسؤول' : 'Admin'}</p>}
+                          {isAdmin && <p className="text-[10px] text-brand-gold font-bold uppercase tracking-widest">{t('common.admin')}</p>}
                         </div>
                         <div className="h-px bg-brand-charcoal/5 my-1" />
                         {isAdmin && (
@@ -217,7 +214,7 @@ const Navbar: React.FC = () => {
                           >
                             <LayoutDashboard size={14} />
                             <div className="flex-1 flex items-center justify-between">
-                              {i18n.language === 'ar' ? 'لوحة المبيعات' : 'Sales Dashboard'}
+                              {t('admin.dashboard')}
                               <span className="text-[8px] bg-red-500 text-white px-1.5 py-0.5 rounded-full animate-pulse uppercase">New</span>
                             </div>
                           </Link>
@@ -228,7 +225,7 @@ const Navbar: React.FC = () => {
                           className="w-full text-left rtl:text-right px-3 py-2 text-sm text-brand-charcoal hover:bg-brand-cream rounded-lg flex items-center gap-2 transition-colors font-medium"
                         >
                           <Package size={14} />
-                          {i18n.language === 'ar' ? 'تاریخ الطلبات' : 'Order History'}
+                          {t('common.orderHistory')}
                         </Link>
                         <button
                           onClick={() => {
@@ -238,7 +235,7 @@ const Navbar: React.FC = () => {
                           className="w-full text-left rtl:text-right px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg flex items-center gap-2 transition-colors"
                         >
                           <LogOut size={14} />
-                          {i18n.language === 'ar' ? 'تسجيل الخروج' : 'Logout'}
+                          {t('admin.logout')}
                         </button>
                       </div>
                     ) : (
@@ -257,7 +254,7 @@ const Navbar: React.FC = () => {
                           ) : (
                             <UserIcon size={14} />
                           )}
-                          {i18n.language === 'ar' ? (isLoginLoading ? 'جاري التحميل...' : 'تسجيل الدخول') : (isLoginLoading ? 'Loading...' : 'Sign In')}
+                          {isLoginLoading ? t('common.loading') : t('common.login')}
                         </button>
                       </div>
                     )}
@@ -326,7 +323,7 @@ const Navbar: React.FC = () => {
                   className="w-full text-center bg-brand-charcoal text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2"
                 >
                   <ShieldCheck size={18} />
-                  {i18n.language === 'ar' ? 'إضافة منتج جديد' : 'Add New Product'}
+                  {t('admin.addProduct')}
                 </button>
               )}
               

@@ -37,9 +37,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
     category: 'New' as Product['category'],
     colors: [] as string[],
     sizes: [] as string[],
-    image: null as File | null,
+    image: null as File | string | null,
     imagePreview: '',
     images: [] as string[],
+    gallery: [] as string[],
     colorImages: {} as Record<string, string>,
     supplierName: '',
     supplierUrl: '',
@@ -65,6 +66,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
         image: null,
         imagePreview: editingProduct.image,
         images: editingProduct.images || [editingProduct.image],
+        gallery: editingProduct.images || [editingProduct.image],
         colorImages: editingProduct.colorImages || {},
         supplierName: editingProduct.supplierName || '',
         supplierUrl: editingProduct.supplierUrl || '',
@@ -81,6 +83,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
         image: null,
         imagePreview: '',
         images: [],
+        gallery: [],
         colorImages: {},
         supplierName: '',
         supplierUrl: '',
@@ -310,16 +313,17 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const model = ai.models.generateContent({
+      const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        systemInstruction: `You are a professional e-commerce copywriter. Create a compelling, high-converting product description for an store named "Trendifi". The description should be professional, highlighting benefits and features.
-        Return ONLY the description text, no extra formatting or titles.
-        Language: ${isArabic ? 'Arabic (Saudi/Gulf dialect preferred for luxury feel)' : 'English'}.
-        Length: 150-250 characters.`,
-        contents: `Product Name: ${formData.name}. Category: ${formData.category}.`
+        contents: `Product Name: ${formData.name}. Category: ${formData.category}.`,
+        config: {
+          systemInstruction: `You are a professional e-commerce copywriter. Create a compelling, high-converting product description for an store named "Trendifi". The description should be professional, highlighting benefits and features.
+          Return ONLY the description text, no extra formatting or titles.
+          Language: ${isArabic ? 'Arabic (Saudi/Gulf dialect preferred for luxury feel)' : 'English'}.
+          Length: 150-250 characters.`,
+        }
       });
 
-      const response = await model;
       const text = response.text;
       
       if (text) {

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
+import { useAlert } from './contexts/AlertContext';
 import { auth, checkIfAdmin, loginWithGoogle, logout, onAuthStateListener } from './lib/firebase';
 
 interface AuthContextType {
@@ -15,6 +16,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { i18n } = useTranslation();
+  const { showAlert } = useAlert();
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -66,17 +68,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const errorCode = error.code || 'unknown';
     
     if (errorCode === 'auth/popup-closed-by-user') {
-      alert(i18n.language === 'ar' 
+      showAlert(i18n.language === 'ar' 
         ? 'تم إغلاق نافذة تسجيل الدخول قبل اكتمال العملية. يرجى المحاولة مرة أخرى.' 
         : 'Login popup was closed before completion. Please try again.');
     } else if (errorCode === 'auth/unauthorized-domain') {
-      alert(i18n.language === 'ar'
+      showAlert(i18n.language === 'ar'
         ? `هذا النطاق (${currentDomain}) غير مصرح به في Firebase.\n\nيرجى فتح رابط مشروعك في Firebase Console وإضافة هذا النطاق:\nhttps://console.firebase.google.com/project/${projectId}/authentication/settings`
         : `This domain (${currentDomain}) is not authorized in Firebase.\n\nPlease open your project in Firebase Console and add this domain:\nhttps://console.firebase.google.com/project/${projectId}/authentication/settings`);
     } else if (errorCode === 'auth/network-request-failed') {
-      alert(i18n.language === 'ar' ? 'خطأ في الاتصال بالإنترنت.' : 'Network error. Check your connection.');
+      showAlert(i18n.language === 'ar' ? 'خطأ في الاتصال بالإنترنت.' : 'Network error. Check your connection.');
     } else {
-      alert(`${errorPrefix}${error.message || errorCode}`);
+      showAlert(`${errorPrefix}${error.message || errorCode}`);
     }
   };
 

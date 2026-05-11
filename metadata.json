@@ -1,6 +1,6 @@
 {
   "name": "Trendifi",
-  "description": "A modern and attractive e-commerce store for fashion, cosmetics, and sports.",
-  "requestFramePermissions": [],
+  "description": "A modern and attractive e-commerce store with regional payment integrations including Qi Card, ZainCash, NassPay, and FastPay.",
+  "requestFramePermissions": ["camera"],
   "majorCapabilities": []
 }

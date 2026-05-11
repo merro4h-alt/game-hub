@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Instagram, Twitter, Facebook, ArrowUpRight, MessageCircle, ShieldCheck } from 'lucide-react';
+import Logo from './Logo';
 
 const Footer: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -11,15 +12,11 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           {/* Logo & Info */}
           <div className="col-span-1 md:col-span-2">
-            <Link to="/" className="flex items-center gap-2 mb-6 group">
-              <span className="text-3xl font-black italic tracking-tighter text-white">
-                Trendi<span className="text-brand-gold">fi</span>
+            <Link to="/" className="flex items-center gap-4 mb-6 group">
+              <span className="text-4xl font-black italic tracking-tighter text-white">
+                Trendi<span className="text-[#A78BFA]">fi</span>
               </span>
-              <div className="relative w-10 h-10 bg-gradient-to-br from-brand-gold to-[#4F46E5] rounded-xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-500 shadow-brand-gold/10">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-                  <path d="M12 19V5M5 12l7-7 7 7" />
-                </svg>
-              </div>
+              <Logo className="w-12 h-12 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500" variant="gradient" />
             </Link>
             <p className="text-brand-cream/60 max-w-sm font-light text-lg mb-8">
               {t('footer.description')}
@@ -54,7 +51,7 @@ const Footer: React.FC = () => {
               <li><Link to="/about" className="hover:text-brand-gold transition-colors">{t('nav.about')}</Link></li>
               <li><Link to="/contact" className="hover:text-brand-gold transition-colors">{t('nav.contact')}</Link></li>
               <li><Link to="/track" className="hover:text-brand-gold transition-colors">{t('nav.trackOrder')}</Link></li>
-              <li><Link to="/admin" className="hover:text-brand-gold transition-colors text-white/30 text-xs italic">Admin Dashboard</Link></li>
+              <li><Link to="/admin" className="hover:text-brand-gold transition-colors text-white/30 text-xs italic">{t('admin.dashboard')}</Link></li>
               <li className="pt-4 mt-4 border-t border-white/5">
                 <span className="block text-xs uppercase tracking-widest text-white/30 mb-1">{t('footer.emailLabel')}</span>
                 <a href="mailto:merro4h@gmail.com" className="text-brand-gold hover:underline font-medium">merro4h@gmail.com</a>
@@ -64,8 +61,8 @@ const Footer: React.FC = () => {
 
           {/* Newsletter */}
           <div>
-            <h4 className="font-bold text-lg mb-6 tracking-tight">Newsletter</h4>
-            <p className="text-brand-cream/60 text-sm mb-6 font-light">Join our elite circle for exclusive drops and design insights.</p>
+            <h4 className="font-bold text-lg mb-6 tracking-tight">{t('footer.newsletter')}</h4>
+            <p className="text-brand-cream/60 text-sm mb-6 font-light">{t('footer.newsletterDesc')}</p>
             <div className="flex flex-col gap-4">
               <input 
                 type="email" 
@@ -73,7 +70,7 @@ const Footer: React.FC = () => {
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-brand-gold transition-colors font-light text-white"
               />
               <button className="w-full bg-brand-gold hover:bg-white text-brand-charcoal font-black uppercase tracking-widest py-3 rounded-xl transition-all duration-300 shadow-lg shadow-brand-gold/10 hover:-translate-y-1">
-                {i18n.language === 'ar' ? 'إرسال' : 'Send'}
+                {t('common.send')}
               </button>
             </div>
           </div>
@@ -91,12 +88,10 @@ const Footer: React.FC = () => {
           <div className="max-w-2xl border-t md:border-t-0 md:border-l border-brand-cream/10 md:pl-12 pt-12 md:pt-0">
             <h4 className="text-xs font-bold uppercase tracking-widest text-green-500 mb-4 flex items-center gap-2">
               <ShieldCheck size={16} />
-              {i18n.language === 'ar' ? 'ضمان مطابقة المواصفات' : 'Specification Guarantee'}
+              {t('footer.specGuarantee')}
             </h4>
             <p className="text-sm font-light text-brand-cream/60 leading-relaxed">
-              {i18n.language === 'ar' 
-                ? 'نحن نضمن أن جميع المنتجات مطابقة تماماً للصور والمواصفات المذكورة. في حال استلامك لمنتج مختلف، يحق لك استرجاع المبلغ كاملاً أو استبدال المنتج مجاناً.' 
-                : 'We guarantee that all products strictly match the photos and specifications provided. If you receive a different product, you are entitled to a full refund or a free replacement.'}
+              {t('footer.specGuaranteeDesc')}
             </p>
           </div>
         </div>

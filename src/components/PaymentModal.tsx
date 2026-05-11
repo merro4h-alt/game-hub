@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, CreditCard, ShieldCheck, Lock, Truck, MapPin, Globe, Banknote, Percent } from 'lucide-react';
+import { X, CreditCard, ShieldCheck, Lock, Truck, MapPin, Globe, Banknote } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../StoreContext';
+import { useAlert } from '../contexts/AlertContext';
 import { db, auth } from '../lib/firebase';
 import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import StripePayment from './StripePayment';
@@ -11,6 +12,7 @@ const countries = [
   { code: 'IQ', name: 'Iraq', nameAr: 'العراق', dialCode: '+964' },
   { code: 'SA', name: 'Saudi Arabia', nameAr: 'المملكة العربية السعودية', dialCode: '+966' },
   { code: 'AE', name: 'United Arab Emirates', nameAr: 'الإمارات العربية المتحدة', dialCode: '+971' },
+  { code: 'TR', name: 'Turkey', nameAr: 'تركيا', dialCode: '+90' },
   { code: 'JO', name: 'Jordan', nameAr: 'الأردن', dialCode: '+962' },
   { code: 'EG', name: 'Egypt', nameAr: 'مصر', dialCode: '+20' },
   { code: 'KW', name: 'Kuwait', nameAr: 'الكويت', dialCode: '+965' },
@@ -18,7 +20,11 @@ const countries = [
   { code: 'BH', name: 'Bahrain', nameAr: 'البحرين', dialCode: '+973' },
   { code: 'OM', name: 'Oman', nameAr: 'عمان', dialCode: '+968' },
   { code: 'US', name: 'United States', nameAr: 'الولايات المتحدة', dialCode: '+1' },
+  { code: 'CA', name: 'Canada', nameAr: 'كندا', dialCode: '+1' },
   { code: 'GB', name: 'United Kingdom', nameAr: 'المملكة المتحدة', dialCode: '+44' },
+  { code: 'DE', name: 'Germany', nameAr: 'ألمانيا', dialCode: '+49' },
+  { code: 'FR', name: 'France', nameAr: 'فرنسا', dialCode: '+33' },
+  { code: 'AU', name: 'Australia', nameAr: 'أستراليا', dialCode: '+61' },
 ];
 
 interface PaymentModalProps {
@@ -33,17 +39,23 @@ const COUNTRY_ADJUSTMENT_LOCAL: Record<string, number> = {
   'AE': 1.1,
   'JO': 1.0,
   'US': 2.5,
+  'CA': 2.5,
+  'GB': 2.0,
+  'DE': 2.2,
+  'FR': 2.2,
+  'TR': 1.0,
+  'AU': 3.0,
   'DEFAULT': 1.5
 };
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) => {
   const { t, i18n } = useTranslation();
   const { clearCart, cart } = useStore();
+  const { showAlert } = useAlert();
   const isArabic = i18n.language === 'ar';
 
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cod' | 'applepay' | 'bnpl' | 'wallet'>('card');
-  const [selectedBNPL, setSelectedBNPL] = useState<'tabby' | 'tamara'>('tabby');
-  const [selectedWallet, setSelectedWallet] = useState<'zaincash' | 'asiahawala' | 'mastercard'>('zaincash');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cod' | 'applepay' | 'wallet' | 'bank' | 'payoneer' | 'qicard'>('card');
+  const [selectedWallet, setSelectedWallet] = useState<'zaincash' | 'asiahawala' | 'wallet' | 'nass' | 'fast' | 'bank'>('zaincash');
   const [selectedCountry, setSelectedCountry] = useState('SA'); // Default to SA for better payment coverage
   const [phonePrefix, setPhonePrefix] = useState('+966');
   const [shippingProviders, setShippingProviders] = useState<any[]>([]);
@@ -96,15 +108,24 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [orderInfo, setOrderInfo] = useState<{trackingId: string, trackingLink: string, whatsappSent?: boolean, items?: any[]} | null>(null);
+  const [orderInfo, setOrderInfo] = useState<{
+    trackingId: string;
+    trackingLink: string;
+    cardholderName?: string;
+    whatsappSent?: boolean;
+    items?: any[];
+  } | null>(null);
 
   const WHATSAPP_NUMBER = '9647837814009';
 
   const getWhatsAppMessage = (info: any) => {
-    const methodLabel = paymentMethod === 'cod' ? (isArabic ? 'الدفع عند الاستلام 🚚' : 'Cash on Delivery 🚚') : 
-                       paymentMethod === 'card' ? (isArabic ? 'تم الدفع بالبطاقة ✅' : 'Paid by Card ✅') : 
-                       paymentMethod === 'wallet' ? (isArabic ? `تحويل محفظة (${selectedWallet === 'zaincash' ? 'زين كاش' : 'آسيا حوالة'}) 📱` : `Wallet Transfer (${selectedWallet === 'zaincash' ? 'ZainCash' : 'AsiaHawala'}) 📱`) :
-                       (isArabic ? 'باي بال 💰' : 'PayPal 💰');
+    const methodLabel = paymentMethod === 'cod' ? (isArabic ? 'الدفع عند الاستلام (افحص واستلم) 🤝' : 'Cash on Delivery (Check & Collect) 🤝') : 
+                       paymentMethod === 'card' ? t('checkout.card') : 
+                       paymentMethod === 'qicard' ? (isArabic ? 'كي كارد 💳' : 'Qi Card 💳') :
+                       paymentMethod === 'wallet' ? (isArabic ? `تحويل محفظة (${selectedWallet === 'zaincash' ? 'زين كاش' : selectedWallet === 'asiahawala' ? 'آسيا حوالة' : selectedWallet === 'nass' ? 'نص باي' : selectedWallet === 'fast' ? 'فاست باي' : 'محفظة'}) 📱` : `Wallet Transfer (${selectedWallet === 'zaincash' ? 'ZainCash' : selectedWallet === 'asiahawala' ? 'AsiaHawala' : selectedWallet === 'nass' ? 'NassPay' : selectedWallet === 'fast' ? 'FastPay' : 'Wallet'}) 📱`) :
+                       paymentMethod === 'bank' ? t('checkout.bank') :
+                       paymentMethod === 'payoneer' ? 'Payoneer 💳' :
+                       t('checkout.paypal');
     
     // Formatting items with price
     const itemsText = (info.items || []).map((item: any) => 
@@ -135,7 +156,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
     if (e) e.preventDefault();
 
     if (!formData.name || !formData.address || !formData.phone) {
-      alert(isArabic ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
+      showAlert(isArabic ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
       return;
     }
 
@@ -207,29 +228,31 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
       setIsProcessing(false);
       // Improve error message display
       const displayMsg = error instanceof Error ? error.message : String(error);
-      alert((isArabic ? 'حدث خطأ أثناء معالجة الطلب: ' : 'Error processing order: ') + displayMsg);
+      showAlert((isArabic ? 'حدث خطأ أثناء معالجة الطلب: ' : 'Error processing order: ') + displayMsg);
     }
   };
 
   const texts = {
-    title: isArabic ? 'الدفع الآمن' : 'Secure Checkout',
-    subtitle: isArabic ? 'حدد الدولة وطريقة الدفع' : 'Select country and payment method',
-    card: isArabic ? 'بطاقة ائتمان' : 'Credit Card',
-    cod: isArabic ? 'الدفع عند الاستلام' : 'Cash on Delivery',
-    applepay: isArabic ? 'Apple Pay' : 'Apple Pay',
-    bnpl: isArabic ? 'تقسيط (تابي/تمارا)' : 'Installments',
-    total: isArabic ? 'الإجمالي المطلوب' : 'Total to Pay',
-    address: isArabic ? 'عنوان الشحن' : 'Shipping Address',
-    phone: isArabic ? 'رقم الهاتف' : 'Phone Number',
-    confirmOrder: isArabic ? 'تأكيد الطلب' : 'Confirm Order',
-    paypal: isArabic ? 'باي بال' : 'PayPal',
-    processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
-    success: isArabic ? 'تم الطلب بنجاح!' : 'Order Successful!',
-    successSub: isArabic ? 'طلبك قيد التنفيذ وسنقوم بالتواصل معك.' : 'Your order is being processed and we will contact you.',
-    trackingText: isArabic ? 'رقم التتبع الخاص بك:' : 'Your Tracking Number:',
-    trackNow: isArabic ? 'تتبع طلبك الآن' : 'Track Order Now',
-    secure: isArabic ? 'مشفر وآمن' : 'Encrypted and Secure',
-    wallet: isArabic ? 'محفظة إلكترونية' : 'E-Wallet'
+    title: t('checkout.title'),
+    subtitle: t('checkout.subtitle'),
+    card: t('checkout.card'),
+    cod: t('checkout.cod'),
+    applepay: t('checkout.applePay'),
+    total: t('checkout.total'),
+    address: t('checkout.address'),
+    phone: t('checkout.phone'),
+    confirmOrder: t('checkout.confirm'),
+    paypal: t('checkout.paypal'),
+    bank: t('checkout.bank'),
+    qicard: isArabic ? 'كي كارد' : 'Qi Card',
+    processing: t('checkout.processing'),
+    success: t('checkout.success'),
+    successSub: t('checkout.successSub'),
+    trackingText: t('checkout.trackingId'),
+    trackNow: t('checkout.trackNow'),
+    secure: t('checkout.secure'),
+    wallet: t('checkout.wallet'),
+    payoneer: t('checkout.payoneer')
   };
 
   return (
@@ -257,7 +280,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                   onClick={onClose}
                   className="text-[10px] font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
                 >
-                  {isArabic ? 'إلغاء' : 'CANCEL'}
+                  {t('checkout.cancel')}
                 </button>
                 <h2 className="text-sm font-bold absolute left-1/2 -translate-x-1/2">
                   {paymentMethod === 'card' 
@@ -271,7 +294,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
             {/* Order Summary */}
             <div className={`${paymentMethod === 'card' ? 'bg-[#f7f7f7]' : 'bg-brand-charcoal/5'} p-4 border-b border-brand-charcoal/5 flex justify-between items-center`}>
               <span className="text-brand-charcoal/80 font-bold text-xs uppercase tracking-wider">
-                {isArabic ? 'إجمالي الطلب:' : 'Order Total:'}
+                {t('checkout.orderTotal')}
               </span>
               <span className="text-xl font-bold text-[#b12704]">${finalTotal.toFixed(2)}</span>
             </div>
@@ -288,16 +311,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                   
                   {orderInfo && (
                     <div className="w-full bg-brand-charcoal/5 border-2 border-dashed border-brand-charcoal/10 rounded-3xl p-8">
-                       <div className="flex flex-col items-center justify-center gap-2 mb-6">
+                        <div className="flex flex-col items-center justify-center gap-2 mb-6">
                         <div className="flex items-center gap-2 bg-brand-gold/10 py-2 px-4 rounded-full w-fit mx-auto">
                           <ShieldCheck size={14} className="text-brand-gold" />
                           <span className="text-[10px] font-bold text-brand-gold uppercase tracking-widest">
-                            {isArabic ? 'تتم المعالجة عبر شبكة الموردين العالمية ✅' : 'Processed via Global Supplier Network ✅'}
+                            {t('checkout.processedViaNetwork')} ✅
                           </span>
                         </div>
                         {orderInfo.cardholderName && (
                           <div className="mt-2 text-brand-charcoal/60 text-xs font-bold bg-white/50 px-4 py-2 rounded-xl border border-brand-charcoal/5">
-                            {isArabic ? 'صاحب البطاقة: ' : 'Cardholder: '}
+                            {t('checkout.cardholder')}: 
                             <span className="text-brand-charcoal">{orderInfo.cardholderName}</span>
                           </div>
                         )}
@@ -317,7 +340,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                 <div className="space-y-8">
                   {/* Payment Selection Toggles */}
                   <div className="flex bg-brand-charcoal/[0.03] p-1.5 rounded-2xl gap-1.5 border border-brand-charcoal/5 overflow-x-auto no-scrollbar">
-                    {(['card', 'applepay', 'cod', 'bnpl', 'wallet'] as const).map((method) => (
+                    {(['card', 'qicard', 'applepay', 'cod', 'wallet', 'bank', 'payoneer'] as const).map((method) => (
                       <button
                         key={method}
                         onClick={() => setPaymentMethod(method)}
@@ -328,10 +351,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                         }`}
                       >
                         {method === 'card' ? <CreditCard size={18} /> : 
+                         method === 'qicard' ? <img src="https://media.licdn.com/dms/image/C4D0BAQG0_L_F9w4zYw/company-logo_200_200/0/1630571946808?e=2147483647&v=beta&t=7u7u8u" alt="Qi Card" className="w-5 h-5 rounded-full" onError={(e) => e.currentTarget.style.display = 'none'} /> :
                          method === 'applepay' ? <div className="font-bold text-[10px]"> Pay</div> :
                          method === 'cod' ? <Truck size={18} /> : 
-                         method === 'bnpl' ? <Percent size={18} /> :
                          method === 'wallet' ? <Globe size={18} /> : 
+                         method === 'bank' ? <Banknote size={18} /> :
+                         method === 'payoneer' ? <img src="https://icon.horse/icon/payoneer.com" alt="Payoneer" className="w-5 h-5 rounded-sm" /> :
                          <Banknote size={18} />}
                         <span className="text-[7px] font-black uppercase tracking-[0.1em] whitespace-nowrap">
                           {method === 'applepay' ? 'Apple Pay' : texts[method as keyof typeof texts]}
@@ -344,13 +369,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                     {/* Customer Information Section */}
                     <div className="space-y-4">
                       <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2">
-                        <MapPin size={12} /> {isArabic ? 'معلومات الشحن' : 'Shipping Info'}
+                        <MapPin size={12} /> {t('checkout.shippingInfo')}
                       </h4>
                       
                       <div className="space-y-4">
                         {/* Country Selection */}
                         <div className="relative group">
-                          <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-charcoal/40 z-10">{isArabic ? 'الدولة' : 'Country'}</label>
+                          <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-charcoal/40 z-10">{t('checkout.country')}</label>
                           <select
                             value={selectedCountry}
                             onChange={(e) => setSelectedCountry(e.target.value)}
@@ -365,7 +390,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
 
                         {/* Shipping Provider Selection */}
                         <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold">{isArabic ? 'شركة الشحن' : 'Shipping Provider'}</label>
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold">{t('checkout.shippingProvider')}</label>
                           <div className="grid grid-cols-1 gap-2">
                             {shippingProviders
                               .filter(p => {
@@ -389,7 +414,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                                   </div>
                                   <div className={isArabic ? 'text-right' : 'text-left'}>
                                     <span className="block text-sm font-bold text-brand-charcoal">{p.name}</span>
-                                    <span className="block text-[10px] text-brand-charcoal/40 font-medium">{isArabic ? `توصيل خلال: ${p.speed}` : `Delivery: ${p.speed}`}</span>
+                                    <span className="block text-[10px] text-brand-charcoal/40 font-medium">{t('checkout.deliveryWithin')}: {p.speed}</span>
                                   </div>
                                 </div>
                                 <div className={`text-sm font-bold ${selectedProvider === p.id ? 'text-brand-gold' : 'text-brand-charcoal/60'}`}>
@@ -402,7 +427,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
 
                         {/* Name Input */}
                         <div className="relative">
-                          <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{isArabic ? 'الاسم بالكامل' : 'Full Name'}</label>
+                          <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.fullName')}</label>
                           <input
                             required
                             type="text"
@@ -416,7 +441,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                         {/* Contact Details Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="relative">
-                            <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{isArabic ? 'رقم الهاتف' : 'Phone'}</label>
+                            <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.phone')}</label>
                             <div className="flex bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl overflow-hidden focus-within:bg-white focus-within:border-brand-gold transition-all shadow-sm">
                               <select
                                 value={phonePrefix}
@@ -440,7 +465,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                             </div>
                           </div>
                           <div className="relative">
-                            <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{isArabic ? 'البريد (اختياري)' : 'Email'}</label>
+                            <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.email')}</label>
                             <input
                               type="email"
                               placeholder="email@example.com"
@@ -453,11 +478,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
 
                         {/* Detailed Address Section */}
                         <div className="relative">
-                          <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{isArabic ? 'العنوان بالتفصيل' : 'Detailed Address'}</label>
+                          <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.detailedAddress')}</label>
                           <textarea
                             required
                             rows={2}
-                            placeholder={isArabic ? 'المنطقة، الزقاق، المعالم القريبة...' : 'District, Street, Landmarks...'}
+                            placeholder={t('checkout.addressPlaceholder')}
                             className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm resize-none"
                             value={formData.address}
                             onChange={(e) => setFormData({...formData, address: e.target.value})}
@@ -473,12 +498,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                       </div>
                       <div className={isArabic ? 'text-right' : 'text-left'}>
                         <p className="text-[10px] font-bold text-brand-charcoal uppercase tracking-tighter">
-                          {isArabic ? 'نظام شحن عالمي ذكي' : 'Smart Global Fulfillment'}
+                          {t('checkout.smartFulfillment')}
                         </p>
                         <p className="text-[9px] text-brand-charcoal/50 leading-relaxed">
-                          {isArabic 
-                            ? 'يتم معالجة طلبك تلقائياً عبر أكبر شبكة موردين عالمية لضمان الجودة وأفضل سعر شحن مباشر.' 
-                            : 'Your order is automatically processed through a global supplier network to ensure quality and the best direct shipping rates.'}
+                          {t('checkout.smartFulfillmentDesc')}
                         </p>
                       </div>
                     </div>
@@ -494,7 +517,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                             <StripePayment 
                               amount={finalTotal} 
                               onSuccess={(name) => handleSubmit(undefined, name)} 
-                              onError={(err) => alert(err)} 
+                              onError={(err) => showAlert(err)} 
                               isArabic={isArabic}
                             />
                            </div>
@@ -502,6 +525,24 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                              <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Mada_Logo.svg" alt="Mada" className="h-4" />
                              <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4" />
                              <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-4" />
+                           </div>
+                        </div>
+                      ) : paymentMethod === 'qicard' ? (
+                        <div className="space-y-6">
+                           <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2 mb-4">
+                             <CreditCard size={12} /> {isArabic ? 'معلومات كي كارد' : 'Qi Card Info'}
+                           </h4>
+                           <div className="bg-brand-charcoal/[0.02] p-6 rounded-3xl border-2 border-brand-charcoal/5 border-brand-gold/30">
+                            <div className="text-center mb-6">
+                              <img src="https://media.licdn.com/dms/image/C4D0BAQG0_L_F9w4zYw/company-logo_200_200/0/1630571946808?e=2147483647&v=beta&t=7u7u8u" alt="Qi Card Logo" className="h-12 mx-auto mb-2 rounded-full" />
+                              <p className="text-[10px] font-bold text-brand-charcoal/40 uppercase tracking-widest">{isArabic ? 'ادفع باستخدام بطاقة Qi Card' : 'Pay with Qi Card'}</p>
+                            </div>
+                            <StripePayment 
+                              amount={finalTotal} 
+                              onSuccess={(name) => handleSubmit(undefined, name)} 
+                              onError={(err) => showAlert(err)} 
+                              isArabic={isArabic}
+                            />
                            </div>
                         </div>
                       ) : paymentMethod === 'applepay' ? (
@@ -513,37 +554,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                               </p>
                            </div>
                         </div>
-                      ) : paymentMethod === 'bnpl' ? (
-                        <div className="space-y-6">
-                           <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2 mb-4">
-                             <Percent size={12} /> {isArabic ? 'اختر مزود التقسيط' : 'Select BNPL Provider'}
-                           </h4>
-                           <div className="grid grid-cols-2 gap-4">
-                              <button 
-                                onClick={() => setSelectedBNPL('tabby')}
-                                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${selectedBNPL === 'tabby' ? 'border-[#38ff6a] bg-[#38ff6a]/10' : 'bg-white border-brand-charcoal/5'}`}
-                              >
-                                <span className="font-black text-xl text-black">tabby</span>
-                                <span className="text-[9px] font-bold opacity-60">{isArabic ? 'قسّمها على 4 دفعات' : 'Split in 4 payments'}</span>
-                              </button>
-                              <button 
-                                onClick={() => setSelectedBNPL('tamara')}
-                                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${selectedBNPL === 'tamara' ? 'border-[#ffa726] bg-[#ffa726]/10' : 'bg-white border-brand-charcoal/5'}`}
-                              >
-                                <span className="font-black text-xl text-[#ffa726]">tamara</span>
-                                <span className="text-[9px] font-bold opacity-60">{isArabic ? 'قسّمها على 3 دفعات' : 'Split in 3 payments'}</span>
-                              </button>
-                           </div>
-                           <button onClick={() => handleSubmit()} className="w-full bg-brand-charcoal text-white font-bold py-5 rounded-2xl uppercase tracking-widest text-xs">
-                             {isArabic ? 'تأكيد الطلب بالتقسيط' : 'Confirm BNPL Order'}
-                           </button>
-                        </div>
                       ) : paymentMethod === 'wallet' ? (
                         <div className="space-y-6">
                            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2 mb-4">
                              <Globe size={12} /> {isArabic ? 'اختر المحفظة والتحويل' : 'Select Wallet & Transfer'}
                            </h4>
-                           <div className="grid grid-cols-3 gap-2 mb-4">
+                           <div className="grid grid-cols-2 gap-2 mb-4">
                               <button 
                                 onClick={() => setSelectedWallet('zaincash')}
                                 className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${selectedWallet === 'zaincash' ? 'border-[#ffcb05] bg-[#ffcb05]/20' : 'border-brand-charcoal/5 bg-white'}`}
@@ -565,13 +581,23 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                                 </div>
                               </button>
                               <button 
-                                onClick={() => setSelectedWallet('mastercard')}
-                                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${selectedWallet === 'mastercard' ? 'border-brand-charcoal bg-brand-charcoal/10' : 'border-brand-charcoal/5 bg-white'}`}
+                                onClick={() => setSelectedWallet('nass')}
+                                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${selectedWallet === 'nass' ? 'border-[#00a651] bg-[#00a651]/20' : 'border-brand-charcoal/5 bg-white'}`}
                               >
-                                <div className="w-9 h-9 rounded-full bg-brand-charcoal flex items-center justify-center text-white font-black text-[11px] shadow-sm">MC</div>
+                                <div className="w-9 h-9 rounded-full bg-[#00a651] flex items-center justify-center text-white font-black text-[11px] shadow-sm">NP</div>
                                 <div className="flex flex-col items-center">
-                                  <span className="text-[10px] font-black text-brand-charcoal leading-tight">MasterCard</span>
-                                  <span className="text-[8px] font-bold text-brand-charcoal/60 leading-tight">ماستركارد</span>
+                                  <span className="text-[10px] font-black text-brand-charcoal leading-tight">NassPay</span>
+                                  <span className="text-[8px] font-bold text-brand-charcoal/60 leading-tight">نص باي</span>
+                                </div>
+                              </button>
+                              <button 
+                                onClick={() => setSelectedWallet('fast')}
+                                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${selectedWallet === 'fast' ? 'border-[#00adef] bg-[#00adef]/20' : 'border-brand-charcoal/5 bg-white'}`}
+                              >
+                                <div className="w-9 h-9 rounded-full bg-[#00adef] flex items-center justify-center text-white font-black text-[11px] shadow-sm">FP</div>
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[10px] font-black text-brand-charcoal leading-tight">FastPay</span>
+                                  <span className="text-[8px] font-bold text-brand-charcoal/60 leading-tight">فاست باي</span>
                                 </div>
                               </button>
                            </div>
@@ -579,17 +605,46 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                            <div className="bg-brand-charcoal/5 p-6 rounded-3xl border border-brand-charcoal/10 text-center space-y-3">
                               <p className="text-xs text-brand-charcoal/60 leading-relaxed">
                                 {isArabic 
-                                  ? `يرجى تحويل مبلغ (${finalTotal.toFixed(2)}$) إلى ${selectedWallet === 'mastercard' ? 'رقم البطاقة' : 'الرقم'} التالي، ثم اضغط تأكيد السداد:` 
-                                  : `Please transfer ($${finalTotal.toFixed(2)}) to the following ${selectedWallet === 'mastercard' ? 'Card Number' : 'Number'}, then verify:`}
+                                  ? `يرجى تحويل مبلغ (${finalTotal.toFixed(2)}$) إلى الرقم التالي، ثم اضغط تأكيد السداد:` 
+                                  : `Please transfer ($${finalTotal.toFixed(2)}) to the following Number, then verify:`}
                               </p>
                               <p className="text-xl font-mono font-black text-brand-charcoal tracking-widest bg-white py-3 rounded-xl border border-brand-charcoal/5">
                                 {selectedWallet === 'zaincash' ? '07837814009' : 
-                                 selectedWallet === 'mastercard' ? '7116787909' : 
-                                 '078XXXXXXX'}
+                                 selectedWallet === 'asiahawala' ? '07730000000' :
+                                 selectedWallet === 'nass' ? '07500000000' :
+                                 '07800000000'}
                               </p>
                               <p className="text-[9px] text-brand-gold font-bold uppercase">
                                 {isArabic ? 'يرجى إرسال صورة التحويل عبر الواتساب بعد الطلب' : 'Please send transfer screenshot via WhatsApp after order'}
                               </p>
+                           </div>
+
+                           {/* Trust & Guarantees Section */}
+                           <div className="mt-8 grid grid-cols-3 gap-2 border-t border-brand-charcoal/5 pt-6">
+                              <div className="flex flex-col items-center text-center gap-1.5">
+                                <div className="w-8 h-8 rounded-full bg-brand-gold/10 flex items-center justify-center text-brand-gold">
+                                  <ShieldCheck size={16} />
+                                </div>
+                                <span className="text-[8px] font-bold text-brand-charcoal/70 leading-tight uppercase tracking-tighter">
+                                  {isArabic ? 'ضمان حقيقي' : 'Real Guarantee'}
+                                </span>
+                              </div>
+                              <div className="flex flex-col items-center text-center gap-1.5">
+                                <div className="w-8 h-8 rounded-full bg-brand-gold/10 flex items-center justify-center text-brand-gold">
+                                  <Truck size={16} />
+                                </div>
+                                <span className="text-[8px] font-bold text-brand-charcoal/70 leading-tight uppercase tracking-tighter">
+                                  {isArabic ? 'فحص قبل الدفع' : 'Check Before Pay'}
+                                </span>
+                              </div>
+                              <div className="flex flex-col items-center text-center gap-1.5">
+                                <div className="w-8 h-8 rounded-full bg-brand-gold/10 flex items-center justify-center text-brand-gold">
+                                  <Lock size={16} />
+                                </div>
+                                <span className="text-[8px] font-bold text-brand-charcoal/70 leading-tight uppercase tracking-tighter">
+                                  {isArabic ? 'دفع آمن 100%' : '100% Secure'}
+                                </span>
+                              </div>
                            </div>
 
                            <button
@@ -609,6 +664,56 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                                  {texts.confirmOrder}
                                </>
                              )}
+                           </button>
+                        </div>
+                      ) : paymentMethod === 'bank' ? (
+                        <div className="space-y-6">
+                           <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2 mb-4">
+                             <Banknote size={12} /> {isArabic ? 'معلومات التحويل البنكي' : 'Bank Transfer Info'}
+                           </h4>
+                           <div className="bg-brand-charcoal/5 p-6 rounded-3xl border border-brand-charcoal/10 space-y-4">
+                              <div className={isArabic ? 'text-right' : 'text-left'}>
+                                <p className="text-[10px] font-bold opacity-40 uppercase">{isArabic ? 'اسم البنك:' : 'Bank Name:'}</p>
+                                <p className="text-sm font-bold text-brand-charcoal">TBI (Trade Bank of Iraq)</p>
+                              </div>
+                              <div className={isArabic ? 'text-right' : 'text-left'}>
+                                <p className="text-[10px] font-bold opacity-40 uppercase">IBAN:</p>
+                                <p className="text-sm font-mono font-bold text-brand-charcoal">IQ12 0000 0000 0000 0000 0000</p>
+                              </div>
+                              <div className={isArabic ? 'text-right' : 'text-left'}>
+                                <p className="text-[10px] font-bold opacity-40 uppercase">{isArabic ? 'اسم الحساب:' : 'Account Holder:'}</p>
+                                <p className="text-sm font-bold text-brand-charcoal">AH Store - Iraq Branch</p>
+                              </div>
+                              <p className="text-[10px] text-brand-gold font-bold uppercase text-center pt-2">
+                                {isArabic ? 'يرجى إرسال وصل التحويل عبر الواتساب' : 'Please send transfer receipt via WhatsApp'}
+                              </p>
+                           </div>
+                           <button onClick={() => handleSubmit()} className="w-full bg-brand-charcoal text-white font-bold py-6 rounded-2xl shadow-xl transition-all active:scale-95">
+                             {isArabic ? 'تأكيد الحوالة والطلب' : 'Confirm Transfer & Order'}
+                           </button>
+                        </div>
+                      ) : paymentMethod === 'payoneer' ? (
+                        <div className="space-y-6">
+                           <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2 mb-4">
+                             <img src="https://icon.horse/icon/payoneer.com" alt="Payoneer" className="w-4 h-4 rounded-sm" /> 
+                             {isArabic ? 'الدفع عبر بايونير' : 'Pay via Payoneer'}
+                           </h4>
+                           <div className="bg-brand-charcoal/5 p-6 rounded-3xl border border-brand-charcoal/10 text-center space-y-4">
+                              <p className="text-xs text-brand-charcoal/60 leading-relaxed">
+                                {isArabic 
+                                  ? `يرجى تحويل مبلغ (${finalTotal.toFixed(2)}$) إلى الحساب التالي:` 
+                                  : `Please send ($${finalTotal.toFixed(2)}) to the following Payoneer Email:`}
+                              </p>
+                              <div className="bg-white py-4 rounded-xl border border-brand-charcoal/5 flex flex-col gap-1 shadow-sm">
+                                <p className="text-sm font-bold text-brand-charcoal">kmerro25@gmail.com</p>
+                                <p className="text-[10px] font-bold text-brand-charcoal/30 uppercase tracking-widest">Payoneer ID / Email</p>
+                              </div>
+                              <p className="text-[9px] text-brand-gold font-bold uppercase">
+                                {isArabic ? 'سيتم تأكيد طلبك بمجرد استلام التحويل' : 'Your order will be confirmed once transfer is received'}
+                              </p>
+                           </div>
+                           <button onClick={() => handleSubmit()} className="w-full bg-brand-charcoal text-white font-bold py-6 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                             {isArabic ? 'تأكيد التحويل والطلب' : 'Confirm Payoneer Transfer'}
                            </button>
                         </div>
                       ) : (

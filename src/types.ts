@@ -7,7 +7,7 @@ export interface Product {
   discountPrice?: number;
   image: string;
   images?: string[];
-  category: 'New' | 'Best Seller' | 'Offers';
+  category: 'New' | 'Best Seller' | 'Offers' | 'Imported';
   colors: string[];
   colorImages?: Record<string, string>;
   sizes: string[];

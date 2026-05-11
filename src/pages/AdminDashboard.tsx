@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../AuthContext';
+import { useAlert } from '../contexts/AlertContext';
 import { db, auth } from '../lib/firebase';
 import { collection, query, orderBy, onSnapshot, limit, getDocs } from 'firebase/firestore';
 import { Order, Product } from '../types';
@@ -19,8 +20,9 @@ import {
 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { products, deleteProduct, setIsAddModalOpen, setEditingProduct, addToProducts } = useStore();
+  const { showAlert } = useAlert();
   const { user, isAdmin, login, signout } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
@@ -88,12 +90,12 @@ const AdminDashboard: React.FC = () => {
       setImportUrl('');
       setExtractionStatus({
         type: 'success',
-        message: i18n.language === 'ar' ? 'تم استخراج البيانات بنجاح! راجعها ثم اضغط حفظ.' : 'Data extracted successfully! Review and save.'
+        message: t('admin.importSuccess')
       });
     } catch (err: any) {
       setExtractionStatus({
         type: 'error',
-        message: i18n.language === 'ar' ? 'فشل الاستخراج. الموقع قد يحظر الطلبات التلقائية، جرب إدخال البيانات يدوياً.' : 'Extraction failed. The site might be blocking requests, try manual entry.'
+        message: t('admin.importError')
       });
     } finally {
       setIsExtracting(false);
@@ -136,16 +138,14 @@ const AdminDashboard: React.FC = () => {
         
         <div className="space-y-4">
           <h1 className="text-4xl font-black text-white tracking-tighter sm:text-5xl">
-            {i18n.language === 'ar' ? 'منطقة المسؤول فقط' : 'Admin Area Only'}
+            {t('admin.restrictedArea')}
           </h1>
           <p className="text-white/60 text-lg max-w-md mx-auto">
             {user 
               ? (i18n.language === 'ar' 
                   ? `أنت مسجل دخول كـ (${user.email}) ولكن هذا الحساب ليس له صلاحيات المسؤول.` 
                   : `You are signed in as (${user.email}) but this account doesn't have admin privileges.`)
-              : (i18n.language === 'ar'
-                  ? 'يرجى تسجيل الدخول بحساب المسؤول للوصول إلى أدوات الإدارة وإضافة المنتجات.'
-                  : 'Please sign in with an admin account to access management tools and add products.')
+              : t('admin.smartImportDesc')
             }
           </p>
         </div>
@@ -156,7 +156,7 @@ const AdminDashboard: React.FC = () => {
               onClick={() => login()}
               className="w-full bg-[#4F46E5] text-white py-5 rounded-2xl font-black text-lg hover:bg-[#4338CA] transition-all shadow-2xl shadow-indigo-500/40 hover:-translate-y-1"
             >
-              {i18n.language === 'ar' ? 'تسجيل الدخول باستخدام جوجل' : 'Login with Google'}
+              {t('admin.loginWithGoogle')}
             </button>
           ) : (
             <div className="space-y-4">
@@ -164,7 +164,7 @@ const AdminDashboard: React.FC = () => {
                 onClick={() => signout()}
                 className="w-full bg-white/10 text-white py-5 rounded-2xl font-black text-lg hover:bg-white/20 transition-all border border-white/10"
                 >
-                {i18n.language === 'ar' ? 'تسجيل الخروج وتبديل الحساب' : 'Logout & Switch Account'}
+                {t('admin.logout')}
                 </button>
                 <div className="bg-red-500/5 p-4 rounded-xl border border-red-500/10 text-left">
                     <p className="text-xs font-bold text-red-400 mb-2 uppercase tracking-widest">Debug Info:</p>
@@ -180,12 +180,12 @@ const AdminDashboard: React.FC = () => {
                         onClick={async () => {
                           const { checkIfAdmin } = await import('../lib/firebase');
                           const status = await checkIfAdmin(user);
-                          alert(`Admin Status: ${status}`);
+                          showAlert(`${t('admin.adminStatus')}: ${status}`, 'info');
                           window.location.reload();
                         }}
                         className="mt-4 flex-1 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all"
                       >
-                        Check Admin Status
+                        {t('admin.adminStatus')}
                       </button>
                       <button 
                         onClick={async () => {
@@ -197,9 +197,9 @@ const AdminDashboard: React.FC = () => {
                               timestamp: serverTimestamp(),
                               test: true
                             });
-                            alert(`Write Success! ID: ${docRef.id}`);
+                            showAlert(`${t('common.save')} Success! ID: ${docRef.id}`, 'success');
                           } catch (e: any) {
-                            alert(`Write Failed: ${e.message}`);
+                            showAlert(`${t('common.error')}: ${e.message}`, 'error');
                             console.warn(e);
                           }
                         }}
@@ -213,19 +213,19 @@ const AdminDashboard: React.FC = () => {
           )}
           
           <div className="flex flex-col gap-2 pt-4">
-               <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Steps to Fix Access:</p>
+               <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">{t('admin.stepsToFixAccess')}:</p>
                
                <div className="flex flex-col gap-2">
-                   <p className="text-[10px] text-white/60">1. Open the CORRECT project in Firebase Console (افتح المشروع الصحيح):</p>
+                   <p className="text-[10px] text-white/60">1. {i18n.language === 'ar' ? 'افتح المشروع الصحيح في Firebase Console' : 'Open the CORRECT project in Firebase Console'}:</p>
                    <a 
                     href={`https://console.firebase.google.com/project/${auth.app.options.projectId}/authentication/settings`}
                     target="_blank" 
                     rel="noreferrer"
                     className="bg-[#4F46E5]/20 text-[#4F46E5] p-2 rounded text-[10px] font-bold text-center border border-[#4F46E5]/30 hover:bg-[#4F46E5]/30"
                    >
-                       Go to Firebase Settings (إعدادات التسجيل)
+                       {i18n.language === 'ar' ? 'إعدادات تسجيل الدخول' : 'Firebase Settings'}
                    </a>
-                   <p className="text-[10px] text-white/60 mt-2">2. Add these domains to "Authorized Domains" (أضف النطاقات أدناه إلى النطاقات المصرح بها):</p>
+                   <p className="text-[10px] text-white/60 mt-2">2. {t('admin.authorizedDomains')}:</p>
                    <div className="grid grid-cols-1 gap-1">
                        <code className="bg-black/40 p-2 rounded text-[10px] text-brand-gold break-all">ais-dev-6ft3dpnmbas5ey35iluk4k-816940702897.europe-west2.run.app</code>
                        <code className="bg-black/40 p-2 rounded text-[10px] text-brand-gold break-all">ais-pre-6ft3dpnmbas5ey35iluk4k-816940702897.europe-west2.run.app</code>
@@ -234,12 +234,10 @@ const AdminDashboard: React.FC = () => {
                    </div>
                    <div className="mt-4 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
                        <p className="text-xs font-bold text-indigo-400 mb-2">
-                           {i18n.language === 'ar' ? 'حل مشكلة تسجيل الدخول:' : 'How to fix login:'}
+                           {t('admin.howToFixLogin')}:
                        </p>
                        <p className="text-[10px] text-white/60 leading-relaxed">
-                           {i18n.language === 'ar' 
-                             ? 'إذا ضغطت "تسجيل الدخول" وظهر خطأ أو لم يحدث شيء، فهذا يعني أنك لم تضف الدومين (ahstore.shop) في إعدادات Firebase. اتبع الرابط أعلاه وأضف كل النطاقات المذكورة.' 
-                             : 'If login fails or shows an error, you must add your domain (ahstore.shop) to the Firebase whitelist using the link above.'}
+                           {t('admin.howToFixLoginDesc')}
                        </p>
                    </div>
                </div>
@@ -299,19 +297,19 @@ const AdminDashboard: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h1 className="text-4xl font-black tracking-tighter text-white">
-            {i18n.language === 'ar' ? 'نظام الإدارة' : 'Empire Management'}
+            {t('admin.dashboard')}
           </h1>
           <p className="text-white/40 font-medium">
-            Welcome back, {user?.displayName || 'Administrator'}
+            {t('admin.welcomeAdmin', { name: user?.displayName || 'Administrator' })}
           </p>
         </div>
         
         <div className="flex items-center gap-2 bg-[#1A1A1A] p-1.5 rounded-2xl border border-white/5">
             {[
-                { id: 'analytics', label: i18n.language === 'ar' ? 'التحليلات' : 'Analytics', icon: TrendingUp },
-                { id: 'products', label: i18n.language === 'ar' ? 'المنتجات' : 'Products', icon: Package },
-                { id: 'orders', label: i18n.language === 'ar' ? 'الطلبات' : 'Orders', icon: ShoppingBag },
-                { id: 'winning', label: i18n.language === 'ar' ? 'الأكثر مبيعاً' : 'Winning Prods', icon: ArrowUpRight },
+                { id: 'analytics', label: t('admin.analytics'), icon: TrendingUp },
+                { id: 'products', label: t('admin.products'), icon: Package },
+                { id: 'orders', label: t('admin.orders'), icon: ShoppingBag },
+                { id: 'winning', label: t('admin.winning'), icon: ArrowUpRight },
             ].map(tab => (
                 <button
                     key={tab.id}
@@ -341,10 +339,10 @@ const AdminDashboard: React.FC = () => {
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
-                        { label: 'Revenue', value: `$${totalRevenue.toLocaleString()}`, icon: <DollarSign />, color: 'bg-green-500' },
-                        { label: 'Orders', value: totalOrders, icon: <ShoppingBag />, color: 'bg-[#4F46E5]' },
-                        { label: 'Inventory', value: products.length, icon: <Package />, color: 'bg-brand-gold' },
-                        { label: 'Active', value: pendingOrders, icon: <Clock />, color: 'bg-amber-500' },
+                        { label: t('admin.stats.sales'), value: `$${totalRevenue.toLocaleString()}`, icon: <DollarSign />, color: 'bg-green-500' },
+                        { label: t('admin.stats.orders'), value: totalOrders, icon: <ShoppingBag />, color: 'bg-[#4F46E5]' },
+                        { label: t('admin.stats.inventory'), value: products.length, icon: <Package />, color: 'bg-brand-gold' },
+                        { label: t('admin.stats.users'), value: pendingOrders, icon: <Clock />, color: 'bg-amber-500' },
                     ].map((stat, i) => (
                         <div key={i} className="bg-[#1A1A1A] p-6 rounded-[2rem] border border-white/5 flex items-center gap-5">
                             <div className={`${stat.color} w-14 h-14 rounded-2xl text-white flex items-center justify-center shadow-lg flex-shrink-0`}>
@@ -361,7 +359,7 @@ const AdminDashboard: React.FC = () => {
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-white/5">
-                        <h3 className="text-lg font-black mb-8 uppercase tracking-widest text-white/40">Revenue Flow</h3>
+                        <h3 className="text-lg font-black mb-8 uppercase tracking-widest text-white/40">{t('admin.revenueFlow')}</h3>
                         <div className="h-72 w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={revenueData}>
@@ -378,7 +376,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
 
                     <div className="bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-white/5">
-                        <h3 className="text-lg font-black mb-8 uppercase tracking-widest text-white/40">Distribution</h3>
+                        <h3 className="text-lg font-black mb-8 uppercase tracking-widest text-white/40">{t('admin.distribution')}</h3>
                         <div className="h-72 w-full flex flex-col items-center justify-center">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
@@ -403,17 +401,17 @@ const AdminDashboard: React.FC = () => {
                 {/* Recent Items Preview */}
                 <div className="bg-[#1A1A1A] rounded-[2.5rem] border border-white/5 overflow-hidden">
                     <div className="p-8 border-b border-white/5 flex justify-between items-center">
-                        <h3 className="text-lg font-black uppercase tracking-widest text-white/40">Recent Activity</h3>
-                        <button onClick={() => setActiveTab('orders')} className="text-[10px] font-black uppercase tracking-widest text-[#4F46E5] hover:underline">View All Orders</button>
+                        <h3 className="text-lg font-black uppercase tracking-widest text-white/40">{t('admin.recentActivity')}</h3>
+                        <button onClick={() => setActiveTab('orders')} className="text-[10px] font-black uppercase tracking-widest text-[#4F46E5] hover:underline">{t('admin.viewAllOrders')}</button>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left rtl:text-right">
                             <thead className="bg-black/20">
                                 <tr>
-                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">Order</th>
-                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">Client</th>
-                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">Total</th>
-                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">Status</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.orders')}</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.clientDetails')}</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.value')}</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('nav.trackOrder')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
@@ -440,7 +438,7 @@ const AdminDashboard: React.FC = () => {
                                 ))}
                                 {recentOrders.length === 0 && (
                                     <tr>
-                                        <td colSpan={4} className="px-8 py-20 text-center text-white/20 uppercase tracking-[0.3em] font-black">No recent orders</td>
+                                        <td colSpan={4} className="px-8 py-20 text-center text-white/20 uppercase tracking-[0.3em] font-black">{t('admin.noRecentOrders')}</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -466,8 +464,8 @@ const AdminDashboard: React.FC = () => {
                               <Wand2 className="text-brand-gold" size={28} />
                           </div>
                           <div className="flex-grow space-y-1 text-center md:text-left rtl:md:text-right">
-                              <h3 className="text-xl font-black uppercase tracking-tighter">{i18n.language === 'ar' ? 'الاستيراد الذكي (AI)' : 'AI SMART IMPORT'}</h3>
-                              <p className="text-xs font-bold text-white/40 uppercase tracking-widest">{i18n.language === 'ar' ? 'الصق رابط المنتج من AliExpress لاستخراج البيانات فوراً' : 'Paste an AliExpress link to extract data instantly'}</p>
+                              <h3 className="text-xl font-black uppercase tracking-tighter">{t('admin.smartImport')}</h3>
+                              <p className="text-xs font-bold text-white/40 uppercase tracking-widest">{t('admin.smartImportDesc')}</p>
                           </div>
                           <div className="flex-grow max-w-xl w-full space-y-3">
                               <div className="flex flex-col sm:flex-row gap-3">
@@ -485,7 +483,7 @@ const AdminDashboard: React.FC = () => {
                                     className="bg-brand-gold text-brand-charcoal px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-xl shadow-brand-gold/10"
                                   >
                                       {isExtracting ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                                      {i18n.language === 'ar' ? 'استخراج' : 'EXTRACT'}
+                                      {t('admin.extract')}
                                   </button>
                               </div>
                               {extractionStatus && (
@@ -508,7 +506,7 @@ const AdminDashboard: React.FC = () => {
                           <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" size={18} />
                           <input 
                             type="text" 
-                            placeholder={i18n.language === 'ar' ? 'بحث عن منتج...' : 'Search products...'}
+                            placeholder={t('common.search')}
                             value={productSearch}
                             onChange={(e) => setProductSearch(e.target.value)}
                             className="w-full bg-[#1A1A1A] border border-white/5 rounded-2xl pl-12 pr-4 py-3.5 text-sm text-white focus:ring-2 focus:ring-[#4F46E5] outline-none transition-all"
@@ -520,10 +518,10 @@ const AdminDashboard: React.FC = () => {
                             onChange={(e) => setSelectedCategory(e.target.value)}
                             className="bg-[#1A1A1A] border border-white/5 rounded-2xl px-4 py-3.5 text-xs font-bold uppercase tracking-widest outline-none h-full"
                           >
-                                <option value="All">{i18n.language === 'ar' ? 'الكل' : 'All Categories'}</option>
-                                <option value="New">New</option>
-                                <option value="Best Seller">Best Seller</option>
-                                <option value="Offers">Offers</option>
+                                <option value="All">{t('common.noData').includes('la') ? 'الكل' : 'All'}</option>
+                                <option value="New">{t('categories.new')}</option>
+                                <option value="Best Seller">{t('categories.bestSeller')}</option>
+                                <option value="Offers">{t('categories.offers')}</option>
                           </select>
                           <button 
                             onClick={() => {
@@ -534,7 +532,7 @@ const AdminDashboard: React.FC = () => {
                             className="bg-brand-charcoal text-white px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-brand-gold transition-all shadow-xl shadow-brand-gold/5 whitespace-nowrap border-2 border-brand-gold/20"
                           >
                               <Plus size={18} className="text-brand-gold" />
-                              {i18n.language === 'ar' ? 'إضافة منتج جديد (Add New Product)' : 'Add New Product'}
+                              {t('admin.addProduct')}
                           </button>
                       </div>
                   </div>
@@ -558,7 +556,7 @@ const AdminDashboard: React.FC = () => {
                                         onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            if (confirm(i18n.language === 'ar' ? 'هل أنت متأكد من حذف هذا المنتج؟' : 'Are you sure you want to delete this product?')) {
+                                            if (confirm(t('shop.deleteConfirm'))) {
                                                 deleteProduct(product.id);
                                             }
                                         }}
@@ -581,7 +579,7 @@ const AdminDashboard: React.FC = () => {
                       {filteredProductsManage.length === 0 && (
                           <div className="col-span-full py-32 text-center">
                               <Package size={48} className="mx-auto text-white/10 mb-4" />
-                              <p className="text-white/20 uppercase tracking-[0.5em] font-black">No products found</p>
+                              <p className="text-white/20 uppercase tracking-[0.5em] font-black">{t('shop.noProducts')}</p>
                           </div>
                       )}
                   </div>
@@ -626,7 +624,7 @@ const AdminDashboard: React.FC = () => {
                                      </div>
                                      <div className="text-right">
                                          <p className="text-2xl font-black text-white">${prod.price}</p>
-                                         <p className="text-[10px] font-bold text-white/20">{i18n.language === 'ar' ? 'سعر المورد' : 'SUPPLIER COST'}</p>
+                                         <p className="text-[10px] font-bold text-white/20">{t('admin.supplierCost')}</p>
                                      </div>
                                  </div>
                                  <p className="text-sm text-white/40 leading-relaxed flex-grow">{prod.description}</p>
@@ -637,7 +635,7 @@ const AdminDashboard: React.FC = () => {
                                         rel="noreferrer"
                                         className="flex items-center justify-center gap-2 py-4 rounded-2xl border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all"
                                      >
-                                         <ExternalLink size={14} /> {i18n.language === 'ar' ? 'عرض المصدر' : 'SOURCE'}
+                                         <ExternalLink size={14} /> {t('admin.viewSource')}
                                      </a>
                                     <button 
                                         onClick={async () => {
@@ -659,16 +657,16 @@ const AdminDashboard: React.FC = () => {
                                                     colorImages: {}
                                                 };
                                                 await addToProducts(newProd);
-                                                alert(i18n.language === 'ar' ? 'تم إضافة المنتج لمتجرك بنجاح!' : 'Product imported to your store successfully!');
+                                                showAlert(t('admin.importSuccess'), 'success');
                                                 setActiveTab('products');
                                             } catch (err: any) {
                                                 console.warn("Manual import failed:", err);
-                                                alert(i18n.language === 'ar' ? 'فشل إضافة المنتج. تحقق من الصلاحيات.' : 'Failed to add product. Check permissions.');
+                                                showAlert(t('admin.importError'), 'error');
                                             }
                                         }}
                                         className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-brand-gold text-brand-charcoal text-[10px] font-black uppercase tracking-widest shadow-xl shadow-brand-gold/20 hover:-translate-y-1 transition-all"
                                     >
-                                        <Plus size={14} /> {i18n.language === 'ar' ? 'إضافة للمتجر' : 'IMPORT'}
+                                        <Plus size={14} /> {t('admin.importToStore')}
                                     </button>
                                  </div>
                              </div>
@@ -696,13 +694,13 @@ const AdminDashboard: React.FC = () => {
                         <table className="w-full text-left rtl:text-right">
                             <thead className="bg-black/20">
                                 <tr>
-                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">Order ID</th>
-                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">Client Details</th>
-                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">Items</th>
-                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">Value</th>
-                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">Status</th>
-                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">Supplier Actions</th>
-                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">Date</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.orders')} ID</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.clientDetails')}</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.items')}</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.value')}</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('nav.trackOrder')}</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.supplierActions')}</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.date')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
@@ -748,7 +746,7 @@ const AdminDashboard: React.FC = () => {
                                                         const { doc, updateDoc } = await import('firebase/firestore');
                                                         await updateDoc(doc(db, 'orders', order.id), { status: newStatus });
                                                     } catch (err: any) {
-                                                        alert(`Update failed: ${err.message}`);
+                                                        showAlert(`Update failed: ${err.message}`, 'error');
                                                     }
                                                 }}
                                             >
@@ -770,12 +768,12 @@ const AdminDashboard: React.FC = () => {
                                                             className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest bg-brand-gold/10 text-brand-gold px-3 py-2 rounded-xl border border-brand-gold/20 hover:bg-brand-gold hover:text-brand-charcoal transition-all whitespace-nowrap"
                                                         >
                                                             <ExternalLink size={10} />
-                                                            {i18n.language === 'ar' ? 'طلب من المورد' : 'Order from Supplier'}
+                                                            {t('admin.orderFromSupplier')}
                                                         </a>
                                                     )
                                                 ))}
                                                 {!order.items.some((item: any) => item.supplierUrl) && (
-                                                    <span className="text-[8px] font-bold text-white/20 uppercase tracking-widest">Manual fulfillment</span>
+                                                    <span className="text-[8px] font-bold text-white/20 uppercase tracking-widest">{t('admin.manualFulfillment')}</span>
                                                 )}
                                             </div>
                                         </td>
@@ -793,7 +791,7 @@ const AdminDashboard: React.FC = () => {
                                     <tr>
                                         <td colSpan={7} className="px-8 py-32 text-center">
                                             <ShoppingBag size={48} className="mx-auto text-white/10 mb-4" />
-                                            <p className="text-white/20 uppercase tracking-[0.5em] font-black">No orders found</p>
+                                            <p className="text-white/20 uppercase tracking-[0.5em] font-black">{t('common.noData')}</p>
                                         </td>
                                     </tr>
                                 )}

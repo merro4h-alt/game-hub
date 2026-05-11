@@ -50,6 +50,7 @@ const CartPage: React.FC = () => {
     redirecting: isArabic ? 'جاري التحويل...' : 'Redirecting...',
     secureOptions: isArabic ? 'خيارات دفع وقبول آمنة' : 'Secure Payment Options',
     codAvailable: isArabic ? 'تتوفر خاصية الدفع عند الاستلام' : 'Cash on Delivery Available',
+    bankAvailable: isArabic ? 'تتوفر خاصية التحويل البنكي وزين كاش' : 'Bank Transfer & ZainCash Available',
     promoCode: isArabic ? 'كود الخصم' : 'Promo Code',
     apply: isArabic ? 'تطبيق' : 'Apply',
     discount: isArabic ? 'الخصم' : 'Discount'
@@ -321,9 +322,15 @@ const CartPage: React.FC = () => {
                       <span className="text-[8px] text-brand-charcoal font-black uppercase text-center leading-tight">{isArabic ? 'الدفع عند الاستلام' : 'Cash on Delivery'}</span>
                    </div>
                 </div>
-                <div className="mt-6 flex items-center justify-center gap-2 text-brand-gold">
-                  <ShieldCheck size={16} />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">{isArabic ? 'دفع آمن 100%' : '100% SECURE PAYMENT'}</span>
+                <div className="mt-6 flex flex-col items-center justify-center gap-3 text-brand-gold">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck size={16} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">{isArabic ? 'دفع آمن 100%' : '100% SECURE PAYMENT'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-white/40">
+                    <Banknote size={14} />
+                    <span className="text-[9px] font-bold uppercase tracking-widest">{texts.bankAvailable}</span>
+                  </div>
                 </div>
               </div>
             </div>

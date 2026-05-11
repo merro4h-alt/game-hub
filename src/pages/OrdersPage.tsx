@@ -94,12 +94,10 @@ const OrdersPage: React.FC = () => {
         className="mb-10"
       >
         <h1 className="text-3xl font-bold text-white mb-2">
-          {i18n.language === 'ar' ? 'تاريخ الطلبات' : 'Order History'}
+          {t('orders.history')}
         </h1>
         <p className="text-white/60">
-          {i18n.language === 'ar' 
-            ? 'تتبع طلباتك السابقة والحالية' 
-            : 'Track your past and current orders'}
+          {t('orders.historySubtitle')}
         </p>
       </motion.div>
 
@@ -113,18 +111,16 @@ const OrdersPage: React.FC = () => {
             <Package className="text-white/20" size={32} />
           </div>
           <h2 className="text-xl font-bold text-white mb-2">
-            {i18n.language === 'ar' ? 'لا يوجد طلبات بعد' : 'No orders yet'}
+            {t('orders.noOrdersTitle')}
           </h2>
           <p className="text-white/60 mb-8">
-            {i18n.language === 'ar' 
-              ? 'يبدو أنك لم تقم بأي طلبات حتى الآن.' 
-              : "It looks like you haven't placed any orders yet."}
+            {t('orders.noOrdersDesc')}
           </p>
           <Link
             to="/shop"
             className="inline-flex items-center gap-2 bg-brand-gold text-white px-8 py-3 rounded-xl font-bold hover:bg-white hover:text-black transition-all"
           >
-            {i18n.language === 'ar' ? 'ابدأ التسوق' : 'Start Shopping'}
+            {t('orders.startShopping')}
             <ChevronRight className={i18n.language === 'ar' ? 'rotate-180' : ''} size={18} />
           </Link>
         </motion.div>
@@ -152,7 +148,7 @@ const OrdersPage: React.FC = () => {
                         #{order.id.slice(-6).toUpperCase()}
                       </span>
                       <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${getStatusColor(order.status)}`}>
-                        {i18n.language === 'ar' ? t(`order.status.${order.status}`) || order.status : order.status}
+                        {t(`order.status.${order.status}`)}
                       </span>
                     </div>
                     <p className="font-bold text-white">{formatDate(order.createdAt)}</p>
@@ -162,7 +158,7 @@ const OrdersPage: React.FC = () => {
                 <div className="flex items-center gap-6 text-white">
                   <div className="text-right rtl:text-left hidden sm:block">
                     <p className="text-xs text-white/40 mb-1">
-                      {i18n.language === 'ar' ? 'الإجمالي' : 'Total'}
+                      {t('common.total')}
                     </p>
                     <p className="font-bold text-brand-gold">${order.total.toFixed(2)}</p>
                   </div>
@@ -193,7 +189,7 @@ const OrdersPage: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/5 p-4 rounded-xl">
                     <div>
                       <h5 className="text-xs font-bold text-white/40 uppercase mb-2">
-                        {i18n.language === 'ar' ? 'عنوان الشحن' : 'Shipping Address'}
+                        {t('checkout.shippingInfo')}
                       </h5>
                       <p className="text-sm font-medium text-white">{order.shippingAddress.fullName}</p>
                       <p className="text-xs text-white/70 leading-relaxed">
@@ -205,7 +201,7 @@ const OrdersPage: React.FC = () => {
                     <div className="flex flex-col justify-between">
                       <div>
                         <h5 className="text-xs font-bold text-white/40 uppercase mb-2">
-                          {i18n.language === 'ar' ? 'التتبع' : 'Tracking'}
+                          {t('orders.tracking')}
                         </h5>
                         {order.trackingId ? (
                           <Link 
@@ -216,13 +212,13 @@ const OrdersPage: React.FC = () => {
                           </Link>
                         ) : (
                           <p className="text-xs text-white/60">
-                            {i18n.language === 'ar' ? 'لم يتم التوفير بعد' : 'Not provided yet'}
+                            {t('orders.notProvided')}
                           </p>
                         ) }
                       </div>
                       <div className="pt-4 border-t border-white/10 sm:hidden">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-white/40">{i18n.language === 'ar' ? 'الإجمالي' : 'Total'}</span>
+                          <span className="text-xs text-white/40">{t('common.total')}</span>
                           <span className="font-bold text-brand-gold">${order.total.toFixed(2)}</span>
                         </div>
                       </div>

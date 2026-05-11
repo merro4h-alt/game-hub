@@ -29,7 +29,7 @@ interface OrderInfo {
 const TrackOrderPage: React.FC = () => {
   const { trackingId: urlId } = useParams();
   const navigate = useNavigate();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isArabic = i18n.language === 'ar';
   
   const [searchInput, setSearchInput] = useState(urlId || '');
@@ -37,24 +37,11 @@ const TrackOrderPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const texts = {
-    title: isArabic ? 'تتبع طلبك' : 'Track Your Order',
-    subtitle: isArabic ? 'أدخل رقم التتبع الخاص بك لمعرفة حالة طلبك الحالية.' : 'Enter your tracking number to see the current status of your shipment.',
-    placeholder: isArabic ? 'رقم التتبع (مثال: AH-1234-5678)' : 'Tracking Number (e.g. AH-1234-5678)',
-    trackBtn: isArabic ? 'تتبع الآن' : 'Track Now',
-    orderNotFound: isArabic ? 'لم يتم العثور على الطلب. يرجى التحقق من رقم التتبع.' : 'Order not found. Please check your tracking number.',
-    details: isArabic ? 'تفاصيل الطلب' : 'Order Details',
-    status: isArabic ? 'الحالة' : 'Status',
-    date: isArabic ? 'التاريخ' : 'Date',
-    shippingTo: isArabic ? 'يشحن إلى' : 'Shipping To',
-    total: isArabic ? 'الإجمالي' : 'Total',
-    items: isArabic ? 'المنتجات' : 'Items',
-    statusSteps: {
-      pending: isArabic ? 'تم استلام الطلب' : 'Order Received',
-      processing: isArabic ? 'قيد التجهيز' : 'Processing',
-      shipped: isArabic ? 'تم الشحن' : 'Shipped',
-      delivered: isArabic ? 'تم التوصيل' : 'Delivered'
-    }
+  const statusSteps = {
+    pending: t('order.status.pending'),
+    processing: t('order.status.processing'),
+    shipped: t('order.status.shipped'),
+    delivered: t('order.status.delivered')
   };
 
   const fetchOrder = async (id: string) => {
@@ -76,7 +63,7 @@ const TrackOrderPage: React.FC = () => {
       }
     } catch (err) {
       console.error("Tracking error:", err);
-      setError(texts.orderNotFound);
+      setError(t('tracking.orderNotFound'));
       setOrder(null);
     } finally {
       setLoading(false);
@@ -114,17 +101,17 @@ const TrackOrderPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-3 bg-brand-gold/10 text-brand-gold px-6 py-2 rounded-full font-bold uppercase tracking-widest text-xs mb-6"
           >
-            <Package size={16} /> {texts.title}
+            <Package size={16} /> {t('tracking.title')}
           </motion.div>
-          <h1 className="text-5xl font-bold tracking-tight mb-6 text-white">{texts.title}</h1>
-          <p className="text-white/60 font-light max-w-xl mx-auto">{texts.subtitle}</p>
+          <h1 className="text-5xl font-bold tracking-tight mb-6 text-white">{t('tracking.title')}</h1>
+          <p className="text-white/60 font-light max-w-xl mx-auto">{t('tracking.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSearch} className="mb-16">
           <div className="relative group">
             <input
               type="text"
-              placeholder={texts.placeholder}
+              placeholder={t('tracking.placeholder')}
               className="w-full bg-white/5 border border-white/10 rounded-full px-8 py-6 text-xl shadow-lg group-focus-within:border-brand-gold outline-none transition-all text-white placeholder:text-white/20"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -137,7 +124,7 @@ const TrackOrderPage: React.FC = () => {
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
               ) : (
-                <><Search size={20} /> <span className="hidden sm:inline">{texts.trackBtn}</span></>
+                <><Search size={20} /> <span className="hidden sm:inline">{t('tracking.trackBtn')}</span></>
               )}
             </button>
           </div>
@@ -149,7 +136,7 @@ const TrackOrderPage: React.FC = () => {
             animate={{ opacity: 1 }}
             className="bg-red-500/10 border border-red-500/20 text-red-400 p-6 rounded-3xl text-center font-medium"
           >
-            {error}
+            {t('tracking.orderNotFound')}
           </motion.div>
         )}
 
@@ -164,7 +151,7 @@ const TrackOrderPage: React.FC = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
                 <div>
                   <h2 className="text-3xl font-bold mb-2">#{order.trackingId}</h2>
-                  <p className="text-white/40">{texts.statusSteps[order.status]}</p>
+                  <p className="text-white/40">{statusSteps[order.status]}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-4 bg-white/10 px-6 py-3 rounded-2xl border border-white/5">
                   <div className="flex items-center gap-2 pr-4 border-r border-white/10">
@@ -175,7 +162,7 @@ const TrackOrderPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                        <Globe size={18} className="text-brand-gold" />
                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">
-                         {isArabic ? `عبر شبكة ${order.fulfillment.provider}` : `via ${order.fulfillment.provider} Network`}
+                         {t('tracking.viaNetwork', { provider: order.fulfillment.provider })}
                        </span>
                     </div>
                   )}
@@ -206,7 +193,7 @@ const TrackOrderPage: React.FC = () => {
                     <span className={`text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-center max-w-[60px] sm:max-w-none ${
                       currentStep >= s.step ? 'text-brand-gold' : 'text-white/40'
                     }`}>
-                      {texts.statusSteps[s.key as keyof typeof texts.statusSteps]}
+                      {statusSteps[s.key as keyof typeof statusSteps]}
                     </span>
                   </div>
                 ))}
@@ -218,7 +205,7 @@ const TrackOrderPage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mb-16">
                 <div>
                   <h3 className="text-xs font-bold uppercase tracking-widest text-white/40 mb-6 flex items-center gap-2">
-                    <MapPin size={14} /> {texts.shippingTo}
+                    <MapPin size={14} /> {t('tracking.shippingTo')}
                   </h3>
                   <div className="bg-white/5 p-8 rounded-3xl border border-white/5">
                     <p className="text-xl font-bold mb-2 text-white">{order.shippingAddress?.fullName || order.customerName || 'Customer'}</p>
@@ -227,15 +214,15 @@ const TrackOrderPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-xs font-bold uppercase tracking-widest text-white/40 mb-6 flex items-center gap-2">
-                    <Clock size={14} /> {texts.details}
+                    <Clock size={14} /> {t('tracking.details')}
                   </h3>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center pb-4 border-b border-white/5">
-                      <span className="text-white/60">{texts.items}</span>
+                      <span className="text-white/60">{t('common.items')}</span>
                       <span className="font-bold text-white">{order.items.length}</span>
                     </div>
                     <div className="flex justify-between items-center font-bold text-2xl pt-4">
-                      <span className="text-white">{texts.total}</span>
+                      <span className="text-white">{t('common.total')}</span>
                       <span className="text-brand-gold font-mono">${order.total.toFixed(2)}</span>
                     </div>
                   </div>
@@ -243,7 +230,7 @@ const TrackOrderPage: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-widest text-white/40 mb-6">{texts.items}</h3>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-white/40 mb-6">{t('common.items')}</h3>
                 <div className="space-y-4">
                   {order.items.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-4 p-4 border border-white/5 rounded-2xl group hover:border-brand-gold transition-all bg-white/5">
@@ -256,7 +243,7 @@ const TrackOrderPage: React.FC = () => {
                       </div>
                       <div className="text-right">
                         <p className="font-mono font-bold text-white">${item.price}</p>
-                        <p className="text-[10px] text-white/40 uppercase font-bold">Qty: {item.quantity}</p>
+                        <p className="text-[10px] text-white/40 uppercase font-bold">{t('common.qty')}: {item.quantity}</p>
                       </div>
                     </div>
                   ))}

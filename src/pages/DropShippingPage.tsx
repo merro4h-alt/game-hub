@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
+import { useAlert } from '../contexts/AlertContext';
 import { Package, Truck, Percent, RefreshCcw, Send, CheckCircle2, ShieldCheck, Globe, X, MapPin } from 'lucide-react';
 
 const DropShippingPage: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const { showAlert } = useAlert();
   const isArabic = i18n.language === 'ar';
   const [formStatus, setFormStatus] = useState<'idle' | 'loading' | 'success'>('idle');
   const [showGlobalInfo, setShowGlobalInfo] = useState(false);
@@ -44,7 +46,7 @@ const DropShippingPage: React.FC = () => {
       setFormStatus('success');
     } catch (error) {
       console.error('Error submitting application:', error);
-      alert(isArabic ? 'حدث خطأ أثناء إرسال الطلب. يرجى المحاولة مرة أخرى.' : 'Error submitting application. Please try again.');
+      showAlert(t('common.error'), 'error');
       setFormStatus('idle');
     }
   };
@@ -52,22 +54,22 @@ const DropShippingPage: React.FC = () => {
   const benefits = [
     {
       icon: <Globe className="text-brand-gold" size={24} />,
-      title: isArabic ? 'توفير عالمي' : 'Global Sourcing',
+      title: t('dropshipping.benefits.sourcing'),
       desc: isArabic ? 'نبحث في الأسواق العالمية لنوفر لك المنتجات الأكثر طلباً.' : 'We search global markets to bring you the most in-demand products.'
     },
     {
       icon: <Package className="text-brand-gold" size={24} />,
-      title: isArabic ? 'منتجات مختبرة' : 'Tested Products',
+      title: t('dropshipping.benefits.quality'),
       desc: isArabic ? 'نقوم باختبار جودة كل منتج مع الموردين قبل عرضه في متجرنا.' : 'We test the quality of every product with suppliers before listing.'
     },
     {
       icon: <Send className="text-brand-gold" size={24} />,
-      title: isArabic ? 'طلب تلقائي' : 'Auto-Fulfillment',
+      title: t('dropshipping.benefits.auto'),
       desc: isArabic ? 'بمجرد طلبك، يتحول الطلب فوراً للمورد لضمان أسرع معالجة.' : 'Once you order, it goes straight to the supplier for fastest processing.'
     },
     {
       icon: <Truck className="text-brand-gold" size={24} />,
-      title: isArabic ? 'توصيل مباشر' : 'Direct Shipping',
+      title: t('dropshipping.benefits.direct'),
       desc: isArabic ? 'يقوم المورد بشحن المنتج مباشرة إلى باب منزلك.' : 'The supplier ships the product directly to your doorstep.'
     }
   ];
@@ -93,15 +95,13 @@ const DropShippingPage: React.FC = () => {
               className="lg:w-3/5 text-left"
             >
               <span className="inline-block px-4 py-2 rounded-full bg-brand-gold/20 border border-brand-gold/30 text-brand-gold text-[10px] font-black uppercase tracking-[0.4em] mb-8">
-                {isArabic ? 'سلسلة التوريد الذكية' : 'SMART SUPPLY CHAIN'}
+                {t('dropshipping.smartSupplyChain')}
               </span>
               <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-8 uppercase leading-[0.9]">
-                {isArabic ? 'نصلك بأفضل الموردين حول العالم' : 'CONNECTING YOU TO GLOBAL SUPPLIERS'}
+                {t('dropshipping.heroTitle')}
               </h1>
               <p className="text-white/60 text-xl font-medium leading-relaxed max-w-2xl mb-10">
-                {isArabic 
-                  ? 'نموذج عملنا يعتمد على اختيار المنتجات الفائزة (Winning Products) وتحويل طلبك مباشرة للمصنع لضمان أقل سعر وأعلى جودة.' 
-                  : 'Our business model focuses on selecting winning products and forwarding your order directly to the factory for best pricing and quality.'}
+                {t('dropshipping.heroDesc')}
               </p>
               
               <div className="flex items-center gap-4">
@@ -109,14 +109,14 @@ const DropShippingPage: React.FC = () => {
                   onClick={scrollToForm}
                   className="px-6 sm:px-8 py-4 bg-brand-gold text-brand-charcoal font-black rounded-2xl uppercase tracking-widest text-[10px] sm:text-xs hover:bg-white transition-all transform hover:-translate-y-1"
                 >
-                  {isArabic ? 'ابدأ الآن' : 'Get Started'}
+                  {t('dropshipping.getStarted')}
                 </button>
                 <button 
                   onClick={() => setShowGlobalInfo(true)}
                   className="flex items-center gap-3 px-6 sm:px-8 py-4 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 hover:bg-white/10 transition-all group"
                 >
                   <Globe className="text-brand-gold group-hover:rotate-12 transition-transform" size={18} />
-                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest leading-none">{isArabic ? 'تغطية عالمية' : 'Global Coverage'}</span>
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest leading-none">{t('dropshipping.globalCoverage')}</span>
                 </button>
               </div>
             </motion.div>
@@ -138,8 +138,8 @@ const DropShippingPage: React.FC = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-brand-charcoal via-transparent to-transparent opacity-60" />
                   <div className="absolute bottom-8 left-8 right-8">
                     <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-brand-gold mb-1">{isArabic ? 'توصيل مباشر' : 'Direct Dispatch'}</p>
-                      <p className="text-white text-xs font-bold">{isArabic ? 'من المصنع إلى الباب' : 'Factory to Doorstep'}</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-brand-gold mb-1">{t('dropshipping.benefits.direct')}</p>
+                      <p className="text-white text-xs font-bold">{t('dropshipping.factoryToDoor')}</p>
                     </div>
                   </div>
                 </div>
@@ -153,9 +153,9 @@ const DropShippingPage: React.FC = () => {
       <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-20">
           <h2 className="text-4xl font-black text-brand-charcoal uppercase tracking-tighter mb-4">
-            {isArabic ? 'رحلة منتجك' : 'YOUR PRODUCT JOURNEY'}
+            {t('dropshipping.productJourney')}
           </h2>
-          <p className="text-brand-gold font-bold uppercase text-xs tracking-widest">{isArabic ? 'من المصنع إليك مباشرة' : 'FROM FACTORY DIRECT TO YOU'}</p>
+          <p className="text-brand-gold font-bold uppercase text-xs tracking-widest">{t('dropshipping.fromFactoryDirect')}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 relative">
@@ -163,10 +163,10 @@ const DropShippingPage: React.FC = () => {
           <div className="hidden md:block absolute top-[40px] left-0 right-0 h-0.5 bg-brand-gold/20 -z-0" />
           
           {[
-            { title: isArabic ? 'اختيار الذكاء' : 'AI Selection', icon: '01' },
-            { title: isArabic ? 'تأكيد الطلب' : 'Order Sync', icon: '02' },
-            { title: isArabic ? 'تحضير المورد' : 'Supplier Prep', icon: '03' },
-            { title: isArabic ? 'شحن الباب' : 'Door Delivery', icon: '04' }
+            { title: i18n.language === 'ar' ? 'اختيار الذكاء' : 'AI Selection', icon: '01' },
+            { title: i18n.language === 'ar' ? 'تأكيد الطلب' : 'Order Sync', icon: '02' },
+            { title: i18n.language === 'ar' ? 'تحضير المورد' : 'Supplier Prep', icon: '03' },
+            { title: i18n.language === 'ar' ? 'شحن الباب' : 'Door Delivery', icon: '04' }
           ].map((item, i) => (
             <div key={i} className="relative z-10 flex flex-col items-center">
               <div className="w-20 h-20 bg-white border-4 border-brand-cream rounded-full flex items-center justify-center text-3xl font-black text-brand-gold shadow-xl mb-6">
@@ -184,14 +184,14 @@ const DropShippingPage: React.FC = () => {
         <div className="bg-brand-charcoal rounded-[40px] overflow-hidden shadow-2xl flex flex-col lg:flex-row">
           <div className="lg:w-1/2 p-12 sm:p-16 flex flex-col justify-center">
             <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tighter uppercase mb-8">
-              {isArabic ? 'سجل الآن' : 'APPLY NOW'}
+              {t('dropshipping.applyNow')}
             </h2>
             <div className="space-y-6">
               {[
-                isArabic ? "أسعار تفضيلية للموزعين" : "Preferred wholesale pricing",
-                isArabic ? "دعم فني مخصص على مدار الساعة" : "24/7 dedicated support",
-                isArabic ? "وصول حصري للمجموعات الجديدة" : "Exclusive access to new collections",
-                isArabic ? "تدريب وتسويق مجاني" : "Complimentary marketing training"
+                i18n.language === 'ar' ? "أسعار تفضيلية للموزعين" : "Preferred wholesale pricing",
+                i18n.language === 'ar' ? "دعم فني مخصص على مدار الساعة" : "24/7 dedicated support",
+                i18n.language === 'ar' ? "وصول حصري للمجموعات الجديدة" : "Exclusive access to new collections",
+                i18n.language === 'ar' ? "تدريب وتسويق مجاني" : "Complimentary marketing training"
               ].map((text, i) => (
                 <div key={i} className="flex items-center gap-4 text-white/80">
                   <div className="w-6 h-6 rounded-full bg-brand-gold/20 flex items-center justify-center text-brand-gold flex-shrink-0">
@@ -214,18 +214,14 @@ const DropShippingPage: React.FC = () => {
                   <CheckCircle2 size={40} />
                 </div>
                 <h3 className="text-2xl font-black text-white uppercase mb-4 leading-tight">
-                  {isArabic ? 'تم استلام طلب الانضمام بنجاح!' : 'Application Received Successfully!'}
+                  {t('dropshipping.success.title')}
                 </h3>
                 <div className="space-y-4 max-w-sm">
                   <p className="text-white/70 font-medium text-sm leading-relaxed">
-                    {isArabic 
-                      ? 'نشكرك على اهتمامك بـ Trendifi. يقوم فريقنا حالياً بمراجعة معلوماتك للتأكد من مطابقتها لمعايير الشراكة لدينا.' 
-                      : 'Thank you for your interest in Trendifi. Our team is currently reviewing your information to ensure it matches our partnership criteria.'}
+                    {t('dropshipping.success.desc1')}
                   </p>
                   <p className="text-brand-gold font-bold text-sm leading-relaxed">
-                    {isArabic 
-                      ? 'سيقوم أحد مستشارينا بالتواصل معك عبر الهاتف أو البريد الإلكتروني خلال 24 ساعة لتزويدك بكافة التفاصيل وبدء عملك كتاجر.' 
-                      : 'One of our specialists will contact you via phone or email within 24 hours to provide full details and start your journey as a merchant.'}
+                    {t('dropshipping.success.desc2')}
                   </p>
                 </div>
 
@@ -233,24 +229,24 @@ const DropShippingPage: React.FC = () => {
                   onClick={() => window.location.href = '/'}
                   className="mt-8 px-8 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all border border-white/10"
                 >
-                  {isArabic ? 'العودة للرئيسية' : 'Back to Home'}
+                  {t('dropshipping.backToHome')}
                 </button>
               </motion.div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{isArabic ? 'الاسم بالكامل' : 'Full Name'}</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('dropshipping.form.fullName')}</label>
                     <input 
                       required
                       name="fullName"
                       type="text" 
                       className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
-                      placeholder={isArabic ? 'أحمد محمد' : 'John Doe'}
+                      placeholder={i18n.language === 'ar' ? 'أحمد محمد' : 'John Doe'}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{isArabic ? 'رقم الهاتف' : 'Phone Number'}</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('dropshipping.form.phone')}</label>
                     <input 
                       required
                       name="phone"
@@ -262,18 +258,18 @@ const DropShippingPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{isArabic ? 'العنوان الكامل' : 'Full Address'}</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('dropshipping.fullAddress')}</label>
                   <input 
                     required
                     name="address"
                     type="text" 
                     className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
-                    placeholder={isArabic ? 'الدولة، المدينة، الحي، الشارع' : 'Country, City, District, Street'}
+                    placeholder={i18n.language === 'ar' ? 'الدولة، المدينة، الحي، الشارع' : 'Country, City, District, Street'}
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{isArabic ? 'البريد الإلكتروني' : 'Email Address'}</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('dropshipping.form.email')}</label>
                   <input 
                     required
                     name="email"
@@ -284,7 +280,7 @@ const DropShippingPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40 px-1">{isArabic ? 'رابط متجرك (اختياري)' : 'Store URL (Optional)'}</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40 px-1">{t('dropshipping.storeUrlOptional')}</label>
                   <input 
                     name="storeUrl"
                     type="url" 
@@ -294,14 +290,14 @@ const DropShippingPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40 px-1">{isArabic ? 'هل لديك خبرة سابقة؟' : 'Previous Experience?'}</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40 px-1">{t('dropshipping.form.experience')}</label>
                   <select 
                     name="experience"
                     className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all appearance-none"
                   >
-                    <option value="none" className="bg-brand-charcoal">{isArabic ? 'لا توجد خبرة' : 'No experience'}</option>
-                    <option value="some" className="bg-brand-charcoal">{isArabic ? 'خبرة متوسطة' : 'Intermediate'}</option>
-                    <option value="expert" className="bg-brand-charcoal">{isArabic ? 'خبير' : 'Expert'}</option>
+                    <option value="none" className="bg-brand-charcoal">{t('dropshipping.experienceLevels.none')}</option>
+                    <option value="some" className="bg-brand-charcoal">{t('dropshipping.experienceLevels.intermediate')}</option>
+                    <option value="expert" className="bg-brand-charcoal">{t('dropshipping.experienceLevels.expert')}</option>
                   </select>
                 </div>
 
@@ -315,7 +311,7 @@ const DropShippingPage: React.FC = () => {
                   ) : (
                     <>
                       <Send size={18} />
-                      <span className="uppercase tracking-widest text-sm">{isArabic ? 'إرسال الطلب' : 'SUBMIT APPLICATION'}</span>
+                      <span className="uppercase tracking-widest text-sm">{t('dropshipping.form.submit')}</span>
                     </>
                   )}
                 </button>
@@ -349,10 +345,10 @@ const DropShippingPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-xl font-black uppercase tracking-tighter text-white">
-                      {isArabic ? 'شبكة التغطية العالمية' : 'GLOBAL COVERAGE NETWORK'}
+                      {t('dropshipping.globalModal.title')}
                     </h3>
                     <p className="text-[10px] font-black uppercase tracking-widest text-brand-gold">
-                      {isArabic ? 'شحن مباشر من المصنع' : 'DIRECT FACTORY DISPATCH'}
+                      {t('dropshipping.factoryToDoor')}
                     </p>
                   </div>
                 </div>
@@ -366,17 +362,15 @@ const DropShippingPage: React.FC = () => {
 
               <div className="p-8 space-y-8">
                 <p className="text-white/60 leading-relaxed text-sm">
-                  {isArabic 
-                    ? 'نحن نربطك بأكبر شبكة توريد عالمية لضمان وصول طلبك بأسرع وقت وأقل تكلفة. تغطي خدماتنا المناطق التالية:' 
-                    : 'We connect you with the largest global supply network to ensure your order arrives as quickly and cost-effectively as possible. Our services cover:'}
+                  {t('dropshipping.globalModal.desc')}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    { region: isArabic ? 'دول الخليج' : 'GCC Countries', delivery: '5-9 Days' },
-                    { region: isArabic ? 'الولايات المتحدة' : 'United States', delivery: '7-12 Days' },
-                    { region: isArabic ? 'أوروبا' : 'Europe', delivery: '6-10 Days' },
-                    { region: isArabic ? 'باقي الدول' : 'Rest of World', delivery: '10-15 Days' }
+                    { region: i18n.language === 'ar' ? 'دول الخليج' : 'GCC Countries', delivery: '5-9 Days' },
+                    { region: i18n.language === 'ar' ? 'الولايات المتحدة' : 'United States', delivery: '7-12 Days' },
+                    { region: i18n.language === 'ar' ? 'أوروبا' : 'Europe', delivery: '6-10 Days' },
+                    { region: i18n.language === 'ar' ? 'باقي الدول' : 'Rest of World', delivery: '10-15 Days' }
                   ].map((area, i) => (
                     <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
                       <div className="w-10 h-10 rounded-full bg-brand-gold/20 flex items-center justify-center text-brand-gold">
@@ -395,9 +389,7 @@ const DropShippingPage: React.FC = () => {
                     <Truck size={16} />
                   </div>
                   <p className="text-xs font-bold text-brand-gold leading-tight italic">
-                    {isArabic 
-                      ? 'تتبع طلبك في كل خطوة من المصنع وحتى باب منزلك مع تحديثات مباشرة.' 
-                      : 'Track your order every step of the way from factory to your doorstep with live updates.'}
+                    {t('dropshipping.globalModal.trackDesc')}
                   </p>
                 </div>
               </div>
@@ -407,7 +399,7 @@ const DropShippingPage: React.FC = () => {
                   onClick={() => setShowGlobalInfo(false)}
                   className="px-8 py-3 bg-brand-gold text-brand-charcoal font-black rounded-xl uppercase tracking-widest text-[10px] hover:bg-white transition-all"
                 >
-                  {isArabic ? 'فهمت' : 'Understood'}
+                  {t('dropshipping.globalModal.understood')}
                 </button>
               </div>
             </motion.div>
