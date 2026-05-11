@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
-import { CreditCard, Camera, ChevronDown, HelpCircle, ChevronRight, X } from 'lucide-react';
+import { CreditCard, ChevronDown, HelpCircle, ChevronRight } from 'lucide-react';
 import {
   CardNumberElement,
   CardExpiryElement,
@@ -100,37 +100,6 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ amount, onSuccess, onError,
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 bg-[#fcfcfc] p-4 sm:p-5 rounded-md border border-gray-200 text-[#111] text-left shadow-sm relative overflow-hidden" dir="ltr">
-      {isScanning && (
-        <div className="absolute inset-0 bg-black z-30 flex flex-col items-center justify-center p-0 overflow-hidden">
-          <video 
-            ref={videoRef} 
-            autoPlay 
-            playsInline 
-            className="w-full h-full object-cover opacity-80"
-          />
-          <div className="absolute inset-0 border-[40px] border-black/40 pointer-events-none flex items-center justify-center">
-             <div className="w-full max-w-[300px] h-48 border-2 border-brand-gold rounded-2xl relative">
-                <div className="absolute -top-10 left-0 right-0 text-center">
-                   <p className="text-white text-xs font-bold uppercase tracking-widest">{isArabic ? 'ضع البطاقة هنا' : 'Place Card Here'}</p>
-                </div>
-                <div className="absolute inset-x-0 h-[2px] bg-brand-gold/50 animate-bounce top-1/2 -translate-y-1/2" />
-             </div>
-          </div>
-          <button 
-            type="button"
-            onClick={() => { setIsScanning(false); stopCamera(); }}
-            className="absolute top-4 right-4 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white"
-          >
-            <X size={20} />
-          </button>
-          <div className="absolute bottom-10 inset-x-0 text-center px-6 text-white">
-             <div className="inline-flex flex-col items-center gap-3">
-                <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                <p className="text-xs font-medium">{isArabic ? 'جاري فحص معلومات البطاقة...' : 'Scanning card info...'}</p>
-             </div>
-          </div>
-        </div>
-      )}
       <div className="flex items-center justify-between text-[#007185] font-bold text-sm cursor-pointer hover:underline mb-2">
         <div className="flex items-center gap-1.5">
           <ChevronDown size={18} className="text-[#555]" />
@@ -140,18 +109,6 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ amount, onSuccess, onError,
 
       <div className="border-t border-gray-200 pt-5 space-y-4">
         <p className="font-bold text-[14px] text-[#111]">{isArabic ? 'أدخل معلومات بطاقتك الائتمانية' : 'Enter your credit card information'}</p>
-
-        <button 
-          type="button"
-          onClick={handleScanCard}
-          className="w-full flex items-center justify-between px-3 py-2 border border-[#adb1b8] rounded-md bg-white hover:bg-[#f7f8f8] transition-colors text-[13px] shadow-sm"
-        >
-          <div className="flex items-center gap-3">
-            <Camera size={20} className="text-[#111]" />
-            <span className="font-bold text-[#111]">{isArabic ? 'مسح بطاقتك' : 'Scan your card'}</span>
-          </div>
-          <ChevronRight size={16} className="text-gray-600" />
-        </button>
 
         <div className="relative flex items-center justify-center py-1">
           <div className="absolute inset-0 flex items-center">
@@ -270,34 +227,8 @@ const StripePayment: React.FC<StripePaymentProps> = ({ amount, onSuccess, onErro
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [fallbackName, setFallbackName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
-  const [isScanning, setIsScanning] = useState(false);
   const [useAccountName, setUseAccountName] = useState(false);
   const [isDefault, setIsDefault] = useState(false);
-
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-
-  const startCamera = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-    } catch (err) {
-      console.error('Error accessing camera:', err);
-      onError(isArabic ? 'لا يمكن الوصول إلى الكاميرا' : 'Could not access camera');
-    }
-  };
-
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  };
 
   const isStripeConfigured = !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY && import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY !== 'pk_test_placeholder';
 
@@ -323,56 +254,9 @@ const StripePayment: React.FC<StripePaymentProps> = ({ amount, onSuccess, onErro
     setCardNumber(formattedValue);
   };
 
-  const handleScanCard = async () => {
-    setIsScanning(true);
-    await startCamera();
-    
-    setTimeout(() => {
-      setIsScanning(false);
-      stopCamera();
-      // Simulate finding a card
-      setCardNumber('4242 – 4242 – 4242 – 4242');
-      if (!fallbackName) setFallbackName('John Doe');
-    }, 4000);
-  };
-
   if (!isStripeConfigured) {
     return (
       <div className="space-y-4 bg-[#fcfcfc] p-4 sm:p-5 rounded-md border border-gray-200 text-[#111] text-left shadow-sm relative overflow-hidden" dir="ltr">
-        {isScanning && (
-          <div className="absolute inset-0 bg-black z-30 flex flex-col items-center justify-center p-0 overflow-hidden animate-in fade-in duration-300">
-            <video 
-              ref={videoRef} 
-              autoPlay 
-              playsInline 
-              className="w-full h-full object-cover opacity-80"
-            />
-            <div className="absolute inset-0 border-[40px] border-black/40 pointer-events-none flex items-center justify-center">
-               <div className="w-full max-w-[300px] h-48 border-2 border-brand-gold rounded-2xl relative">
-                  <div className="absolute -top-10 left-0 right-0 text-center">
-                     <p className="text-white text-xs font-bold uppercase tracking-widest">{isArabic ? 'ضع البطاقة هنا' : 'Place Card Here'}</p>
-                  </div>
-                  <div className="absolute inset-x-0 h-[2px] bg-brand-gold/50 animate-bounce top-1/2 -translate-y-1/2" />
-               </div>
-            </div>
-            <button 
-              type="button"
-              onClick={() => { setIsScanning(false); stopCamera(); }}
-              className="absolute top-4 right-4 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white"
-            >
-              <X size={20} />
-            </button>
-            <div className="absolute bottom-10 inset-x-0 text-center px-6">
-               <div className="inline-flex flex-col items-center gap-3">
-                  <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  <div className="space-y-1">
-                    <p className="text-white text-sm font-bold">{isArabic ? 'جاري البحث عن بطاقتك...' : 'Scanning for your card...'}</p>
-                    <p className="text-white/60 text-[10px] uppercase tracking-widest">{isArabic ? 'يرجى وضع البطاقة داخل الإطار' : 'Hold card within frame'}</p>
-                  </div>
-               </div>
-            </div>
-          </div>
-        )}
         <div className="flex items-center justify-between text-[#007185] font-bold text-sm cursor-pointer hover:underline mb-2">
           <div className="flex items-center gap-1.5">
             <ChevronDown size={18} className="text-[#555]" />
@@ -382,18 +266,6 @@ const StripePayment: React.FC<StripePaymentProps> = ({ amount, onSuccess, onErro
 
         <div className="border-t border-gray-200 pt-5 space-y-4">
           <p className="font-bold text-[14px] text-[#111]">{isArabic ? 'أدخل معلومات بطاقتك الائتمانية' : 'Enter your credit card information'}</p>
-
-          <button 
-            type="button"
-            onClick={handleScanCard}
-            className="w-full flex items-center justify-between px-3 py-2 border border-[#adb1b8] rounded-md bg-white hover:bg-[#f7f8f8] transition-colors text-[13px] shadow-sm group active:bg-[#ecedef]"
-          >
-            <div className="flex items-center gap-3">
-              <Camera size={20} className="text-[#111] group-hover:text-[#007185] transition-colors" />
-              <span className="font-bold text-[#111]">{isArabic ? 'مسح بطاقتك' : 'Scan your card'}</span>
-            </div>
-            <ChevronRight size={16} className="text-gray-600" />
-          </button>
 
           <div className="relative flex items-center justify-center py-1">
             <div className="absolute inset-0 flex items-center">

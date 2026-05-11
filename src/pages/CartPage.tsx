@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingBag, ArrowRight, Trash2, Plus, Minus, CreditCard, ArrowLeft, Truck, Banknote, ShieldCheck, Ticket, X, HandCoins } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Trash2, Plus, Minus, CreditCard, ArrowLeft, Truck, Banknote, ShieldCheck, Ticket, X, Coins } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../StoreContext';
 import PaymentModal from '../components/PaymentModal';
@@ -50,7 +50,7 @@ const CartPage: React.FC = () => {
     redirecting: isArabic ? 'جاري التحويل...' : 'Redirecting...',
     secureOptions: isArabic ? 'خيارات دفع وقبول آمنة' : 'Secure Payment Options',
     codAvailable: isArabic ? 'تتوفر خاصية الدفع عند الاستلام' : 'Cash on Delivery Available',
-    bankAvailable: isArabic ? 'تتوفر خاصية التحويل البنكي وزين كاش' : 'Bank Transfer & ZainCash Available',
+    bankAvailable: isArabic ? 'تتوفر خاصية الدفع عبر المحفظة والعملات الرقمية' : 'Wallet & Crypto Payment Available',
     promoCode: isArabic ? 'كود الخصم' : 'Promo Code',
     apply: isArabic ? 'تطبيق' : 'Apply',
     discount: isArabic ? 'الخصم' : 'Discount'
@@ -301,25 +301,26 @@ const CartPage: React.FC = () => {
               
               <div className="mt-10 pt-10 border-t border-white/10 text-center">
                 <p className="text-[10px] uppercase font-black tracking-[0.3em] text-brand-gold mb-6">{texts.secureOptions}</p>
-                <div className="grid grid-cols-3 gap-3">
-                   <div className="bg-white p-3 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-inner h-16">
-                      <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/MasterCard_Logo.svg" alt="Mastercard" className="h-6 w-auto" />
-                      <span className="text-[8px] text-brand-charcoal font-black">MASTERCARD</span>
+                <div className="flex flex-wrap justify-center gap-2">
+                   <div className="bg-white/90 px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-white transition-all">
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/MasterCard_Logo.svg" alt="Mastercard" className="h-5 w-auto" />
+                      <span className="text-[7px] text-brand-charcoal font-black tracking-tight group-hover:text-brand-gold transition-colors uppercase">Card</span>
                    </div>
-                   <div className="bg-white p-3 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-inner h-16">
-                      <img 
-                        src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" 
-                        alt="PayPal" 
-                        className="h-5 w-auto object-contain" 
-                        referrerPolicy="no-referrer"
-                      />
-                      <span className="text-[8px] text-brand-charcoal font-black">PAYPAL</span>
-                   </div>
-                   <div className="bg-white p-3 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-inner h-16">
-                      <div className="w-8 h-8 rounded-full bg-brand-gold/20 flex items-center justify-center shadow-sm">
-                        <HandCoins size={18} className="text-brand-gold" />
+                   <div className="bg-white/90 px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-white transition-all">
+                      <div className="w-5 h-5 rounded-full bg-[#f7931a] flex items-center justify-center text-white transform group-hover:scale-110 transition-transform">
+                        <Coins size={12} />
                       </div>
-                      <span className="text-[8px] text-brand-charcoal font-black uppercase text-center leading-tight">{isArabic ? 'الدفع عند الاستلام' : 'Cash on Delivery'}</span>
+                      <span className="text-[7px] text-brand-charcoal font-black tracking-tight group-hover:text-brand-gold transition-colors uppercase">Crypto</span>
+                   </div>
+                   <div className="bg-white/90 px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-white transition-all">
+                      <div className="w-5 h-5 rounded-full bg-[#ffcb05] flex items-center justify-center text-black font-black text-[8px] transform group-hover:scale-110 transition-transform">ZC</div>
+                      <span className="text-[7px] text-brand-charcoal font-black tracking-tight group-hover:text-brand-gold transition-colors uppercase">ZainCash</span>
+                   </div>
+                   <div className="bg-white/90 px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 w-full border border-white/10 group cursor-pointer hover:bg-white transition-all">
+                      <div className="w-5 h-5 rounded-full bg-brand-gold/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Truck size={14} className="text-brand-gold" />
+                      </div>
+                      <span className="text-[7px] text-brand-charcoal font-black tracking-[0.1em] uppercase text-center">{isArabic ? 'الدفع عند الاستلام' : 'Cash on Delivery'}</span>
                    </div>
                 </div>
                 <div className="mt-6 flex flex-col items-center justify-center gap-3 text-brand-gold">
@@ -352,23 +353,37 @@ const CartPage: React.FC = () => {
             {isArabic ? 'نحن نوفر لك خيارات دفع متعددة وسهلة لتناسب احتياجاتك، مع ضمان الخصوصية والأمان التام.' : 'We provide multiple easy and safe payment options to suit your needs, with guaranteed privacy and complete security.'}
           </p>
           
-          <div className="flex flex-wrap justify-center gap-8 items-center bg-white/5 p-8 rounded-[2rem]">
-            <div className="bg-white p-4 rounded-xl shadow-sm h-16 flex items-center text-brand-charcoal">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-8" />
+           <div className="flex flex-wrap justify-center gap-4 sm:gap-8 items-center bg-white/5 p-8 sm:p-12 rounded-[3.5rem] border border-white/10 backdrop-blur-md shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-gold/30 to-transparent" />
+            <div className="absolute -bottom-12 -right-12 w-40 h-40 bg-brand-gold/5 blur-[80px] rounded-full" />
+            
+            <div className="bg-white px-6 py-4 rounded-2xl shadow-xl h-16 flex items-center transition-transform hover:scale-110 active:scale-95 cursor-pointer">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/MasterCard_Logo.svg" alt="Mastercard" className="h-8" />
             </div>
-            <div className="bg-white p-4 rounded-xl shadow-sm h-16 flex items-center text-brand-charcoal overflow-hidden w-24 justify-center">
-              <img 
-                src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" 
-                alt="PayPal" 
-                className="h-6 w-auto object-contain" 
-                referrerPolicy="no-referrer"
-              />
-            </div>
-            <div className="bg-white p-4 rounded-xl shadow-sm h-16 flex items-center gap-3 text-brand-charcoal">
-              <div className="w-10 h-10 rounded-full bg-brand-gold/20 flex items-center justify-center shadow-md">
-                <HandCoins size={24} className="text-brand-gold" />
+            <div className="bg-white px-6 py-4 rounded-2xl shadow-xl h-16 flex items-center gap-3 transition-transform hover:scale-110 active:scale-95 cursor-pointer">
+              <div className="w-10 h-10 rounded-full bg-[#f7931a] flex items-center justify-center text-white shadow-lg">
+                <Coins size={20} />
               </div>
-              <span className="font-bold text-sm tracking-tight">{isArabic ? 'الدفع عند الاستلام' : 'Cash on Delivery'}</span>
+              <div className="flex flex-col">
+                <span className="font-black text-brand-charcoal text-[13px] leading-none uppercase">Crypto</span>
+                <span className="font-bold text-brand-charcoal/40 text-[9px] uppercase tracking-tighter mt-1">Wallet</span>
+              </div>
+            </div>
+            <div className="bg-white px-6 py-4 rounded-2xl shadow-xl h-16 flex items-center gap-3 transition-transform hover:scale-110 active:scale-95 cursor-pointer">
+              <div className="w-10 h-10 rounded-full bg-[#ffcb05] flex items-center justify-center text-black font-black text-xs shadow-lg">ZC</div>
+              <div className="flex flex-col">
+                <span className="font-black text-brand-charcoal text-[13px] leading-none uppercase">ZainCash</span>
+                <span className="font-bold text-brand-charcoal/40 text-[9px] uppercase tracking-tighter mt-1">Wallet</span>
+              </div>
+            </div>
+            <div className="bg-white px-6 py-4 rounded-2xl shadow-xl h-16 flex items-center gap-4 text-brand-charcoal transition-transform hover:scale-110 active:scale-95 cursor-pointer">
+              <div className="w-10 h-10 rounded-full bg-brand-gold/10 flex items-center justify-center shadow-md">
+                <Truck size={24} className="text-brand-gold" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-black text-[13px] leading-none uppercase">{isArabic ? 'الدفع نقدراً' : 'Cash Pay'}</span>
+                <span className="font-bold text-brand-charcoal/40 text-[9px] uppercase tracking-tighter mt-1">{isArabic ? 'عند الاستلام' : 'On Delivery'}</span>
+              </div>
             </div>
           </div>
         </motion.div>

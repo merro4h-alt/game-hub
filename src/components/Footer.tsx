@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Instagram, Twitter, Facebook, ArrowUpRight, MessageCircle, ShieldCheck } from 'lucide-react';
+import { Instagram, Twitter, Facebook, ArrowUpRight, MessageCircle, ShieldCheck, Banknote, Coins } from 'lucide-react';
 import Logo from './Logo';
 
 const Footer: React.FC = () => {
@@ -105,14 +105,24 @@ const Footer: React.FC = () => {
             <a href="#" className="hover:text-brand-gold">Terms of Service</a>
           </div>
           {/* Payment Badges */}
-          <div className="flex items-center space-x-3 opacity-60 grayscale hover:grayscale-0 transition-all cursor-crosshair">
-             <div className="bg-white/10 px-3 py-1 rounded border border-white/10 flex items-center gap-1">
-               <div className="w-2 h-2 rounded-full bg-orange-500" />
-               <span className="text-[10px] font-bold">MasterCard</span>
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-3">
+             <div className="bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 transition-all group">
+               <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/MasterCard_Logo.svg" alt="Mastercard" className="h-4 w-auto" />
+               <span className="text-[9px] font-black tracking-widest text-white/40 group-hover:text-white">MASTERCARD</span>
              </div>
-             <div className="bg-white/10 px-3 py-1 rounded border border-white/10 flex items-center gap-1">
-               <div className="w-2 h-2 rounded-full bg-blue-500" />
-               <span className="text-[10px] font-bold">VISA</span>
+             <div className="bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 transition-all group">
+               <div className="w-4 h-4 rounded-full bg-[#f7931a] flex items-center justify-center text-white">
+                 <Coins size={10} />
+               </div>
+               <span className="text-[9px] font-black tracking-widest text-white/40 group-hover:text-white uppercase">Crypto</span>
+             </div>
+             <div className="bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 transition-all group">
+               <div className="w-4 h-4 rounded-full bg-[#ffcb05] flex items-center justify-center text-black font-black text-[7px]">ZC</div>
+               <span className="text-[9px] font-black tracking-widest text-white/40 group-hover:text-white uppercase">ZainCash</span>
+             </div>
+             <div className="bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 transition-all group">
+               <Banknote size={14} className="text-brand-gold opacity-50 group-hover:opacity-100" />
+               <span className="text-[9px] font-black tracking-widest text-white/40 group-hover:text-white uppercase">CASH</span>
              </div>
           </div>
         </div>
