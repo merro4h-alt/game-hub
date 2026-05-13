@@ -48,8 +48,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
-  const [importUrl, setImportUrl] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -237,71 +235,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
     }
   };
 
-  const handleAliExpressImport = async () => {
-    if (!importUrl || !importUrl.includes('aliexpress.com')) {
-      setErrorMsg(isArabic ? 'يرجى إدخال رابط صحيح لمنتج علي إكسبريس' : 'Please enter a valid AliExpress product link');
-      return;
-    }
-
-    setIsImporting(true);
-    setErrorMsg(null);
-
-    try {
-      // Simulate real import logic with enhanced extraction
-      const url = new URL(importUrl);
-      const pathParts = url.pathname.split('/');
-      const itemPart = pathParts.find(p => p.includes('.html')) || '';
-      
-      // Smart name extraction from URL
-      let potentialName = itemPart
-        .replace('.html', '')
-        .split('-')
-        .filter(part => !(/^\d+$/.test(part))) // Remove pure IDs
-        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(' ');
-      
-      if (!potentialName || potentialName.length < 5) {
-        potentialName = isArabic ? 'منتج علي إكسبريس المميز' : 'Premium AliExpress Product';
-      }
-
-      // Realistic price generation for demo
-      const mockPrice = Math.floor(Math.random() * 140) + 15.99;
-
-      // High-quality imagery selection
-      const importedImage = `https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1200&auto=format&fit=crop`;
-      const gallery = [
-        `https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop`,
-        `https://images.unsplash.com/photo-1526170315870-ef6d82f583ad?q=80&w=800&auto=format&fit=crop`
-      ];
-
-      // Populate form data with the requested details for review
-      setFormData(prev => ({
-        ...prev,
-        name: potentialName,
-        price: mockPrice.toString(),
-        image: importedImage,
-        gallery: gallery,
-        supplierName: 'AliExpress Global',
-        supplierUrl: importUrl,
-        category: 'Imported'
-      }));
-
-      // Explicit success feedback
-      const detailMsg = isArabic 
-        ? `تم جلب بيانات: ${potentialName.slice(0, 20)}... | السعر: $${mockPrice}`
-        : `Fetched: ${potentialName.slice(0, 20)}... | Price: $${mockPrice}`;
-      
-      setSuccessMsg(detailMsg);
-      setImportUrl('');
-      
-      setTimeout(() => setSuccessMsg(null), 5000);
-    } catch (err) {
-      setErrorMsg(isArabic ? 'فشل استيراد الرابط' : 'Failed to import link');
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
   const generateAIDescription = async () => {
     if (!formData.name) {
       setErrorMsg(isArabic ? 'يرجى إدخال اسم المنتج أولاً لتوليد الوصف' : 'Please enter product name first to generate description');
@@ -312,15 +245,27 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
     setErrorMsg(null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      // Use a safer way to access the environment variable
+      let apiKey = '';
+      try {
+        apiKey = process.env.GEMINI_API_KEY || '';
+      } catch (e) {
+        console.warn('process.env not available strictly, trying via window');
+        apiKey = (window as any).process?.env?.GEMINI_API_KEY || '';
+      }
+
+      if (!apiKey) {
+        throw new Error('API_KEY_MISSING');
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      
+      // Use simpler prompt format as per skill
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Product Name: ${formData.name}. Category: ${formData.category}.`,
+        contents: `Write a product description for: Name: ${formData.name}, Category: ${formData.category}. Target Store: Trendifi. Language: ${isArabic ? 'Arabic' : 'English'}.`,
         config: {
-          systemInstruction: `You are a professional e-commerce copywriter. Create a compelling, high-converting product description for an store named "Trendifi". The description should be professional, highlighting benefits and features.
-          Return ONLY the description text, no extra formatting or titles.
-          Language: ${isArabic ? 'Arabic (Saudi/Gulf dialect preferred for luxury feel)' : 'English'}.
-          Length: 150-250 characters.`,
+          systemInstruction: `You are a professional e-commerce copywriter. Create a compelling description highlighting benefits. Return ONLY text. Max 250 characters. For Arabic, use a professional luxury tone.`,
         }
       });
 
@@ -328,12 +273,30 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
       
       if (text) {
         setFormData(prev => ({ ...prev, description: text.trim() }));
-        setSuccessMsg(isArabic ? 'تم إنشاء الوصف بواسطة الذكاء الاصطناعي!' : 'AI Description generated!');
-        setTimeout(() => setSuccessMsg(null), 2000);
+        setSuccessMsg(isArabic ? 'تم إنشاء الوصف!' : 'AI Description generated!');
+        setTimeout(() => setSuccessMsg(null), 3000);
+      } else {
+        throw new Error('EMPTY_RESPONSE');
       }
-    } catch (err) {
-      console.error('AI error:', err);
-      setErrorMsg(isArabic ? 'فشل توليد الوصف بالذكاء الاصطناعي' : 'Failed to generate AI description');
+    } catch (err: any) {
+      console.error('AI error details:', err);
+      
+      let errorMsgText = isArabic 
+        ? 'حدث خطأ في توليد الوصف.' 
+        : 'Error generating description.';
+
+      if (err.message === 'API_KEY_MISSING') {
+        errorMsgText = isArabic 
+          ? 'مفتاح API غير متوفر. يرجى ضبط GEMINI_API_KEY في الإعدادات.' 
+          : 'API Key missing. Please set GEMINI_API_KEY in the Secrets panel.';
+      } else if (err.message?.includes('PERMISSION_DENIED') || err.message?.includes('403')) {
+        errorMsgText = isArabic
+          ? 'المفتاح غير صالح أو لا يملك صلاحية. راجع إعدادات GEMINI_API_KEY.'
+          : 'Invalid API key or permission denied. Check GEMINI_API_KEY.';
+      }
+
+      setErrorMsg(errorMsgText);
+      // Clean up generating state
     } finally {
       setIsAiGenerating(false);
     }
@@ -481,7 +444,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative bg-brand-cream w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl p-8 no-scrollbar z-[501]"
+            className="relative bg-brand-cream w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl p-8 custom-scrollbar z-[501]"
           >
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-3xl font-black tracking-tighter text-brand-charcoal uppercase">
@@ -539,43 +502,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                 )}
               </AnimatePresence>
 
-              {/* AliExpress Import Tool */}
-              <div className="p-6 bg-brand-charcoal rounded-3xl border border-white/5 shadow-inner">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-brand-gold/20 rounded-xl flex items-center justify-center text-brand-gold">
-                    <ShoppingBag size={20} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                      {isArabic ? 'أداة الاستيراد الذكي' : 'Smart Import Tool'}
-                    </h3>
-                    <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-medium">
-                      {isArabic ? 'استيراد مباشر من علي إكسبريس' : 'AliExpress Direct Importer'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Link className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={16} />
-                    <input 
-                      type="text"
-                      value={importUrl}
-                      onChange={(e) => setImportUrl(e.target.value)}
-                      placeholder={isArabic ? 'ضع رابط علي إكسبريس هنا...' : 'Paste AliExpress link here...'}
-                      className="w-full bg-white/5 border border-white/10 text-white text-xs pl-12 pr-4 py-3.5 rounded-xl outline-none focus:border-brand-gold transition-all"
-                    />
-                  </div>
-                  <button 
-                    onClick={handleAliExpressImport}
-                    disabled={isImporting}
-                    className="px-6 bg-brand-gold text-brand-charcoal font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-white transition-all disabled:opacity-50"
-                  >
-                    {isImporting ? (isArabic ? 'جاري الاستيراد...' : 'Importing...') : (isArabic ? 'استيراد' : 'Import')}
-                  </button>
-                </div>
-              </div>
-              
               {/* Image Gallery Upload */}
               <div className="space-y-4">
                 <label className="text-xs font-bold uppercase tracking-widest text-brand-charcoal/50">
@@ -774,9 +700,43 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                           : 'bg-white text-brand-charcoal border-brand-charcoal/10 hover:border-brand-gold'
                       }`}
                     >
-                      {color}
+                      {t(`colors.${color}`, color)}
                     </button>
                   ))}
+                </div>
+
+                {/* Custom Color Input */}
+                <div className="flex gap-2 mt-2">
+                  <input 
+                    type="text"
+                    id="custom-color-input"
+                    placeholder={isArabic ? 'إضافة لون مركب (مثلاً: أسود وبرتقالي)' : 'Add custom/mixed color (e.g. Black & Orange)'}
+                    className="flex-1 px-4 py-2 bg-white rounded-xl border border-brand-charcoal/10 text-xs text-brand-charcoal placeholder:text-brand-charcoal/40 outline-none focus:ring-1 focus:ring-brand-gold"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const val = (e.target as HTMLInputElement).value.trim();
+                        if (val && !formData.colors.includes(val)) {
+                          setFormData(prev => ({ ...prev, colors: [...prev.colors, val] }));
+                          (e.target as HTMLInputElement).value = '';
+                        }
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const input = document.getElementById('custom-color-input') as HTMLInputElement;
+                      const val = input.value.trim();
+                      if (val && !formData.colors.includes(val)) {
+                        setFormData(prev => ({ ...prev, colors: [...prev.colors, val] }));
+                        input.value = '';
+                      }
+                    }}
+                    className="p-2 bg-brand-gold text-white rounded-xl hover:bg-brand-charcoal transition-colors"
+                  >
+                    <Plus size={16} />
+                  </button>
                 </div>
               </div>
 
@@ -793,7 +753,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-4 h-4 rounded-full border border-brand-charcoal/10" style={{ backgroundColor: color }} />
-                            <label className="text-[10px] font-bold uppercase text-brand-charcoal/60 truncate max-w-[80px]">{color}</label>
+                            <label className="text-[10px] font-bold uppercase text-brand-charcoal/60 truncate max-w-[80px]">{t(`colors.${color}`, color)}</label>
                           </div>
                           {formData.colorImages[color] && (
                             <button 

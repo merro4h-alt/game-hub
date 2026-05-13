@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Star, ShoppingCart, Check, Edit2, Trash2, X, AlertTriangle, ArrowUpRight, Sparkles } from 'lucide-react';
+import { Star, ShoppingCart, Check, Edit2, Trash2, X, AlertTriangle, ArrowUpRight, Sparkles, Eye, Heart } from 'lucide-react';
 import { Product } from '../types';
 import { Link } from 'react-router-dom';
 import { useStore } from '../StoreContext';
@@ -14,7 +14,7 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }) => {
-  const { addToCart, deleteProduct, setEditingProduct, setIsAddModalOpen } = useStore();
+  const { addToCart, deleteProduct, setEditingProduct, setIsAddModalOpen, formatPrice, setQuickViewProduct, toggleWishlist, isInWishlist } = useStore();
   const { isAdmin } = useAuth();
   const { t } = useTranslation();
   const [selectedColor, setSelectedColor] = useState(product.colors[0]);
@@ -126,17 +126,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
             )}
           </AnimatePresence>
           
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-6 gap-4 z-10">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-6 z-10">
             <button 
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 addToCart(product, selectedColor, product.sizes[0]);
               }}
-              className="bg-white text-brand-charcoal h-12 w-full rounded-full font-black uppercase tracking-[0.15em] text-[10px] flex items-center justify-center gap-2 hover:bg-[#4F46E5] hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0 duration-500 shadow-xl active:scale-95"
+              className="w-full bg-white text-brand-charcoal h-12 rounded-full font-black uppercase tracking-[0.1em] text-[8px] sm:text-[10px] flex items-center justify-center gap-2 hover:bg-[#4F46E5] hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0 duration-500 shadow-xl active:scale-95"
               title={t('shop.addToCart')}
             >
-              <ShoppingCart size={16} />
+              <ShoppingCart size={14} className="sm:size-4" />
               <span>{t('shop.addToCart')}</span>
             </button>
           </div>
@@ -158,11 +158,34 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
             )}
           </div>
 
-          <div className="absolute bottom-6 right-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="p-3 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl text-[#4F46E5]">
-              <ArrowUpRight size={20} />
-            </div>
+          <div className="absolute top-5 right-5 flex flex-col gap-2.5 z-20">
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleWishlist(product.id);
+              }}
+              className={`p-3 rounded-2xl backdrop-blur-md shadow-xl transition-all active:scale-90 ${
+                isInWishlist(product.id) 
+                  ? 'bg-red-500 text-white' 
+                  : 'bg-white/80 text-brand-charcoal hover:text-red-500'
+              }`}
+            >
+              <Heart size={18} fill={isInWishlist(product.id) ? "currentColor" : "none"} />
+            </button>
           </div>
+
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setQuickViewProduct(product);
+            }}
+            className="absolute bottom-6 right-6 z-20 opacity-0 group-hover:opacity-100 p-3 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl text-[#4F46E5] hover:bg-brand-gold hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0 duration-500 delay-150 shadow-xl active:scale-95 cursor-pointer"
+            title={t('shop.quickView')}
+          >
+            <Eye size={20} />
+          </button>
 
           {/* Admin Quick Actions */}
           {isAdmin && (
@@ -212,14 +235,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
             {product.discountPrice ? (
               <>
                 <span className="text-[10px] font-bold text-white/40 line-through decoration-red-500/30 uppercase tracking-tighter decoration-2">
-                   {t('shop.originalPrice')}: ${product.price.toFixed(2)}
+                   {t('shop.originalPrice')}: {formatPrice(product.price)}
                 </span>
                 <span className="font-mono font-black text-red-500 dark:text-red-400 text-2xl tracking-tighter">
-                  ${product.discountPrice.toFixed(2)}
+                  {formatPrice(product.discountPrice)}
                 </span>
               </>
             ) : (
-              <span className="font-mono font-bold text-brand-gold text-xl">${product.price.toFixed(2)}</span>
+              <span className="font-mono font-bold text-brand-gold text-xl">{formatPrice(product.price)}</span>
             )}
           </div>
           <div className="flex items-center gap-1 bg-white/5 px-2 py-1 rounded-lg self-center">

@@ -12,6 +12,7 @@ export interface Product {
   colorImages?: Record<string, string>;
   sizes: string[];
   rating: number;
+  reviews?: any[];
   supplierName?: string;
   supplierUrl?: string;
 }
@@ -41,4 +42,12 @@ export interface Order {
     zipCode: string;
   };
   trackingId?: string;
+  courierTrackingNumber?: string;
+}
+
+export interface WishlistItem {
+  productId: string;
+  addedPrice: number;
+  currentPrice?: number;
+  createdAt: any;
 }

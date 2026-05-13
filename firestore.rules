@@ -78,6 +78,15 @@ service cloud.firestore {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow write: if isSignedIn() && request.auth.uid == userId && 
                    (!incoming().keys().contains('isAdmin') || isAdmin());
+
+      match /wishlist/{productId} {
+        function isValidWishlistItem(data) {
+          return data.productId is string && data.addedPrice is number;
+        }
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow create, update: if isSignedIn() && request.auth.uid == userId && isValidWishlistItem(incoming());
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
     }
 
     // Admins Whitelist

@@ -16,7 +16,7 @@ import {
   TrendingUp, Users, ShoppingBag, DollarSign, Package, 
   Clock, CheckCircle, Truck, AlertCircle, ArrowUpRight,
   Plus, Edit, Trash2, Search as SearchIcon, Filter, ExternalLink,
-  ChevronRight, ChevronDown, Wand2, Loader2, Sparkles
+  ChevronRight, ChevronDown, Wand2, Loader2, Sparkles, Save, Clipboard
 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
@@ -27,10 +27,15 @@ const AdminDashboard: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'products' | 'winning'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'products' | 'winning' | 'marketing'>('analytics');
   const [importUrl, setImportUrl] = useState('');
+  const [isAiGeneratingAd, setIsAiGeneratingAd] = useState(false);
+  const [marketingProduct, setMarketingProduct] = useState<Product | null>(null);
+  const [generatedAd, setGeneratedAd] = useState<{ tiktok: string, snapchat: string, instagram: string } | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionStatus, setExtractionStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [newTrackingNumber, setNewTrackingNumber] = useState('');
   
   // Winning products data with better links
   const [winningProducts] = useState([
@@ -145,7 +150,7 @@ const AdminDashboard: React.FC = () => {
               ? (i18n.language === 'ar' 
                   ? `أنت مسجل دخول كـ (${user.email}) ولكن هذا الحساب ليس له صلاحيات المسؤول.` 
                   : `You are signed in as (${user.email}) but this account doesn't have admin privileges.`)
-              : t('admin.smartImportDesc')
+              : (i18n.language === 'ar' ? 'سجل دخولك كمسؤول للتحكم في المتجر' : 'Sign in as admin to manage the store')
             }
           </p>
         </div>
@@ -292,6 +297,64 @@ const AdminDashboard: React.FC = () => {
       return matchesSearch && matchesCategory;
   });
 
+  const generateAdCopy = async (product: any) => {
+    if (!product) return;
+    setIsAiGeneratingAd(true);
+    setGeneratedAd(null);
+    try {
+      const { GoogleGenAI } = await import("@google/genai");
+      
+      let apiKey = "";
+      try {
+        apiKey = process.env.GEMINI_API_KEY || (window as any).process?.env?.GEMINI_API_KEY || "";
+      } catch (e) {
+        apiKey = (window as any).process?.env?.GEMINI_API_KEY || "";
+      }
+
+      if (!apiKey) {
+        throw new Error('API_KEY_MISSING');
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      const isArabic = i18n.language === 'ar';
+      
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Product: ${product.name}, Category: ${product.category}. Platform: TikTok, Snapchat, Instagram. Language: ${isArabic ? 'Arabic' : 'English'}.`,
+        config: {
+          systemInstruction: `You are a viral marketing expert. Create high-converting ad copy for TikTok, Snapchat, and Instagram. 
+          Return ONLY a valid JSON object with keys: "tiktok", "snapchat", "instagram". 
+          No markdown, no talk. 
+          Tone: ${isArabic ? 'Saudi/Gulf creative dialect, energetic' : 'Catchy, energetic, scrolls-stopping'}.`,
+        }
+      });
+
+      const text = response.text;
+      if (text) {
+        // Clean markdown if present
+        const jsonStr = text.replace(/```json|```/g, '').trim();
+        const ads = JSON.parse(jsonStr);
+        if (ads.tiktok && ads.snapchat && ads.instagram) {
+          setGeneratedAd(ads);
+          showAlert(isArabic ? 'تم إنشاء الإعلانات!' : 'Ads generated!', 'success');
+        } else {
+          throw new Error('Invalid JSON structure');
+        }
+      } else {
+        throw new Error('Empty AI response');
+      }
+    } catch (err: any) {
+      console.error('Ad Gen error:', err);
+      let errorMsg = i18n.language === 'ar' ? 'فشل إنشاء الإعلانات.' : 'Failed to generate ads.';
+      if (err.message === 'API_KEY_MISSING') {
+        errorMsg = i18n.language === 'ar' ? 'مفتاح API غير متوفر.' : 'API Key missing.';
+      }
+      showAlert(errorMsg, 'error');
+    } finally {
+      setIsAiGeneratingAd(false);
+    }
+  };
+
   return (
     <div className="pt-24 pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 bg-[#0A0A0B] text-white min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -310,6 +373,7 @@ const AdminDashboard: React.FC = () => {
                 { id: 'products', label: t('admin.products'), icon: Package },
                 { id: 'orders', label: t('admin.orders'), icon: ShoppingBag },
                 { id: 'winning', label: t('admin.winning'), icon: ArrowUpRight },
+                { id: 'marketing', label: i18n.language === 'ar' ? 'التسويق' : 'Marketing', icon: Sparkles },
             ].map(tab => (
                 <button
                     key={tab.id}
@@ -328,6 +392,134 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       <AnimatePresence mode="wait">
+          {activeTab === 'marketing' && (
+               <motion.div 
+                 key="marketing"
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 exit={{ opacity: 0, y: -20 }}
+                 className="space-y-8"
+               >
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                   {/* Ad Copy Generator */}
+                   <div className="bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-white/5 space-y-6">
+                     <div>
+                       <h3 className="text-xl font-black uppercase tracking-tighter mb-2 flex items-center gap-2">
+                         <Sparkles className="text-brand-gold" />
+                         {i18n.language === 'ar' ? 'منشئ محتوى إعلاني ذكي' : 'Smart Ad Copy Generator'}
+                       </h3>
+                       <p className="text-white/40 text-sm">
+                         {i18n.language === 'ar' ? 'اختر منتجاً وسيقوم الذكاء الاصطناعي بكتابة نصوص إعلانية جذابة للمنصات المختلفة.' : 'Select a product and let AI write high-converting ad copy for social platforms.'}
+                       </p>
+                     </div>
+
+                     <div className="space-y-4">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-white/30 block">{i18n.language === 'ar' ? 'اختر المنتج' : 'Select Product'}</label>
+                       <select 
+                         className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-brand-gold transition-all text-sm font-bold"
+                         onChange={(e) => {
+                           const prod = products.find(p => p.id === e.target.value);
+                           setMarketingProduct(prod || null);
+                           setGeneratedAd(null);
+                         }}
+                         value={marketingProduct?.id || ''}
+                       >
+                         <option value="">{i18n.language === 'ar' ? '-- اختر منتجاً --' : '-- Choose a product --'}</option>
+                         {products.map(p => (
+                           <option key={p.id} value={p.id}>{p.name}</option>
+                         ))}
+                       </select>
+
+                       <button 
+                         disabled={!marketingProduct || isAiGeneratingAd}
+                         onClick={() => generateAdCopy(marketingProduct)}
+                         className="w-full py-5 bg-brand-gold text-brand-charcoal rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-brand-gold/10 hover:-translate-y-1 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                       >
+                         {isAiGeneratingAd ? (
+                           <Loader2 size={16} className="animate-spin" />
+                         ) : (
+                           <Wand2 size={16} />
+                         )}
+                         {i18n.language === 'ar' ? 'توليد نصوص إعلانية' : 'Generate Ad Copy'}
+                       </button>
+                     </div>
+
+                     {generatedAd && (
+                       <div className="space-y-4 pt-4">
+                         {[
+                           { platform: 'TikTok', content: generatedAd.tiktok, color: 'text-white' },
+                           { platform: 'Snapchat', content: generatedAd.snapchat, color: 'text-yellow-400' },
+                           { platform: 'Instagram', content: generatedAd.instagram, color: 'text-pink-400' }
+                         ].map(ad => (
+                           <div key={ad.platform} className="bg-black/60 p-5 rounded-2xl border border-white/5 space-y-2 relative group">
+                             <div className="flex justify-between items-center">
+                               <span className={`text-[10px] font-black uppercase tracking-widest ${ad.color}`}>{ad.platform} Ad</span>
+                               <button 
+                                 onClick={() => {
+                                   navigator.clipboard.writeText(ad.content);
+                                   showAlert(i18n.language === 'ar' ? 'تم النسخ!' : 'Copied!', 'success');
+                                 }}
+                                 className="text-white/30 hover:text-white transition-colors"
+                               >
+                                 <Clipboard size={14} />
+                               </button>
+                             </div>
+                             <p className="text-sm text-white/80 leading-relaxed font-medium">{ad.content}</p>
+                           </div>
+                         ))}
+                       </div>
+                     )}
+                   </div>
+
+                   {/* Marketing Strategy */}
+                   <div className="bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-white/5 space-y-6">
+                     <div>
+                       <h3 className="text-xl font-black uppercase tracking-tighter mb-2 flex items-center gap-2">
+                         <TrendingUp className="text-[#4F46E5]" />
+                         {i18n.language === 'ar' ? 'استراتيجية تسويق الدروبشيبينغ' : 'Dropshipping Marketing Strategy'}
+                       </h3>
+                       <p className="text-white/40 text-sm">
+                         {i18n.language === 'ar' ? 'دليلك للترويج لمتجرك والوصول لأولى مبيعاتك بنجاح.' : 'Your guide to promoting your store and achieving your first sales successfully.'}
+                       </p>
+                     </div>
+
+                     <div className="space-y-4">
+                        {[
+                          {
+                            title: i18n.language === 'ar' ? 'استهدف تيك توك أورجانيك (TikTok Organic)' : 'TikTok Organic strategy',
+                            desc: i18n.language === 'ar' ? 'قم بطلب عينة من المنتج وصور فيديوهات من منزلك. الإبداع والبساطة يجلبان ملايين المشاهدات مجاناً.' : 'Order a product sample and film at home. Creativity and simplicity bring millions of views for free.',
+                            icon: '🎥'
+                          },
+                          {
+                            title: i18n.language === 'ar' ? 'إعلانات سناب شات (Snapchat Ads)' : 'Snapchat Ads',
+                            desc: i18n.language === 'ar' ? 'مثالية للسوق السعودي والخليجي. تكلفة التحويل غالباً ما تكون أقل مقارنة بمنصات أخرى.' : 'Perfect for Saudi and Gulf markets. Conversion costs are often lower compared to other platforms.',
+                            icon: '👻'
+                          },
+                          {
+                            title: i18n.language === 'ar' ? 'التعاون مع المؤثرين الصغار (Micro-Influencers)' : 'Micro-Influencers Collaboration',
+                            desc: i18n.language === 'ar' ? 'تواصل مع حسابات تملك 10k-50k متابع في نيتش منتجك. الثقة لديهم أعلى والتكلفة أقل.' : 'Reach out to accounts with 10k-50k followers in your niche. They have high trust and lower costs.',
+                            icon: '🤝'
+                          },
+                          {
+                            title: i18n.language === 'ar' ? 'إعلانات إعادة الاستهداف (Retargeting)' : 'Retargeting Ads',
+                            desc: i18n.language === 'ar' ? 'استخدم بكسل تيك توك أو فيسبوك لإعادة الوصول للأشخاص الذين أضافوا للسلة ولم يشتروا.' : 'Use TikTok/Meta Pixels to re-engage people who added to cart but didn\'t buy.',
+                            icon: '🎯'
+                          }
+                        ].map((tip, i) => (
+                          <div key={i} className="flex gap-4 items-start p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all">
+                            <span className="text-2xl">{tip.icon}</span>
+                            <div className="space-y-1">
+                              <h4 className="text-sm font-black text-white">{tip.title}</h4>
+                              <p className="text-xs text-white/40 leading-relaxed">{tip.desc}</p>
+                            </div>
+                          </div>
+                        ))}
+                     </div>
+                   </div>
+                 </div>
+               </motion.div>
+          )}
+
           {activeTab === 'analytics' && (
               <motion.div 
                 key="analytics"
@@ -456,51 +648,6 @@ const AdminDashboard: React.FC = () => {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-6"
               >
-                  {/* Magic Scraper Section */}
-                  <div className="bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-white/5 relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 w-64 h-64 bg-brand-gold/5 blur-[100px] -mr-32 -mt-32 rounded-full group-hover:bg-brand-gold/10 transition-all duration-700" />
-                      <div className="relative z-10 flex flex-col md:flex-row gap-6 items-center">
-                          <div className="bg-brand-gold/10 w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 border border-brand-gold/20">
-                              <Wand2 className="text-brand-gold" size={28} />
-                          </div>
-                          <div className="flex-grow space-y-1 text-center md:text-left rtl:md:text-right">
-                              <h3 className="text-xl font-black uppercase tracking-tighter">{t('admin.smartImport')}</h3>
-                              <p className="text-xs font-bold text-white/40 uppercase tracking-widest">{t('admin.smartImportDesc')}</p>
-                          </div>
-                          <div className="flex-grow max-w-xl w-full space-y-3">
-                              <div className="flex flex-col sm:flex-row gap-3">
-                                  <input 
-                                    type="url" 
-                                    placeholder="https://www.aliexpress.com/item/..."
-                                    value={importUrl}
-                                    onChange={(e) => setImportUrl(e.target.value)}
-                                    className="flex-grow bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-sm outline-none focus:ring-2 focus:ring-brand-gold transition-all"
-                                  />
-                                  <button 
-                                    type="button"
-                                    onClick={handleMagicImport}
-                                    disabled={isExtracting || !importUrl}
-                                    className="bg-brand-gold text-brand-charcoal px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-xl shadow-brand-gold/10"
-                                  >
-                                      {isExtracting ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                                      {t('admin.extract')}
-                                  </button>
-                              </div>
-                              {extractionStatus && (
-                                <motion.div 
-                                  initial={{ opacity: 0, y: -10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  className={`p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border ${
-                                    extractionStatus.type === 'success' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
-                                  }`}
-                                >
-                                  {extractionStatus.message}
-                                </motion.div>
-                              )}
-                          </div>
-                      </div>
-                  </div>
-
                   <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
                       <div className="relative flex-grow max-w-md w-full">
                           <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" size={18} />
@@ -713,9 +860,35 @@ const AdminDashboard: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
-                                            <p className="text-sm font-black">{order.shippingAddress.fullName}</p>
-                                            <p className="text-[10px] text-white/40">{order.shippingAddress.email}</p>
-                                            <p className="text-[10px] text-white/40">{order.shippingAddress.phone}</p>
+                                            <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-2 min-w-[250px]">
+                                                <p className="text-sm font-black text-brand-gold">{order.shippingAddress.fullName}</p>
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] text-white font-bold flex items-center gap-2">
+                                                        <span className="text-white/30 uppercase tracking-widest">{t('contact.email')}:</span>
+                                                        {order.shippingAddress.email}
+                                                    </p>
+                                                    <p className="text-[10px] text-white font-bold flex items-center gap-2">
+                                                        <span className="text-white/30 uppercase tracking-widest">{t('contact.phone')}:</span>
+                                                        {order.shippingAddress.phone}
+                                                    </p>
+                                                    <div className="h-px bg-white/5 my-2" />
+                                                    <p className="text-[10px] text-white/80 leading-relaxed">
+                                                        <span className="text-white/30 uppercase tracking-widest block mb-1">Shipping Details:</span>
+                                                        {order.shippingAddress.address}, {order.shippingAddress.city}, {order.shippingAddress.zipCode}, {order.shippingAddress.country}
+                                                    </p>
+                                                    <button 
+                                                        onClick={() => {
+                                                            const text = `${order.shippingAddress.fullName}\n${order.shippingAddress.phone}\n${order.shippingAddress.address}\n${order.shippingAddress.city}\n${order.shippingAddress.zipCode}\n${order.shippingAddress.country}`;
+                                                            navigator.clipboard.writeText(text);
+                                                            alert(i18n.language === 'ar' ? 'تم نسخ بيانات العنوان!' : 'Shipping info copied!');
+                                                        }}
+                                                        className="w-full mt-3 py-2 bg-brand-gold/20 text-brand-gold rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-brand-gold hover:text-white transition-all flex items-center justify-center gap-2"
+                                                    >
+                                                        <Save size={10} />
+                                                        {i18n.language === 'ar' ? 'نسخ لـ علي إكسبريس' : 'Copy for AliExpress'}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex -space-x-2">
@@ -733,28 +906,80 @@ const AdminDashboard: React.FC = () => {
                                         </td>
                                         <td className="px-8 py-6 font-mono font-black text-brand-gold">${order.total.toFixed(2)}</td>
                                         <td className="px-8 py-6">
-                                            <select 
-                                                className={`text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border bg-transparent outline-none cursor-pointer ${
-                                                    order.status === 'delivered' ? 'text-green-400 border-green-500/20' :
-                                                    order.status === 'pending' ? 'text-amber-400 border-amber-400/20' :
-                                                    'text-indigo-400 border-indigo-400/20'
-                                                }`}
-                                                value={order.status}
-                                                onChange={async (e) => {
-                                                    const newStatus = e.target.value as Order['status'];
-                                                    try {
-                                                        const { doc, updateDoc } = await import('firebase/firestore');
-                                                        await updateDoc(doc(db, 'orders', order.id), { status: newStatus });
-                                                    } catch (err: any) {
-                                                        showAlert(`Update failed: ${err.message}`, 'error');
-                                                    }
-                                                }}
-                                            >
-                                                <option value="pending" className="bg-[#111]">Pending</option>
-                                                <option value="processing" className="bg-[#111]">Processing</option>
-                                                <option value="shipped" className="bg-[#111]">Shipped</option>
-                                                <option value="delivered" className="bg-[#111]">Delivered</option>
-                                            </select>
+                                            <div className="flex flex-col gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <select 
+                                                        className={`text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border bg-transparent outline-none cursor-pointer ${
+                                                            order.status === 'delivered' ? 'text-green-400 border-green-500/20' :
+                                                            order.status === 'pending' ? 'text-amber-400 border-amber-400/20' :
+                                                            'text-indigo-400 border-indigo-400/20'
+                                                        }`}
+                                                        value={order.status}
+                                                        onChange={async (e) => {
+                                                            const newStatus = e.target.value as Order['status'];
+                                                            try {
+                                                                const { doc, updateDoc } = await import('firebase/firestore');
+                                                                await updateDoc(doc(db, 'orders', order.id), { status: newStatus });
+                                                                showAlert(i18n.language === 'ar' ? 'تم تحديث حالة الطلب!' : 'Order status updated!', 'success');
+                                                            } catch (err: any) {
+                                                                showAlert(`Update failed: ${err.message}`, 'error');
+                                                            }
+                                                        }}
+                                                    >
+                                                        <option value="pending" className="bg-[#111]">Pending</option>
+                                                        <option value="processing" className="bg-[#111]">Processing</option>
+                                                        <option value="shipped" className="bg-[#111]">Shipped</option>
+                                                        <option value="delivered" className="bg-[#111]">Delivered</option>
+                                                        <option value="cancelled" className="bg-[#111]">Cancelled</option>
+                                                    </select>
+                                                </div>
+
+                                                {/* Tracking Number Input */}
+                                                <div className="space-y-2">
+                                                    {updatingOrderId === order.id ? (
+                                                        <div className="flex gap-2">
+                                                            <input 
+                                                                type="text"
+                                                                placeholder="TRK123456"
+                                                                className="bg-black/40 border border-brand-gold/30 rounded-lg px-3 py-1.5 text-[10px] w-full outline-none focus:ring-1 focus:ring-brand-gold text-white"
+                                                                value={newTrackingNumber}
+                                                                onChange={(e) => setNewTrackingNumber(e.target.value)}
+                                                                autoFocus
+                                                            />
+                                                            <button 
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        const { doc, updateDoc } = await import('firebase/firestore');
+                                                                        await updateDoc(doc(db, 'orders', order.id), { 
+                                                                            courierTrackingNumber: newTrackingNumber,
+                                                                            status: newTrackingNumber ? 'shipped' : order.status 
+                                                                        });
+                                                                        showAlert(i18n.language === 'ar' ? 'تم حفظ رقم التتبع!' : 'Tracking saved!', 'success');
+                                                                        setUpdatingOrderId(null);
+                                                                        setNewTrackingNumber('');
+                                                                    } catch (err: any) {
+                                                                        showAlert(err.message, 'error');
+                                                                    }
+                                                                }}
+                                                                className="bg-brand-gold text-brand-charcoal p-1.5 rounded-lg hover:bg-white transition-all"
+                                                            >
+                                                                <CheckCircle size={14} />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <button 
+                                                            onClick={() => {
+                                                                setUpdatingOrderId(order.id);
+                                                                setNewTrackingNumber((order as any).courierTrackingNumber || '');
+                                                            }}
+                                                            className="flex items-center justify-center gap-2 w-full py-2 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/10 text-white/60 hover:text-white transition-all"
+                                                        >
+                                                            <Truck size={12} className="text-brand-gold" />
+                                                            {(order as any).courierTrackingNumber ? (order as any).courierTrackingNumber : (i18n.language === 'ar' ? 'إضافة رقم تتبع' : 'Add Tracking')}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex flex-col gap-2">

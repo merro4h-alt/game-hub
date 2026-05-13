@@ -42,3 +42,22 @@
   scrollbar-width: none;
 }
 
+/* Custom Visible Scrollbar for Desktop */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #C5A05933;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #C5A05966;
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #C5A05933 transparent;
+}
+

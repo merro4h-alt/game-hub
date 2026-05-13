@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HelmetProvider, Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { StoreProvider } from './StoreContext';
 import { AuthProvider } from './AuthContext';
@@ -17,31 +18,45 @@ import ShopPage from './pages/ShopPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import CartPage from './pages/CartPage';
+import WishlistPage from './pages/WishlistPage';
 import TrackOrderPage from './pages/TrackOrderPage';
 import OrdersPage from './pages/OrdersPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import AdminDashboard from './pages/AdminDashboard';
 import DropShippingPage from './pages/DropShippingPage';
 import AddProductModal from './components/AddProductModal';
+import QuickViewModal from './components/QuickViewModal';
 import { ChatWidget } from './components/ChatWidget';
 import { useStore } from './StoreContext';
 import { PromotionBar } from './components/PromotionBar';
 import { NewsletterPopup } from './components/NewsletterPopup';
 import { BeautyAIConsultant } from './components/BeautyAIConsultant';
+import ScrollProgress from './components/ScrollProgress';
 import { useAuth } from './AuthContext';
+import { AnimatePresence } from 'motion/react';
 
 const GlobalModals = () => {
-  const { isAddModalOpen, setIsAddModalOpen, editingProduct, setEditingProduct } = useStore();
+  const { isAddModalOpen, setIsAddModalOpen, editingProduct, setEditingProduct, quickViewProduct, setQuickViewProduct } = useStore();
   
   return (
-    <AddProductModal 
-      isOpen={isAddModalOpen} 
-      onClose={() => {
-        setIsAddModalOpen(false);
-        setEditingProduct(null);
-      }} 
-      editingProduct={editingProduct} 
-    />
+    <>
+      <AddProductModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingProduct(null);
+        }} 
+        editingProduct={editingProduct} 
+      />
+      <AnimatePresence>
+        {quickViewProduct && (
+          <QuickViewModal 
+            product={quickViewProduct} 
+            onClose={() => setQuickViewProduct(null)} 
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 
@@ -50,17 +65,19 @@ export default function App() {
   const dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
 
   return (
-    <Router>
-      <AlertProvider>
-        <AuthProvider>
-          <StoreProvider>
-            <div className={`flex flex-col min-h-screen font-sans ${dir === 'rtl' ? 'font-arabic' : ''}`} dir={dir}>
-              <AppContent />
-            </div>
-          </StoreProvider>
-        </AuthProvider>
-      </AlertProvider>
-    </Router>
+    <HelmetProvider>
+      <Router>
+        <AlertProvider>
+          <AuthProvider>
+            <StoreProvider>
+              <div className={`flex flex-col min-h-screen font-sans ${dir === 'rtl' ? 'font-arabic' : ''}`} dir={dir}>
+                <AppContent />
+              </div>
+            </StoreProvider>
+          </AuthProvider>
+        </AlertProvider>
+      </Router>
+    </HelmetProvider>
   );
 }
 
@@ -121,6 +138,10 @@ function AppContent() {
 
   return (
     <>
+      <Helmet>
+        <title>{t('app.title', 'Trendifi | Lifestyle Store')}</title>
+        <meta name="description" content={t('app.description', 'Trendifi is your premier lifestyle store with regional payment integrations.')} />
+      </Helmet>
       <header className="fixed top-0 left-0 w-full z-[100]">
         <PromotionBar />
         <Navbar />
@@ -132,6 +153,7 @@ function AppContent() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/cart" element={<CartPage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/track" element={<TrackOrderPage />} />
           <Route path="/track/:trackingId" element={<TrackOrderPage />} />
           <Route path="/orders" element={<OrdersPage />} />
@@ -145,6 +167,7 @@ function AppContent() {
       <ChatWidget />
       <NewsletterPopup />
       <BeautyAIConsultant />
+      <ScrollProgress />
     </>
   );
 }

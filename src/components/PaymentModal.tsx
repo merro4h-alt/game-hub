@@ -51,7 +51,7 @@ const COUNTRY_ADJUSTMENT_LOCAL: Record<string, number> = {
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) => {
   const { t, i18n } = useTranslation();
-  const { clearCart, cart } = useStore();
+  const { clearCart, cart, formatPrice, setCurrency } = useStore();
   const { showAlert } = useAlert();
   const isArabic = i18n.language === 'ar';
 
@@ -68,6 +68,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
     address: '',
     phone: '',
     city: '',
+    zipCode: '',
     email: ''
   });
 
@@ -89,8 +90,28 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
       } else {
         setSelectedProvider('standard');
       }
+
+      /* 
+      // Automatically set currency based on country - Disabled as per user request to keep USD as primary
+      let newCurrency = 'USD';
+      if (selectedCountry === 'IQ') newCurrency = 'IQD';
+      else if (selectedCountry === 'SA') newCurrency = 'SAR';
+      else if (selectedCountry === 'AE') newCurrency = 'AED';
+      else if (selectedCountry === 'TR') newCurrency = 'TRY';
+      else if (selectedCountry === 'EG') newCurrency = 'EGP';
+      else if (selectedCountry === 'JO') newCurrency = 'JOD';
+      else if (selectedCountry === 'KW') newCurrency = 'KWD';
+      else if (selectedCountry === 'QA') newCurrency = 'QAR';
+      else if (selectedCountry === 'BH') newCurrency = 'BHD';
+      else if (selectedCountry === 'OM') newCurrency = 'OMR';
+      else if (selectedCountry === 'GB') newCurrency = 'GBP';
+      else if (['DE', 'FR'].includes(selectedCountry)) newCurrency = 'EUR';
+      
+      setCurrency(newCurrency);
+      localStorage.setItem('trendifi_currency_manual', 'true');
+      */
     }
-  }, [selectedCountry]);
+  }, [selectedCountry, setCurrency]);
 
   useEffect(() => {
     // Reset shipping fee and speed when country/provider changes
@@ -158,7 +179,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
     
     // Formatting items with price
     const itemsText = (info.items || []).map((item: any) => 
-      `▫️ ${item.name} (${item.quantity}x) - $${((item.discountPrice ?? item.price) * item.quantity).toFixed(2)}`
+      `▫️ ${item.name} (${item.quantity}x) - ${formatPrice((item.discountPrice ?? item.price) * item.quantity)}`
     ).join('\n');
     
     return encodeURIComponent(
@@ -172,9 +193,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
       `💳 *طريقة الدفع:* ${methodLabel}${receiptFile ? (isArabic ? '\n✅ تم إرفاق إيصال الدفع' : '\n✅ Payment Receipt Attached') : ''}\n` +
       `🚚 *شركة الشحن:* ${shippingProviders.find(p => p.id === selectedProvider)?.name || selectedProvider}\n` +
       `--------------------------\n` +
-      `💰 *المجموع:* $${total.toFixed(2)}\n` +
-      `🚚 *الشحن:* $${shippingFee.toFixed(2)}\n` +
-      `✨ *الإجمالي:* $${(total + shippingFee).toFixed(2)}\n` +
+      `💰 *المجموع:* ${formatPrice(total)}\n` +
+      `🚚 *الشحن:* ${formatPrice(shippingFee)}\n` +
+      `✨ *الإجمالي:* ${formatPrice(total + shippingFee)}\n` +
       `--------------------------\n` +
       `🔗 *رابط التتبع:* ${info.trackingLink}\n` +
       `⏰ *التاريخ:* ${new Date().toLocaleString()}`
@@ -200,9 +221,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
           fullName: formData.name,
           email: formData.email || auth.currentUser?.email || (formData.name.toLowerCase().replace(/\s+/g, '.') + '@example.com'),
           address: formData.address,
-          city: formData.city || formData.address.split(',')[0]?.trim() || '',
+          city: formData.city,
           country: countries.find(c => c.code === selectedCountry)?.name || selectedCountry,
-          zipCode: '',
+          zipCode: formData.zipCode,
           phone: fullPhoneNumber
         },
         phone: fullPhoneNumber,
@@ -310,7 +331,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg bg-brand-cream rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-lg bg-brand-cream rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh]"
             >
               {/* Header */}
               <div 
@@ -339,11 +360,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
               <span className="text-brand-charcoal/80 font-bold text-xs uppercase tracking-wider">
                 {t('checkout.orderTotal')}
               </span>
-              <span className="text-xl font-bold text-[#b12704]">${finalTotal.toFixed(2)}</span>
+              <span className="text-xl font-bold text-[#b12704]">{formatPrice(finalTotal)}</span>
             </div>
 
             {/* Content */}
-            <div className="p-6 sm:p-10 overflow-y-auto flex-1 bg-white">
+            <div className="p-6 sm:p-10 overflow-y-auto flex-1 bg-white custom-scrollbar">
               {isSuccess ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white mb-6 shadow-xl shadow-green-100">
@@ -370,6 +391,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                       </div>
                       <p className="text-[10px] uppercase font-black tracking-widest text-brand-charcoal/30 mb-2">{texts.trackingText}</p>
                       <p className="text-3xl font-mono font-bold text-brand-gold mb-8 tracking-tighter">{orderInfo.trackingId}</p>
+                      <div className="mb-4 text-sm font-bold text-brand-charcoal/60">
+                        {t('checkout.total')}: <span className="text-brand-charcoal">{formatPrice(finalTotal)}</span>
+                      </div>
                       <button
                         onClick={() => window.location.href = `/track/${orderInfo.trackingId}`}
                         className="w-full bg-brand-charcoal text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-brand-gold transition-all shadow-lg active:scale-95"
@@ -381,16 +405,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                 </div>
               ) : (
                 <div className="space-y-8">
-                  {/* Payment Selection Toggles - Always visible at top */}
-                  <div className="flex bg-brand-charcoal/[0.03] p-2 rounded-2xl gap-3 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory border border-brand-charcoal/5">
+                  {/* Payment Selection Toggles - Grid for desktop to ensure all are visible */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 bg-brand-charcoal/[0.03] p-2 rounded-2xl gap-2 sm:gap-3 border border-brand-charcoal/5">
                     {(['card', 'crypto', 'cod', 'wallet'] as const).map((method) => (
                       <button
                         key={method}
                         type="button"
                         onClick={() => setPaymentMethod(method)}
-                        className={`min-w-[105px] flex-1 py-5 px-2 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all border-2 relative snap-center ${
+                        className={`py-4 px-1 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all border-2 relative ${
                           paymentMethod === method 
-                            ? 'bg-white text-brand-charcoal border-brand-gold shadow-xl shadow-brand-gold/20 scale-[1.05] z-10' 
+                            ? 'bg-white text-brand-charcoal border-brand-gold shadow-lg shadow-brand-gold/10 scale-[1.02] z-10' 
                             : 'bg-white/40 text-brand-charcoal/30 border-transparent hover:border-brand-gold/10 hover:bg-white/60'
                         }`}
                       >
@@ -477,7 +501,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                                   </div>
                                 </div>
                                 <div className={`text-sm font-bold ${selectedProvider === p.id ? 'text-brand-gold' : 'text-brand-charcoal/60'}`}>
-                                  ${(Math.round(p.base * (COUNTRY_ADJUSTMENT_LOCAL[selectedCountry] || 1.5))).toFixed(2)}
+                                  {formatPrice(Math.round(p.base * (COUNTRY_ADJUSTMENT_LOCAL[selectedCountry] || 1.5)))}
                                 </div>
                               </button>
                             ))}
@@ -531,6 +555,31 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                               className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm"
                               value={formData.email}
                               onChange={(e) => setFormData({...formData, email: e.target.value})}
+                            />
+                          </div>
+                        </div>
+
+                        {/* City & Zip Code Details */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="relative">
+                            <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.city')}</label>
+                            <input
+                              required
+                              type="text"
+                              placeholder="Dubai"
+                              className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm"
+                              value={formData.city}
+                              onChange={(e) => setFormData({...formData, city: e.target.value})}
+                            />
+                          </div>
+                          <div className="relative">
+                            <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{isArabic ? 'الرمز البريدي' : 'ZIP Code'}</label>
+                            <input
+                              type="text"
+                              placeholder="00000"
+                              className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm"
+                              value={formData.zipCode}
+                              onChange={(e) => setFormData({...formData, zipCode: e.target.value})}
                             />
                           </div>
                         </div>
@@ -630,8 +679,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                               </div>
                               <p className="text-xs text-brand-charcoal/70 font-medium leading-relaxed relative z-10">
                                 {isArabic 
-                                  ? `يرجى تحويل مبلغ (${finalTotal.toFixed(2)}$) إلى الرقم التالي، ثم اضغط تأكيد السداد:` 
-                                  : `Please transfer ($${finalTotal.toFixed(2)}) to the following Number, then verify:`}
+                                  ? `يرجى تحويل مبلغ (${formatPrice(finalTotal)}) إلى الرقم التالي، ثم اضغط تأكيد السداد:` 
+                                  : `Please transfer (${formatPrice(finalTotal)}) to the following Number, then verify:`}
                               </p>
                               <div className="bg-white py-4 px-6 rounded-2xl border border-brand-charcoal/10 shadow-sm relative z-10 group cursor-pointer active:scale-95 transition-transform">
                                 <p className="text-2xl font-mono font-black text-brand-charcoal tracking-[0.2em]">
@@ -640,10 +689,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                                    selectedWallet === 'nass' ? '07500000000' :
                                    '07800000000'}
                                 </p>
-                                <div className="mt-2 flex items-center justify-center gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-                                  <div className="h-[1px] w-4 bg-brand-charcoal" />
-                                  <span className="text-[8px] font-black uppercase tracking-widest">{isArabic ? 'انقر للنسخ' : 'CLICK TO COPY'}</span>
-                                  <div className="h-[1px] w-4 bg-brand-charcoal" />
+                                <div className="mt-3 flex items-center justify-center gap-3 opacity-80 group-hover:opacity-100 transition-opacity">
+                                  <div className="h-[1px] w-6 bg-brand-gold/40" />
+                                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold">{isArabic ? 'اضغط للنسخ' : 'CLICK TO COPY'}</span>
+                                  <div className="h-[1px] w-6 bg-brand-gold/40" />
                                 </div>
                               </div>
                               <p className="text-[10px] text-brand-gold font-black uppercase tracking-wider relative z-10">
@@ -719,18 +768,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                            <div className="bg-brand-charcoal/[0.03] p-6 rounded-[2.5rem] border border-brand-charcoal/10 text-center space-y-5 relative overflow-hidden">
                               <p className="text-xs text-brand-charcoal/70 font-semibold leading-relaxed">
                                 {isArabic 
-                                  ? `يرجى تحويل المعادل لـ (${finalTotal.toFixed(2)}$) إلى العنوان التالي:` 
-                                  : `Please transfer ($${finalTotal.toFixed(2)}) to:`}
+                                  ? `يرجى تحويل المعادل لـ (${formatPrice(finalTotal)}) إلى العنوان التالي:` 
+                                  : `Please transfer (${formatPrice(finalTotal)}) to:`}
                               </p>
                               
                               <div className="bg-white py-5 px-4 rounded-2xl border border-brand-charcoal/10 shadow-sm group cursor-pointer active:scale-95 transition-all hover:border-brand-gold/30">
                                 <p className="text-[10px] font-mono font-black text-brand-charcoal break-all tracking-wider md:text-xs">
                                   TX221wiLGdKizoXaCaiRyLHjzZxxP63iFU
                                 </p>
-                                <div className="mt-3 flex items-center justify-center gap-3 opacity-30 group-hover:opacity-100 transition-opacity">
-                                  <div className="h-[1px] w-6 bg-brand-charcoal" />
-                                  <span className="text-[9px] font-black uppercase tracking-widest">{isArabic ? 'شبكة TRC20 - انقر للنسخ' : 'TRC20 NETWORK - CLICK TO COPY'}</span>
-                                  <div className="h-[1px] w-6 bg-brand-charcoal" />
+                                <div className="mt-4 flex items-center justify-center gap-3 opacity-80 group-hover:opacity-100 transition-opacity">
+                                  <div className="h-[1px] w-8 bg-brand-gold/40" />
+                                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold font-mono">{isArabic ? 'شبكة TRC20 - اضغط للنسخ' : 'TRC20 NETWORK - CLICK TO COPY'}</span>
+                                  <div className="h-[1px] w-8 bg-brand-gold/40" />
                                 </div>
                               </div>
 

@@ -44,12 +44,27 @@
         "trackingId": { "type": "string" }
       },
       "required": ["userId", "items", "total", "status", "createdAt"]
+    },
+    "WishlistItem": {
+      "title": "WishlistItem",
+      "description": "Product saved in user's wishlist",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string" },
+        "addedPrice": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["productId", "addedPrice", "createdAt"]
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "User",
       "description": "User profiles"
+    },
+    "/users/{userId}/wishlist/{productId}": {
+      "schema": "WishlistItem",
+      "description": "User's saved products"
     },
     "/products/{productId}": {
       "schema": "Product",

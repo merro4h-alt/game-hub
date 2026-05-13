@@ -14,7 +14,34 @@ const resources = {
         "search": "Search products...",
         "cart": "Cart",
         "trackOrder": "Track Order",
-        "dropShipping": "Drop Shipping"
+        "dropShipping": "Drop Shipping",
+        "supplierPortal": "Supplier Portal"
+      },
+      "supplier": {
+        "title": "Supplier Hub",
+        "subtitle": "List your products on Trendifi",
+        "submitProduct": "Submit New Product",
+        "myProducts": "My Listings",
+        "earnings": "Earnings",
+        "status": {
+          "pending": "Review Pending",
+          "approved": "Active in Store",
+          "rejected": "Revision Required"
+        },
+        "form": {
+          "productName": "Product Name",
+          "category": "Category",
+          "wholesalePrice": "Wholesale Price (USD)",
+          "description": "Short Description",
+          "images": "Product Images",
+          "uploadBtn": "Upload Evidence/Photos",
+          "submit": "Submit for Review"
+        },
+        "benefits": {
+          "massiveAudience": "Massive Audience",
+          "fastPayments": "Swift 48h Payments",
+          "logistics": "Logistics Support"
+        }
       },
       "order": {
         "status": {
@@ -78,12 +105,24 @@ const resources = {
         "color": "Color",
         "addToCart": "Add to Cart",
         "relatedProducts": "Related Treasures",
-        "mightLike": "You might also like"
+        "mightLike": "You might also like",
+        "quickView": "Quick View",
+        "wishlist": "Wishlist",
+        "addToWishlist": "Add to Wishlist",
+        "removeFromWishlist": "Remove from Wishlist",
+        "priceDropAlert": "Price Drop Alert!",
+        "priceDropMsg": "Price for {{name}} in your wishlist has dropped! Now only {{price}}",
+        "noWishlist": "Your wishlist is empty"
       },
       "categories": {
         "new": "New",
         "bestSeller": "Best Seller",
-        "offers": "Offers"
+        "offers": "Offers",
+        "fashion": "Fashion",
+        "cosmetic": "Cosmetics",
+        "sport": "Sports",
+        "accessories": "Accessories",
+        "lifestyle": "Lifestyle"
       },
       "reviews": {
         "title": "Customer Reviews",
@@ -317,6 +356,23 @@ const resources = {
         "orderTotal": "Order Total:",
         "processedViaNetwork": "Processed via Global Supplier Network",
         "cardholder": "Cardholder"
+      },
+      "colors": {
+        "White": "White",
+        "Black": "Black",
+        "Red": "Red",
+        "Blue": "Blue",
+        "Green": "Green",
+        "Yellow": "Yellow",
+        "Beige": "Beige",
+        "Navy": "Navy",
+        "Orange": "Orange",
+        "Purple": "Purple",
+        "Grey": "Grey",
+        "Black & Orange": "Black & Orange",
+        "White & Blue": "White & Blue",
+        "Black & Red": "Black & Red",
+        "Transparent": "Transparent"
       }
     }
   },
@@ -331,7 +387,34 @@ const resources = {
         "search": "ابحث عن المنتجات...",
         "cart": "السلة",
         "trackOrder": "تتبع الطلب",
-        "dropShipping": "الدروبشيبينج"
+        "dropShipping": "الدروبشيبينج",
+        "supplierPortal": "بوابة الموردين"
+      },
+      "supplier": {
+        "title": "مركز الموردين",
+        "subtitle": "اعرض منتجاتك في ترينديفاي",
+        "submitProduct": "إرسال منتج جديد",
+        "myProducts": "قائمتي",
+        "earnings": "الأرباح",
+        "status": {
+          "pending": "قيد المراجعة",
+          "approved": "نشط في المتجر",
+          "rejected": "بحاجة لتعديل"
+        },
+        "form": {
+          "productName": "اسم المنتج",
+          "category": "القسم",
+          "wholesalePrice": "سعر الجملة (USD)",
+          "description": "وصف مختصر",
+          "images": "صور المنتج",
+          "uploadBtn": "رفع الصور/المستندات",
+          "submit": "إرسال للمراجعة"
+        },
+        "benefits": {
+          "massiveAudience": "جمهور ضخم",
+          "fastPayments": "دفعات سريعة (٤٨ ساعة)",
+          "logistics": "دعم بري وجوي"
+        }
       },
       "order": {
         "status": {
@@ -395,12 +478,24 @@ const resources = {
         "color": "اللون",
         "addToCart": "أضف إلى السلة",
         "relatedProducts": "منتجات ذات صلة",
-        "mightLike": "قد يعجبك أيضاً"
+        "mightLike": "قد يعجبك أيضاً",
+        "quickView": "نظرة سريعة",
+        "wishlist": "قائمة الأمنيات",
+        "addToWishlist": "أضف للمفضلة",
+        "removeFromWishlist": "إزالة من المفضلة",
+        "priceDropAlert": "تنبيه انخفاض السعر!",
+        "priceDropMsg": "انخفض سعر {{name}} في قائمة أمنياتك! الآن فقط {{price}}",
+        "noWishlist": "قائمة المفضلة فارغة"
       },
       "categories": {
         "new": "جديد",
         "bestSeller": "الأكثر مبيعاً",
-        "offers": "العروض"
+        "offers": "العروض",
+        "fashion": "الأزياء",
+        "cosmetic": "التجميل",
+        "sport": "الرياضة",
+        "accessories": "الإكسسوارات",
+        "lifestyle": "لايف ستايل"
       },
       "reviews": {
         "title": "آراء العملاء",
@@ -634,6 +729,23 @@ const resources = {
         "orderTotal": "إجمالي الطلب:",
         "processedViaNetwork": "تتم المعالجة عبر شبكة الموردين العالمية",
         "cardholder": "صاحب البطاقة"
+      },
+      "colors": {
+        "White": "أبيض",
+        "Black": "أسود",
+        "Red": "أحمر",
+        "Blue": "أزرق",
+        "Green": "أخضر",
+        "Yellow": "أصفر",
+        "Beige": "بيج",
+        "Navy": "كحلي",
+        "Orange": "برتقالي",
+        "Purple": "بنفسجي",
+        "Grey": "رمادي",
+        "Black & Orange": "أسود وبرتقالي",
+        "White & Blue": "أبيض وأزرق",
+        "Black & Red": "أحمر وأسود",
+        "Transparent": "شفاف"
       }
     }
   }

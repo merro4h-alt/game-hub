@@ -19,12 +19,13 @@ import {
 } from 'lucide-react';
 import { useStore } from '../StoreContext';
 import { useTranslation } from 'react-i18next';
+import { Helmet } from 'react-helmet-async';
 import { Product } from '../types';
 import ProductCard from '../components/ProductCard';
 
 const ProductDetailPage: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
-  const { products, addToCart, recentlyViewed, addToRecentlyViewed } = useStore();
+  const { products, addToCart, recentlyViewed, addToRecentlyViewed, formatPrice, toggleWishlist, isInWishlist } = useStore();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   
@@ -77,6 +78,42 @@ const ProductDetailPage: React.FC = () => {
 
   return (
     <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-[#0A0A0B] text-white min-h-screen">
+      <Helmet>
+        <title>{product.name} | Trendifi</title>
+        <meta name="description" content={product.description} />
+        <meta property="og:title" content={`${product.name} | Trendifi`} />
+        <meta property="og:description" content={product.description} />
+        <meta property="og:image" content={product.image} />
+        <meta property="twitter:title" content={`${product.name} | Trendifi`} />
+        <meta property="twitter:description" content={product.description} />
+        <meta property="twitter:image" content={product.image} />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org/",
+            "@type": "Product",
+            "name": product.name,
+            "image": [product.image, ...(product.images || [])],
+            "description": product.description,
+            "brand": {
+              "@type": "Brand",
+              "name": "Trendifi"
+            },
+            "offers": {
+              "@type": "Offer",
+              "url": window.location.href,
+              "priceCurrency": "USD",
+              "price": product.discountPrice || product.price,
+              "availability": "https://schema.org/InStock",
+              "itemCondition": "https://schema.org/NewCondition"
+            },
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": product.rating,
+              "reviewCount": product.reviews?.length || 10
+            }
+          })}
+        </script>
+      </Helmet>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
         
         {/* Advanced Gallery Section */}
@@ -138,8 +175,13 @@ const ProductDetailPage: React.FC = () => {
               </>
             )}
             
-            <button className="absolute top-6 right-6 p-4 rounded-2xl bg-white/80 backdrop-blur-md shadow-sm hover:text-red-500 transition-colors z-20 group/heart">
-              <Heart size={20} className="group-hover/heart:fill-current" />
+            <button 
+              onClick={() => toggleWishlist(product.id)}
+              className={`absolute top-6 right-6 p-4 rounded-2xl backdrop-blur-md shadow-sm transition-all z-20 group/heart ${
+                isInWishlist(product.id) ? 'bg-red-500 text-white' : 'bg-white/80 text-brand-charcoal hover:text-red-500'
+              }`}
+            >
+              <Heart size={20} className={isInWishlist(product.id) ? "fill-current" : "group-hover/heart:fill-current"} />
             </button>
           </div>
 
@@ -187,14 +229,14 @@ const ProductDetailPage: React.FC = () => {
             <div className="flex items-center gap-4 mb-6">
               {product.discountPrice ? (
                 <>
-                  <span className="text-3xl font-mono font-black text-[#4F46E5] dark:text-indigo-400">${product.discountPrice.toFixed(2)}</span>
-                  <span className="text-xl font-mono text-brand-charcoal/30 dark:text-white/30 line-through">${product.price.toFixed(2)}</span>
+                  <span className="text-3xl font-mono font-black text-[#4F46E5] dark:text-indigo-400">{formatPrice(product.discountPrice)}</span>
+                  <span className="text-xl font-mono text-brand-charcoal/30 dark:text-white/30 line-through">{formatPrice(product.price)}</span>
                   <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-red-200 dark:border-red-800">
                     {Math.round((1 - product.discountPrice / product.price) * 100)}% {t('shop.sale')}
                   </span>
                 </>
               ) : (
-                <span className="text-3xl font-mono font-black text-brand-charcoal dark:text-white">${product.price.toFixed(2)}</span>
+                <span className="text-3xl font-mono font-black text-brand-charcoal dark:text-white">{formatPrice(product.price)}</span>
               )}
             </div>
 
@@ -208,7 +250,7 @@ const ProductDetailPage: React.FC = () => {
             <div className="mb-8">
               <div className="flex justify-between items-center mb-4">
                 <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-charcoal/40 dark:text-white/40">{t('shop.color')}</span>
-                <span className="text-xs font-bold text-brand-charcoal dark:text-white">{selectedColor}</span>
+                <span className="text-xs font-bold text-brand-charcoal dark:text-white">{t(`colors.${selectedColor}`, selectedColor)}</span>
               </div>
               <div className="flex flex-wrap gap-4">
                 {product.colors.map((color) => (
@@ -218,6 +260,7 @@ const ProductDetailPage: React.FC = () => {
                     className={`group relative p-1 rounded-2xl transition-all ${
                       selectedColor === color ? 'bg-brand-gold/10 dark:bg-brand-gold/20' : 'hover:bg-brand-charcoal/5 dark:hover:bg-white/5'
                     }`}
+                    title={t(`colors.${color}`, color)}
                   >
                     <div 
                       className={`w-10 h-10 rounded-xl border border-brand-charcoal/10 dark:border-white/10 transition-transform ${

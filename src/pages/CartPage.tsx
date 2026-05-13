@@ -15,7 +15,8 @@ const CartPage: React.FC = () => {
     discountedTotal,
     totalItems, 
     applyDiscountCode, 
-    appliedDiscount 
+    appliedDiscount,
+    formatPrice
   } = useStore();
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language === 'ar';
@@ -163,7 +164,7 @@ const CartPage: React.FC = () => {
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] sm:text-sm font-medium text-white/60">
                       <span className="flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full border border-white/10" style={{ backgroundColor: item.selectedColor }} /> 
-                        {item.selectedColor}
+                        {t(`colors.${item.selectedColor}`, item.selectedColor)}
                       </span>
                       <span className="flex items-center gap-1 uppercase">| {isArabic ? 'المقاس' : 'Size'}: {item.selectedSize}</span>
                     </div>
@@ -186,7 +187,7 @@ const CartPage: React.FC = () => {
                         </button>
                       </div>
                     <span className={`text-lg sm:text-xl font-mono font-bold text-white ${isArabic ? 'mr-auto ml-0' : 'ml-auto sm:ml-0'}`}>
-                      ${((item.discountPrice ?? item.price) * item.quantity).toFixed(2)}
+                      {formatPrice((item.discountPrice ?? item.price) * item.quantity)}
                     </span>
                   </div>
                 </div>
@@ -259,12 +260,12 @@ const CartPage: React.FC = () => {
               <div className="space-y-6 mb-10">
                 <div className="flex justify-between text-brand-cream/60 font-light">
                   <span>{texts.subtotal}</span>
-                  <span className="font-mono">${totalPrice.toFixed(2)}</span>
+                  <span className="font-mono">{formatPrice(totalPrice)}</span>
                 </div>
                 {appliedDiscount && (
                   <div className="flex justify-between text-green-400 font-bold">
                     <span className="flex items-center gap-2"><Ticket size={14} /> {texts.discount}</span>
-                    <span className="font-mono">-${(totalPrice - discountedTotal).toFixed(2)}</span>
+                    <span className="font-mono">-{formatPrice(totalPrice - discountedTotal)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-brand-cream/60 font-light items-center">
@@ -278,7 +279,7 @@ const CartPage: React.FC = () => {
                   <span className="text-lg">{texts.total}</span>
                   <div className="text-right">
                     <span className="block text-3xl font-mono font-bold text-brand-gold">
-                      ${discountedTotal.toFixed(2)}
+                      {formatPrice(discountedTotal)}
                     </span>
                   </div>
                 </div>
@@ -302,25 +303,25 @@ const CartPage: React.FC = () => {
               <div className="mt-10 pt-10 border-t border-white/10 text-center">
                 <p className="text-[10px] uppercase font-black tracking-[0.3em] text-brand-gold mb-6">{texts.secureOptions}</p>
                 <div className="flex flex-wrap justify-center gap-2">
-                   <div className="bg-white/90 px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-white transition-all">
-                      <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/MasterCard_Logo.svg" alt="Mastercard" className="h-5 w-auto" />
-                      <span className="text-[7px] text-brand-charcoal font-black tracking-tight group-hover:text-brand-gold transition-colors uppercase">Card</span>
+                   <div className="bg-[#008296] px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-[#009fb7] transition-all">
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/MasterCard_Logo.svg" alt="Mastercard" className="h-5 w-auto brightness-0 invert" />
+                      <span className="text-[7px] text-white font-black tracking-tight group-hover:text-white transition-colors uppercase">Card</span>
                    </div>
-                   <div className="bg-white/90 px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-white transition-all">
-                      <div className="w-5 h-5 rounded-full bg-[#f7931a] flex items-center justify-center text-white transform group-hover:scale-110 transition-transform">
+                   <div className="bg-[#f7931a] px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-[#ffab4a] transition-all">
+                      <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-[#f7931a] transform group-hover:scale-110 transition-transform">
                         <Coins size={12} />
                       </div>
-                      <span className="text-[7px] text-brand-charcoal font-black tracking-tight group-hover:text-brand-gold transition-colors uppercase">Crypto</span>
+                      <span className="text-[7px] text-white font-black tracking-tight group-hover:text-white transition-colors uppercase">Crypto</span>
                    </div>
-                   <div className="bg-white/90 px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-white transition-all">
-                      <div className="w-5 h-5 rounded-full bg-[#ffcb05] flex items-center justify-center text-black font-black text-[8px] transform group-hover:scale-110 transition-transform">ZC</div>
-                      <span className="text-[7px] text-brand-charcoal font-black tracking-tight group-hover:text-brand-gold transition-colors uppercase">ZainCash</span>
+                   <div className="bg-[#ffcb05] px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-[#ffd633] transition-all">
+                      <div className="w-5 h-5 rounded-full bg-brand-charcoal flex items-center justify-center text-[#ffcb05] font-black text-[8px] transform group-hover:scale-110 transition-transform">ZC</div>
+                      <span className="text-[7px] text-brand-charcoal font-black tracking-tight group-hover:text-white transition-colors uppercase">ZainCash</span>
                    </div>
-                   <div className="bg-white/90 px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 w-full border border-white/10 group cursor-pointer hover:bg-white transition-all">
-                      <div className="w-5 h-5 rounded-full bg-brand-gold/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Truck size={14} className="text-brand-gold" />
+                   <div className="bg-[#22c55e] px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 w-full border border-white/10 group cursor-pointer hover:bg-[#16a34a] transition-all">
+                      <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Truck size={14} className="text-white" />
                       </div>
-                      <span className="text-[7px] text-brand-charcoal font-black tracking-[0.1em] uppercase text-center">{isArabic ? 'الدفع عند الاستلام' : 'Cash on Delivery'}</span>
+                      <span className="text-[7px] text-white font-black tracking-[0.1em] uppercase text-center">{isArabic ? 'الدفع عند الاستلام' : 'Cash on Delivery'}</span>
                    </div>
                 </div>
                 <div className="mt-6 flex flex-col items-center justify-center gap-3 text-brand-gold">

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
-import { ShoppingBag, Menu, X, Search, Globe, ChevronDown, User as UserIcon, LogOut, ShieldCheck, Package, LayoutDashboard, Sparkles } from 'lucide-react';
+import { ShoppingBag, Menu, X, Search, Globe, ChevronDown, User as UserIcon, LogOut, ShieldCheck, Package, LayoutDashboard, Sparkles, Heart } from 'lucide-react';
 import { useStore } from '../StoreContext';
 import Logo from './Logo';
 import { useAuth } from '../AuthContext';
@@ -20,7 +20,11 @@ const Navbar: React.FC = () => {
     setIsAddModalOpen, 
     searchQuery, 
     setSearchQuery,
-    filteredProducts
+    currency,
+    setCurrency,
+    formatPrice,
+    filteredProducts,
+    wishlist
   } = useStore();
   const { user, isAdmin, login, signout } = useAuth();
   const [isLoginLoading, setIsLoginLoading] = useState(false);
@@ -56,13 +60,20 @@ const Navbar: React.FC = () => {
   const navLinks = [
     { name: t('nav.home'), path: '/' },
     { name: t('nav.shop'), path: '/shop' },
-    { name: t('nav.dropShipping'), path: '/drop-shipping' },
+    { name: t('nav.supplierPortal'), path: '/drop-shipping' },
     { name: t('nav.about'), path: '/about' },
     { name: t('nav.contact'), path: '/contact' },
     { name: t('nav.trackOrder'), path: '/track' },
   ];
 
   const activeLink = (path: string | undefined) => path ? location.pathname === path : false;
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return i18n.language === 'ar' ? 'صباح الخير' : 'Good Morning';
+    if (hour < 18) return i18n.language === 'ar' ? 'طاب مساؤك' : 'Good Afternoon';
+    return i18n.language === 'ar' ? 'مساء الخير' : 'Good Evening';
+  };
 
   return (
     <nav className={`w-full transition-all duration-300 ${
@@ -71,8 +82,8 @@ const Navbar: React.FC = () => {
         : 'bg-white/90 backdrop-blur-md'
     } border-b border-brand-charcoal/5`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20 gap-2">
-          <div className="flex items-center gap-2 sm:gap-8 min-w-0">
+        <div className="flex justify-between items-center h-20 gap-4 sm:gap-8">
+          <div className="flex items-center gap-4 sm:gap-8 min-w-0 flex-1">
             {/* Mobile Menu Toggle (Left on Mobile) */}
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -82,12 +93,18 @@ const Navbar: React.FC = () => {
             </button>
 
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-4 group flex-shrink-0">
-              <span className="text-4xl sm:text-6xl font-black italic tracking-tighter text-brand-charcoal">
-                Trendi<span className="text-[#6366F1]">fi</span>
-              </span>
-              <Logo className="w-10 h-10 sm:w-14 sm:h-14 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500" variant="gradient" />
-            </Link>
+            <div className="flex flex-col">
+              <Link to="/" className="flex items-center gap-4 group flex-shrink-0">
+                <span className="text-4xl sm:text-6xl font-black italic tracking-tighter text-brand-charcoal">
+                  Trendi<span className="text-[#6366F1]">fi</span>
+                </span>
+                <Logo className="w-10 h-10 sm:w-14 sm:h-14 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500" variant="gradient" />
+              </Link>
+              <div className="hidden sm:flex items-center gap-2 -mt-1 opacity-60">
+                <span className="h-px w-4 bg-brand-gold"></span>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-gold">{getGreeting()}{user ? `, ${user.displayName?.split(' ')[0]}` : ''}</p>
+              </div>
+            </div>
 
             {/* Desktop Nav (Now on the Left) */}
             <div className="hidden md:flex items-center space-x-8">
@@ -108,17 +125,19 @@ const Navbar: React.FC = () => {
                 <div className="flex gap-2">
                   <Link 
                     to="/admin"
-                    className="text-xs font-bold bg-[#4F46E5] text-white px-4 py-2 rounded-full hover:bg-[#4338CA] transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+                    className="text-xs font-bold bg-[#4F46E5] text-white p-2 lg:px-4 lg:py-2 rounded-full hover:bg-[#4338CA] transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+                    title={t('admin.dashboard')}
                   >
                     <LayoutDashboard size={14} />
-                    {t('admin.dashboard')}
+                    <span className="hidden lg:inline">{t('admin.dashboard')}</span>
                   </Link>
                   <button 
                     onClick={() => setIsAddModalOpen(true)}
-                    className="text-xs font-bold bg-brand-charcoal text-white px-4 py-2 rounded-full hover:bg-brand-gold transition-all flex items-center gap-2"
+                    className="text-xs font-bold bg-brand-charcoal text-white p-2 lg:px-4 lg:py-2 rounded-full hover:bg-brand-gold transition-all flex items-center gap-2"
+                    title={t('admin.addProduct')}
                   >
                     <ShieldCheck size={14} />
-                    {t('admin.addProduct')}
+                    <span className="hidden lg:inline">{t('admin.addProduct')}</span>
                   </button>
                 </div>
               )}
@@ -126,51 +145,46 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Icons (Right) */}
-          <div className="flex items-center gap-3 sm:gap-6 flex-shrink-0">
-            {/* Language Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setIsLangOpen(!isLangOpen)}
-                onBlur={() => setTimeout(() => setIsLangOpen(false), 200)}
-                className="flex items-center gap-1 text-brand-charcoal/70 hover:text-brand-gold transition-colors text-[10px] sm:text-xs font-bold uppercase tracking-wider group"
-              >
-                <Globe size={18} />
-                <span className="hidden min-[450px]:inline">{i18n.language === 'en' ? 'EN' : 'AR'}</span>
-                <ChevronDown size={12} className={`transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''}`} />
-              </button>
-
+          <div className="flex items-center gap-4 sm:gap-6 flex-shrink-0">
+            <button 
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+              className="text-brand-charcoal/70 hover:text-brand-charcoal transition-colors flex-shrink-0"
+            >
+              <Search size={18} />
+            </button>
+            <Link to="/wishlist" className="relative text-brand-charcoal/70 hover:text-red-500 transition-colors flex-shrink-0">
+              <Heart size={18} />
               <AnimatePresence>
-                {isLangOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute top-full mt-2 right-0 rtl:left-0 rtl:right-auto w-32 bg-white rounded-xl shadow-2xl border border-brand-charcoal/5 overflow-hidden z-50 text-brand-charcoal"
+                {wishlist.length > 0 && (
+                  <motion.span 
+                    key={wishlist.length}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] w-4 h-4 flex items-center justify-center rounded-full font-black shadow-lg shadow-red-500/40"
                   >
-                    <button
-                      onClick={() => {
-                        i18n.changeLanguage('en');
-                        setIsLangOpen(false);
-                      }}
-                      className={`w-full text-left rtl:text-right px-4 py-3 text-sm transition-colors hover:bg-brand-cream flex items-center justify-between ${i18n.language === 'en' ? 'text-brand-gold font-bold' : 'text-brand-charcoal/70'}`}
-                    >
-                      English
-                      {i18n.language === 'en' && <div className="w-1.5 h-1.5 rounded-full bg-brand-gold" />}
-                    </button>
-                    <button
-                      onClick={() => {
-                        i18n.changeLanguage('ar');
-                        setIsLangOpen(false);
-                      }}
-                      className={`w-full text-left rtl:text-right px-4 py-3 text-sm transition-colors hover:bg-brand-cream flex items-center justify-between font-arabic ${i18n.language === 'ar' ? 'text-brand-gold font-bold' : 'text-brand-charcoal/70'}`}
-                    >
-                      العربية
-                      {i18n.language === 'ar' && <div className="w-1.5 h-1.5 rounded-full bg-brand-gold" />}
-                    </button>
-                  </motion.div>
+                    {wishlist.length}
+                  </motion.span>
                 )}
               </AnimatePresence>
-            </div>
+            </Link>
+            <Link to="/cart" className="relative text-brand-charcoal/70 hover:text-brand-charcoal transition-colors flex-shrink-0">
+              <ShoppingBag size={18} />
+              <AnimatePresence>
+                {totalItems > 0 && (
+                  <motion.span 
+                    key={totalItems}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                    className="absolute -top-1.5 -right-1.5 bg-[#4F46E5] text-white text-[9px] w-4 h-4 flex items-center justify-center rounded-full font-black shadow-lg shadow-indigo-500/40"
+                  >
+                    {totalItems}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Link>
 
             {/* Auth Dropdown */}
             <div className="relative">
@@ -263,30 +277,50 @@ const Navbar: React.FC = () => {
               </AnimatePresence>
             </div>
 
+            {/* Language Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setIsLangOpen(!isLangOpen)}
+                onBlur={() => setTimeout(() => setIsLangOpen(false), 200)}
+                className="flex items-center gap-1 text-brand-charcoal/70 hover:text-brand-gold transition-colors text-[10px] sm:text-xs font-bold uppercase tracking-wider group bg-brand-charcoal/5 px-3 py-2 rounded-full"
+              >
+                <Globe size={18} />
+                <span className="hidden min-[450px]:inline">{i18n.language === 'en' ? 'EN' : 'AR'}</span>
+                <ChevronDown size={12} className={`transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-            <button 
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="text-brand-charcoal/70 hover:text-brand-charcoal transition-colors flex-shrink-0"
-            >
-              <Search size={18} />
-            </button>
-            <Link to="/cart" className="relative text-brand-charcoal/70 hover:text-brand-charcoal transition-colors flex-shrink-0">
-              <ShoppingBag size={18} />
               <AnimatePresence>
-                {totalItems > 0 && (
-                  <motion.span 
-                    key={totalItems}
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.5, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                    className="absolute -top-1.5 -right-1.5 bg-[#4F46E5] text-white text-[9px] w-4 h-4 flex items-center justify-center rounded-full font-black shadow-lg shadow-indigo-500/40"
+                {isLangOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute top-full mt-2 right-0 rtl:left-0 rtl:right-auto w-32 bg-white rounded-xl shadow-2xl border border-brand-charcoal/5 overflow-hidden z-50 text-brand-charcoal"
                   >
-                    {totalItems}
-                  </motion.span>
+                    <button
+                      onClick={() => {
+                        i18n.changeLanguage('en');
+                        setIsLangOpen(false);
+                      }}
+                      className={`w-full text-left rtl:text-right px-4 py-3 text-sm transition-colors hover:bg-brand-cream flex items-center justify-between ${i18n.language === 'en' ? 'text-brand-gold font-bold' : 'text-brand-charcoal/70'}`}
+                    >
+                      English
+                      {i18n.language === 'en' && <div className="w-1.5 h-1.5 rounded-full bg-brand-gold" />}
+                    </button>
+                    <button
+                      onClick={() => {
+                        i18n.changeLanguage('ar');
+                        setIsLangOpen(false);
+                      }}
+                      className={`w-full text-left rtl:text-right px-4 py-3 text-sm transition-colors hover:bg-brand-cream flex items-center justify-between font-arabic ${i18n.language === 'ar' ? 'text-brand-gold font-bold' : 'text-brand-charcoal/70'}`}
+                    >
+                      العربية
+                      {i18n.language === 'ar' && <div className="w-1.5 h-1.5 rounded-full bg-brand-gold" />}
+                    </button>
+                  </motion.div>
                 )}
               </AnimatePresence>
-            </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -423,7 +457,7 @@ const Navbar: React.FC = () => {
                                <p className="text-[10px] text-brand-charcoal/40 uppercase tracking-widest">{product.category}</p>
                              </div>
                              <div className="text-brand-gold font-black text-xs">
-                               ${product.discountPrice || product.price}
+                               {formatPrice(product.discountPrice || product.price)}
                              </div>
                            </button>
                          ))

@@ -10,10 +10,45 @@ const DropShippingPage: React.FC = () => {
   const isArabic = i18n.language === 'ar';
   const [formStatus, setFormStatus] = useState<'idle' | 'loading' | 'success'>('idle');
   const [showGlobalInfo, setShowGlobalInfo] = useState(false);
+  const [activeTab, setActiveTab] = useState<'merchant' | 'supplier'>('merchant');
+  const [supplierFormStatus, setSupplierFormStatus] = useState<'idle' | 'loading' | 'success'>('idle');
   const formRef = useRef<HTMLElement>(null);
 
   const scrollToForm = () => {
     formRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSupplierSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSupplierFormStatus('loading');
+    
+    try {
+      const formData = new FormData(e.target as HTMLFormElement);
+      const data = {
+        name: formData.get('productName'),
+        wholesalePrice: Number(formData.get('wholesalePrice')),
+        category: formData.get('category'),
+        description: formData.get('description'),
+        status: 'pending',
+        type: 'supplier_submission',
+        createdAt: new Date().toISOString()
+      };
+
+      const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+      const { db } = await import('../lib/firebase');
+
+      await addDoc(collection(db, 'submissions'), {
+        ...data,
+        createdAt: serverTimestamp()
+      });
+
+      setSupplierFormStatus('success');
+      showAlert(isArabic ? 'تم إرسال طلب عرض المنتج بنجاح' : 'Product submission sent successfully', 'success');
+    } catch (error) {
+      console.error('Error submitting product:', error);
+      showAlert(t('common.error'), 'error');
+      setSupplierFormStatus('idle');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -181,18 +216,41 @@ const DropShippingPage: React.FC = () => {
 
       {/* Application Form Section */}
       <section ref={formRef} className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-center">
+          <button 
+            onClick={() => setActiveTab('merchant')}
+            className={`px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all border-2 ${activeTab === 'merchant' ? 'bg-brand-gold border-brand-gold text-brand-charcoal' : 'bg-transparent border-brand-charcoal/10 text-brand-charcoal/60 hover:border-brand-gold/30'}`}
+          >
+            {isArabic ? 'انضم كتاجـر' : 'Join as Merchant'}
+          </button>
+          <button 
+            onClick={() => setActiveTab('supplier')}
+            className={`px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all border-2 ${activeTab === 'supplier' ? 'bg-brand-gold border-brand-gold text-brand-charcoal' : 'bg-transparent border-brand-charcoal/10 text-brand-charcoal/60 hover:border-brand-gold/30'}`}
+          >
+            {isArabic ? 'بوابة الموردين' : 'Supplier Portal'}
+          </button>
+        </div>
+
         <div className="bg-brand-charcoal rounded-[40px] overflow-hidden shadow-2xl flex flex-col lg:flex-row">
           <div className="lg:w-1/2 p-12 sm:p-16 flex flex-col justify-center">
             <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tighter uppercase mb-8">
-              {t('dropshipping.applyNow')}
+              {activeTab === 'merchant' ? t('dropshipping.applyNow') : t('supplier.title')}
             </h2>
             <div className="space-y-6">
-              {[
-                i18n.language === 'ar' ? "أسعار تفضيلية للموزعين" : "Preferred wholesale pricing",
-                i18n.language === 'ar' ? "دعم فني مخصص على مدار الساعة" : "24/7 dedicated support",
-                i18n.language === 'ar' ? "وصول حصري للمجموعات الجديدة" : "Exclusive access to new collections",
-                i18n.language === 'ar' ? "تدريب وتسويق مجاني" : "Complimentary marketing training"
-              ].map((text, i) => (
+              {(activeTab === 'merchant' 
+                ? [
+                    i18n.language === 'ar' ? "أسعار تفضيلية للموزعين" : "Preferred wholesale pricing",
+                    i18n.language === 'ar' ? "دعم فني مخصص على مدار الساعة" : "24/7 dedicated support",
+                    i18n.language === 'ar' ? "وصول حصري للمجموعات الجديدة" : "Exclusive access to new collections",
+                    i18n.language === 'ar' ? "تدريب وتسويق مجاني" : "Complimentary marketing training"
+                  ]
+                : [
+                    t('supplier.benefits.massiveAudience'),
+                    t('supplier.benefits.fastPayments'),
+                    t('supplier.benefits.logistics'),
+                    i18n.language === 'ar' ? "تغطية عالمية فورية" : "Instant global coverage"
+                  ]
+              ).map((text, i) => (
                 <div key={i} className="flex items-center gap-4 text-white/80">
                   <div className="w-6 h-6 rounded-full bg-brand-gold/20 flex items-center justify-center text-brand-gold flex-shrink-0">
                     <CheckCircle2 size={14} />
@@ -204,118 +262,221 @@ const DropShippingPage: React.FC = () => {
           </div>
 
           <div className="lg:w-1/2 p-12 sm:p-16 bg-white/5 backdrop-blur-md border-l border-white/10">
-            {formStatus === 'success' ? (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="h-full flex flex-col items-center justify-center text-center"
-              >
-                <div className="w-20 h-20 bg-brand-gold rounded-full flex items-center justify-center text-white mb-6 shadow-xl shadow-brand-gold/20">
-                  <CheckCircle2 size={40} />
-                </div>
-                <h3 className="text-2xl font-black text-white uppercase mb-4 leading-tight">
-                  {t('dropshipping.success.title')}
-                </h3>
-                <div className="space-y-4 max-w-sm">
-                  <p className="text-white/70 font-medium text-sm leading-relaxed">
-                    {t('dropshipping.success.desc1')}
-                  </p>
-                  <p className="text-brand-gold font-bold text-sm leading-relaxed">
-                    {t('dropshipping.success.desc2')}
-                  </p>
-                </div>
-
-                <button 
-                  onClick={() => window.location.href = '/'}
-                  className="mt-8 px-8 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all border border-white/10"
+            {activeTab === 'merchant' ? (
+              formStatus === 'success' ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="h-full flex flex-col items-center justify-center text-center"
                 >
-                  {t('dropshipping.backToHome')}
-                </button>
-              </motion.div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="w-20 h-20 bg-brand-gold rounded-full flex items-center justify-center text-white mb-6 shadow-xl shadow-brand-gold/20">
+                    <CheckCircle2 size={40} />
+                  </div>
+                  <h3 className="text-2xl font-black text-white uppercase mb-4 leading-tight">
+                    {t('dropshipping.success.title')}
+                  </h3>
+                  <div className="space-y-4 max-w-sm">
+                    <p className="text-white/70 font-medium text-sm leading-relaxed">
+                      {t('dropshipping.success.desc1')}
+                    </p>
+                    <p className="text-brand-gold font-bold text-sm leading-relaxed">
+                      {t('dropshipping.success.desc2')}
+                    </p>
+                  </div>
+
+                  <button 
+                    onClick={() => window.location.href = '/'}
+                    className="mt-8 px-8 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all border border-white/10"
+                  >
+                    {t('dropshipping.backToHome')}
+                  </button>
+                </motion.div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('dropshipping.form.fullName')}</label>
+                      <input 
+                        required
+                        name="fullName"
+                        type="text" 
+                        className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
+                        placeholder={i18n.language === 'ar' ? 'أحمد محمد' : 'John Doe'}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('dropshipping.form.phone')}</label>
+                      <input 
+                        required
+                        name="phone"
+                        type="tel" 
+                        className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
+                        placeholder="+966 50 XXX XXXX"
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('dropshipping.form.fullName')}</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('dropshipping.fullAddress')}</label>
                     <input 
                       required
-                      name="fullName"
+                      name="address"
                       type="text" 
                       className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
-                      placeholder={i18n.language === 'ar' ? 'أحمد محمد' : 'John Doe'}
+                      placeholder={i18n.language === 'ar' ? 'الدولة، المدينة، الحي، الشارع' : 'Country, City, District, Street'}
                     />
                   </div>
+                  
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('dropshipping.form.phone')}</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('dropshipping.form.email')}</label>
                     <input 
                       required
-                      name="phone"
-                      type="tel" 
+                      name="email"
+                      type="email" 
                       className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
-                      placeholder="+966 50 XXX XXXX"
+                      placeholder="john@example.com"
                     />
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('dropshipping.fullAddress')}</label>
-                  <input 
-                    required
-                    name="address"
-                    type="text" 
-                    className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
-                    placeholder={i18n.language === 'ar' ? 'الدولة، المدينة، الحي، الشارع' : 'Country, City, District, Street'}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('dropshipping.form.email')}</label>
-                  <input 
-                    required
-                    name="email"
-                    type="email" 
-                    className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
-                    placeholder="john@example.com"
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/40 px-1">{t('dropshipping.storeUrlOptional')}</label>
+                    <input 
+                      name="storeUrl"
+                      type="url" 
+                      className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
+                      placeholder="https://mystore.com"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40 px-1">{t('dropshipping.storeUrlOptional')}</label>
-                  <input 
-                    name="storeUrl"
-                    type="url" 
-                    className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
-                    placeholder="https://mystore.com"
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/40 px-1">{t('dropshipping.form.experience')}</label>
+                    <select 
+                      name="experience"
+                      className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all appearance-none"
+                    >
+                      <option value="none" className="bg-brand-charcoal">{t('dropshipping.experienceLevels.none')}</option>
+                      <option value="some" className="bg-brand-charcoal">{t('dropshipping.experienceLevels.intermediate')}</option>
+                      <option value="expert" className="bg-brand-charcoal">{t('dropshipping.experienceLevels.expert')}</option>
+                    </select>
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40 px-1">{t('dropshipping.form.experience')}</label>
-                  <select 
-                    name="experience"
-                    className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all appearance-none"
+                  <button 
+                    type="submit"
+                    disabled={formStatus === 'loading'}
+                    className="w-full bg-brand-gold text-brand-charcoal font-black py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-white transition-all transform active:scale-95 disabled:opacity-50"
                   >
-                    <option value="none" className="bg-brand-charcoal">{t('dropshipping.experienceLevels.none')}</option>
-                    <option value="some" className="bg-brand-charcoal">{t('dropshipping.experienceLevels.intermediate')}</option>
-                    <option value="expert" className="bg-brand-charcoal">{t('dropshipping.experienceLevels.expert')}</option>
-                  </select>
-                </div>
-
-                <button 
-                  type="submit"
-                  disabled={formStatus === 'loading'}
-                  className="w-full bg-brand-gold text-brand-charcoal font-black py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-white transition-all transform active:scale-95 disabled:opacity-50"
+                    {formStatus === 'loading' ? (
+                      <div className="w-5 h-5 border-2 border-brand-charcoal/30 border-t-brand-charcoal rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Send size={18} />
+                        <span className="uppercase tracking-widest text-sm">{t('dropshipping.form.submit')}</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              )
+            ) : (
+              supplierFormStatus === 'success' ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="h-full flex flex-col items-center justify-center text-center"
                 >
-                  {formStatus === 'loading' ? (
-                    <div className="w-5 h-5 border-2 border-brand-charcoal/30 border-t-brand-charcoal rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <Send size={18} />
-                      <span className="uppercase tracking-widest text-sm">{t('dropshipping.form.submit')}</span>
-                    </>
-                  )}
-                </button>
-              </form>
+                  <div className="w-20 h-20 bg-brand-gold rounded-full flex items-center justify-center text-white mb-6 shadow-xl shadow-brand-gold/20">
+                    <Package size={40} />
+                  </div>
+                  <h3 className="text-2xl font-black text-white uppercase mb-4 leading-tight">
+                    {isArabic ? 'تم استلام طلب المنتج!' : 'Product Request Received!'}
+                  </h3>
+                  <p className="text-white/70 font-medium text-sm leading-relaxed max-w-sm">
+                    {isArabic 
+                      ? 'شكراً لك. سيقوم فريق تقييم الجودة بمراجعة المنتج والمستندات المرفقة وتفعيله في المتجر خلال ٤٨ ساعة.' 
+                      : 'Thank you. Our quality assessment team will review the product and attached documents, and activate it in the store within 48 hours.'}
+                  </p>
+
+                  <button 
+                    onClick={() => setSupplierFormStatus('idle')}
+                    className="mt-8 px-8 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all border border-white/10"
+                  >
+                    {isArabic ? 'إرسال منتج آخر' : 'Submit Another Product'}
+                  </button>
+                </motion.div>
+              ) : (
+                <form onSubmit={handleSupplierSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('supplier.form.productName')}</label>
+                      <input 
+                        required
+                        name="productName"
+                        type="text" 
+                        className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
+                        placeholder="..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('supplier.form.category')}</label>
+                      <select 
+                        required
+                        name="category"
+                        className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all appearance-none"
+                      >
+                        <option value="fashion" className="bg-brand-charcoal">{t('categories.fashion')}</option>
+                        <option value="cosmetic" className="bg-brand-charcoal">{t('categories.cosmetic')}</option>
+                        <option value="sport" className="bg-brand-charcoal">{t('categories.sport')}</option>
+                        <option value="lifestyle" className="bg-brand-charcoal">{t('categories.lifestyle')}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('supplier.form.wholesalePrice')}</label>
+                    <input 
+                      required
+                      name="wholesalePrice"
+                      type="number" 
+                      step="0.01"
+                      className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold px-1">{t('supplier.form.description')}</label>
+                    <textarea 
+                      required
+                      name="description"
+                      rows={3}
+                      className="w-full bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-brand-gold transition-all resize-none"
+                      placeholder="..."
+                    />
+                  </div>
+
+                  <div className="p-6 border-2 border-dashed border-white/10 rounded-2xl bg-white/5 flex flex-col items-center justify-center text-center">
+                    <Package className="text-white/20 mb-2" size={32} />
+                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">{t('supplier.form.images')}</p>
+                    <button type="button" className="text-brand-gold text-[10px] font-black uppercase tracking-widest hover:underline">
+                      {t('supplier.form.uploadBtn')}
+                    </button>
+                  </div>
+
+                  <button 
+                    type="submit"
+                    disabled={supplierFormStatus === 'loading'}
+                    className="w-full bg-brand-gold text-brand-charcoal font-black py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-white transition-all transform active:scale-95 disabled:opacity-50"
+                  >
+                    {supplierFormStatus === 'loading' ? (
+                      <div className="w-5 h-5 border-2 border-brand-charcoal/30 border-t-brand-charcoal rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Send size={18} />
+                        <span className="uppercase tracking-widest text-sm">{t('supplier.form.submit')}</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              )
             )}
           </div>
         </div>

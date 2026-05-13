@@ -5,6 +5,7 @@ import { LoyaltyBanner } from '../components/LoyaltyBanner';
 import { ListingSkeleton } from '../components/ProductSkeleton';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
+import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
 import { ChevronDown, Filter, Sparkles } from 'lucide-react';
 
@@ -68,6 +69,10 @@ const ShopPage: React.FC = () => {
 
   return (
     <div className="pt-24 pb-32 bg-[#0A0A0B] min-h-screen text-white">
+      <Helmet>
+        <title>{categoryFilter ? `${categoryFilter} | Shop Trendifi` : 'Shop | Trendifi - Everything New and Unique'}</title>
+        <meta name="description" content="Shop the latest unique products at Trendifi. Quality electronics, fashion, and lifestyle items with local payment options in Iraq." />
+      </Helmet>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-16 flex flex-col items-center text-center">
           <motion.div 

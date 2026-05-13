@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Search, Package, MapPin, Clock, CheckCircle2, ArrowRight, Truck, Globe } from 'lucide-react';
+import { Search, Package, MapPin, Clock, CheckCircle2, ArrowRight, Truck, Globe, ExternalLink } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../lib/firebase';
@@ -158,15 +158,28 @@ const TrackOrderPage: React.FC = () => {
                     <Clock size={18} className="text-brand-gold" />
                     <span className="font-mono text-sm">{new Date(order.createdAt).toLocaleDateString(isArabic ? 'ar-EG' : 'en-US', { dateStyle: 'long' })}</span>
                   </div>
-                  {order.fulfillment && (
-                    <div className="flex items-center gap-2">
-                       <Globe size={18} className="text-brand-gold" />
-                       <span className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">
-                         {t('tracking.viaNetwork', { provider: order.fulfillment.provider })}
-                       </span>
-                    </div>
-                  )}
-                </div>
+                    {order.fulfillment && (
+                      <div className="flex items-center gap-2">
+                         <Globe size={18} className="text-brand-gold" />
+                         <span className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">
+                           {t('tracking.viaNetwork', { provider: order.fulfillment.provider })}
+                         </span>
+                      </div>
+                    )}
+                    {(order as any).courierTrackingNumber && (
+                      <a 
+                        href={`https://www.17track.net/en/trackdetails?nums=${(order as any).courierTrackingNumber}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 pl-4 border-l border-white/10 text-brand-gold hover:text-white transition-all"
+                      >
+                         <ExternalLink size={18} />
+                         <span className="text-[10px] font-bold uppercase tracking-widest">
+                           {isArabic ? 'رابط التتبع المباشر' : 'Live Tracking Link'}
+                         </span>
+                      </a>
+                    )}
+                  </div>
               </div>
 
               <div className="relative mt-16 flex justify-between">

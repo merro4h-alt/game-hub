@@ -49,7 +49,8 @@ export const INITIAL_PRODUCTS: Product[] = [
 ];
 
 export const COLORS_OPTIONS = [
-  'White', 'Black', 'Red', 'Blue', 'Green', 'Yellow', 'Beige', 'Navy', 'Orange', 'Purple', 'Grey'
+  'White', 'Black', 'Red', 'Blue', 'Green', 'Yellow', 'Beige', 'Navy', 'Orange', 'Purple', 'Grey',
+  'Black & Orange', 'White & Blue', 'Black & Red'
 ];
 
 export const SIZES_CLOTHES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
