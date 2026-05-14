@@ -12,6 +12,7 @@ export interface Product {
   colorImages?: Record<string, string>;
   sizes: string[];
   rating: number;
+  stock: number;
   reviews?: any[];
   supplierName?: string;
   supplierUrl?: string;

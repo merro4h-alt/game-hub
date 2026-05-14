@@ -54,7 +54,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
       className="group relative"
     >
       <Link to={`/product/${product.id}`} className="block">
-        <div className="relative aspect-square overflow-hidden rounded-[3rem] bg-[#F4F4F5] mb-4 border border-brand-charcoal/5 group-hover:border-[#4F46E5]/20 group-hover:shadow-2xl group-hover:shadow-indigo-500/10 transition-all duration-700">
+        <div className="relative aspect-square overflow-hidden rounded-[3rem] bg-[#F4F4F5] mb-4 border border-brand-charcoal/5 group-hover:border-brand-gold/20 group-hover:shadow-2xl group-hover:shadow-brand-gold/10 transition-all duration-700">
           <AnimatePresence mode="wait">
             <motion.img
               key={selectedColor}
@@ -133,45 +133,45 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
                 e.stopPropagation();
                 addToCart(product, selectedColor, product.sizes[0]);
               }}
-              className="w-full bg-white text-brand-charcoal h-12 rounded-full font-black uppercase tracking-[0.1em] text-[8px] sm:text-[10px] flex items-center justify-center gap-2 hover:bg-[#4F46E5] hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0 duration-500 shadow-xl active:scale-95"
+              className="w-full bg-white text-brand-charcoal h-12 rounded-full font-black uppercase tracking-[0.1em] text-[8px] sm:text-[10px] flex items-center justify-center gap-2 hover:bg-brand-gold hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0 duration-500 shadow-xl active:scale-95"
               title={t('shop.addToCart')}
             >
               <ShoppingCart size={14} className="sm:size-4" />
               <span>{t('shop.addToCart')}</span>
             </button>
           </div>
-          <div className="absolute top-5 left-5 flex flex-col gap-2.5 z-20">
-            <div className="bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] shadow-xl shadow-black/5 border border-white/20 text-brand-charcoal">
-              {product.category === 'New' ? t('categories.new') : 
-               product.category === 'Best Seller' ? t('categories.bestSeller') : 
-               t('categories.offers')}
+          <div className="absolute top-5 left-5 flex items-start gap-2.5 z-20">
+            <div className="flex flex-col gap-2.5">
+              <div className="bg-brand-gold px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] shadow-xl shadow-brand-gold/20 border border-white/20 text-brand-charcoal">
+                {product.category === 'New' ? t('categories.new') : 
+                 product.category === 'Best Seller' ? t('categories.bestSeller') : 
+                 t('categories.offers')}
+              </div>
+              {product.discountPrice && (
+                <motion.div 
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="bg-[#EF4444] text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] shadow-xl shadow-red-500/20 flex items-center gap-1.5 border border-white/10"
+                >
+                  <Sparkles size={10} className="text-white/80" />
+                  <span>-{Math.round(((product.price - product.discountPrice) / product.price) * 100)}%</span>
+                </motion.div>
+              )}
             </div>
-            {product.discountPrice && (
-              <motion.div 
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="bg-[#EF4444] text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] shadow-xl shadow-red-500/20 flex items-center gap-1.5 border border-white/10"
-              >
-                <Sparkles size={10} className="text-white/80" />
-                <span>-{Math.round(((product.price - product.discountPrice) / product.price) * 100)}%</span>
-              </motion.div>
-            )}
-          </div>
 
-          <div className="absolute top-5 right-5 flex flex-col gap-2.5 z-20">
             <button 
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 toggleWishlist(product.id);
               }}
-              className={`p-3 rounded-2xl backdrop-blur-md shadow-xl transition-all active:scale-90 ${
+              className={`p-2.5 rounded-2xl backdrop-blur-md shadow-xl transition-all active:scale-90 ${
                 isInWishlist(product.id) 
                   ? 'bg-red-500 text-white' 
                   : 'bg-white/80 text-brand-charcoal hover:text-red-500'
               }`}
             >
-              <Heart size={18} fill={isInWishlist(product.id) ? "currentColor" : "none"} />
+              <Heart size={16} fill={isInWishlist(product.id) ? "currentColor" : "none"} />
             </button>
           </div>
 
@@ -181,7 +181,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
               e.stopPropagation();
               setQuickViewProduct(product);
             }}
-            className="absolute bottom-6 right-6 z-20 opacity-0 group-hover:opacity-100 p-3 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl text-[#4F46E5] hover:bg-brand-gold hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0 duration-500 delay-150 shadow-xl active:scale-95 cursor-pointer"
+            className="absolute bottom-6 right-6 z-20 opacity-0 group-hover:opacity-100 p-3 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl text-brand-gold hover:bg-brand-gold hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0 duration-500 delay-150 shadow-xl active:scale-95 cursor-pointer"
             title={t('shop.quickView')}
           >
             <Eye size={20} />
@@ -232,6 +232,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
         
         <div className="flex justify-between items-end">
           <div className="flex flex-col">
+            {product.stock <= 10 && product.stock > 0 && (
+              <span className="text-[8px] font-black uppercase tracking-widest text-brand-gold mb-1 animate-pulse">
+                {t('shop.onlyLeft', { count: product.stock })}
+              </span>
+            )}
             {product.discountPrice ? (
               <>
                 <span className="text-[10px] font-bold text-white/40 line-through decoration-red-500/30 uppercase tracking-tighter decoration-2">
@@ -286,7 +291,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
             e.stopPropagation();
             addToCart(product, selectedColor, product.sizes[0]);
           }}
-          className="w-full mt-4 py-4 bg-[#4F46E5] text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#4338CA] transition-all duration-300 md:hidden flex items-center justify-center gap-3 shadow-lg shadow-indigo-500/20 active:scale-[0.98]"
+          className="w-full mt-4 py-4 bg-brand-gold text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em] hover:bg-brand-charcoal transition-all duration-300 md:hidden flex items-center justify-center gap-3 shadow-lg shadow-brand-gold/20 active:scale-[0.98]"
         >
           <ShoppingCart size={16} />
           {t('shop.addToCart')}

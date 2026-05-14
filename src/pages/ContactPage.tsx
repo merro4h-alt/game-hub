@@ -24,6 +24,7 @@ const ContactPage: React.FC = () => {
                 <div>
                   <h4 className="text-sm font-bold uppercase tracking-widest text-white/40 mb-1">{t('contact.emailTitle')}</h4>
                   <p className="text-lg font-medium text-white">merro4h@gmail.com</p>
+                  <p className="text-lg font-medium text-white">kmerro25@gmail.com</p>
                 </div>
               </div>
               <div className="flex items-start gap-6">

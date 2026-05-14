@@ -14,6 +14,7 @@ const ShopPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
   const [sortBy, setSortBy] = useState<'default' | 'priceLow' | 'priceHigh' | 'rating'>('default');
+  const [filterType, setFilterType] = useState<'all' | 'new' | 'bestSeller' | 'offers'>('all');
   const [isSortOpen, setIsSortOpen] = useState(false);
 
   const queryParams = new URLSearchParams(location.search);
@@ -23,7 +24,18 @@ const ShopPage: React.FC = () => {
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    // Filter by category
+    // Filter by sales section (FilterType)
+    if (filterType !== 'all') {
+      if (filterType === 'offers') {
+        result = result.filter(p => p.category === 'Offers' || p.discountPrice !== undefined);
+      } else if (filterType === 'new') {
+        result = result.filter(p => p.category === 'New');
+      } else if (filterType === 'bestSeller') {
+        result = result.filter(p => p.category === 'Best Seller');
+      }
+    }
+
+    // Filter by category (from URL)
     if (categoryFilter) {
       if (categoryFilter === 'Offers' || categoryFilter === t('categories.offers')) {
         result = result.filter(p => p.category === 'Offers' || p.discountPrice !== undefined);
@@ -58,7 +70,7 @@ const ShopPage: React.FC = () => {
     }
 
     return result;
-  }, [products, categoryFilter, searchQuery, t, sortBy]);
+  }, [products, categoryFilter, filterType, searchQuery, t, sortBy]);
   
   const sortOptions = [
     { value: 'default', label: i18n.language === 'ar' ? 'الافتراضي' : 'Default' },
@@ -95,6 +107,28 @@ const ShopPage: React.FC = () => {
           <p className="text-white/60 font-medium tracking-[0.2em] uppercase text-xs max-w-lg mx-auto mb-10">
             {t('shop.subtitle')}
           </p>
+
+          {/* Sales Sections Tabs */}
+          <div className="flex flex-wrap justify-center gap-3 mb-12">
+            {[
+              { id: 'all', label: i18n.language === 'ar' ? 'الكل' : 'All' },
+              { id: 'new', label: t('categories.new') },
+              { id: 'bestSeller', label: t('categories.bestSeller') },
+              { id: 'offers', label: t('categories.offers') },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setFilterType(tab.id as any)}
+                className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  filterType === tab.id 
+                    ? 'bg-brand-gold text-[#0A0A0B] shadow-[0_0_20px_rgba(212,175,55,0.3)]' 
+                    : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
           {/* Sorting Dropdown - Centered */}
           <div className="relative">

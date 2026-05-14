@@ -64,9 +64,7 @@ const ProductDetailPage: React.FC = () => {
   const allImages = [product.image, ...(product.images || [])];
   
   const handleAddToCart = () => {
-    for (let i = 0; i < quantity; i++) {
-      addToCart(product, selectedColor, selectedSize);
-    }
+    addToCart(product, selectedColor, selectedSize, quantity);
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -221,15 +219,15 @@ const ProductDetailPage: React.FC = () => {
               </div>
               <span className="text-sm font-bold text-brand-charcoal/60 dark:text-white/60">({product.rating} / 5)</span>
               <span className="mx-2 text-brand-charcoal/20 dark:text-white/20">|</span>
-              <span className="text-xs font-black uppercase tracking-widest text-[#4F46E5] dark:text-indigo-400">{product.category}</span>
+              <span className="text-xs font-black uppercase tracking-widest text-brand-gold">{product.category}</span>
             </div>
             
-            <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 leading-tight text-brand-charcoal dark:text-white">{product.name}</h1>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 leading-tight text-brand-charcoal dark:text-white uppercase">{product.name}</h1>
             
             <div className="flex items-center gap-4 mb-6">
               {product.discountPrice ? (
                 <>
-                  <span className="text-3xl font-mono font-black text-[#4F46E5] dark:text-indigo-400">{formatPrice(product.discountPrice)}</span>
+                  <span className="text-3xl font-mono font-black text-brand-gold">{formatPrice(product.discountPrice)}</span>
                   <span className="text-xl font-mono text-brand-charcoal/30 dark:text-white/30 line-through">{formatPrice(product.price)}</span>
                   <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-red-200 dark:border-red-800">
                     {Math.round((1 - product.discountPrice / product.price) * 100)}% {t('shop.sale')}
@@ -286,7 +284,7 @@ const ProductDetailPage: React.FC = () => {
                 <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-charcoal/40 dark:text-white/40">{t('shop.size')}</span>
                 <button 
                   onClick={() => setIsSizeGuideOpen(true)}
-                  className="flex items-center gap-1.5 text-xs font-black text-[#4F46E5] dark:text-indigo-400 hover:underline"
+                  className="flex items-center gap-1.5 text-xs font-black text-brand-gold hover:underline"
                 >
                   <Ruler size={14} />
                   {t('shop.sizeGuide')}
@@ -312,7 +310,7 @@ const ProductDetailPage: React.FC = () => {
 
           {/* Quantity and CTA */}
           <div className="flex flex-col gap-6 mb-12">
-            <div className="flex items-center justify-between bg-brand-cream/20 dark:bg-white/5 rounded-[2rem] p-2 border border-brand-charcoal/5 dark:border-white/10 w-full">
+            <div className={`flex items-center justify-between bg-brand-cream/20 dark:bg-white/5 rounded-[2rem] p-2 border border-brand-charcoal/5 dark:border-white/10 w-full ${product.stock === 0 ? 'opacity-50 pointer-events-none' : ''}`}>
               <button 
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
                 className="p-4 hover:bg-white dark:hover:bg-white/10 rounded-full transition-all text-brand-charcoal/40 dark:text-white/40 hover:text-brand-charcoal dark:hover:text-white active:scale-95"
@@ -321,7 +319,7 @@ const ProductDetailPage: React.FC = () => {
               </button>
               <span className="text-xl font-black text-brand-charcoal dark:text-white">{quantity}</span>
               <button 
-                onClick={() => setQuantity(q => q + 1)}
+                onClick={() => setQuantity(q => Math.min(product.stock, q + 1))}
                 className="p-4 hover:bg-white dark:hover:bg-white/10 rounded-full transition-all text-brand-charcoal/40 dark:text-white/40 hover:text-brand-charcoal dark:hover:text-white active:scale-95"
               >
                 <Plus size={20} />
@@ -330,24 +328,35 @@ const ProductDetailPage: React.FC = () => {
             
             <button 
               onClick={handleAddToCart}
-              className="w-full bg-[#4F46E5] text-white py-6 rounded-full font-black uppercase tracking-[0.2em] text-sm hover:bg-[#4338CA] transition-all hover:shadow-2xl hover:shadow-indigo-500/30 flex items-center justify-center gap-4 active:scale-[0.98]"
+              disabled={product.stock === 0}
+              className={`w-full py-6 rounded-full font-black uppercase tracking-[0.2em] text-sm transition-all flex items-center justify-center gap-4 active:scale-[0.98] ${
+                product.stock === 0 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-brand-gold text-white hover:bg-brand-charcoal hover:shadow-2xl hover:shadow-brand-gold/30'
+              }`}
             >
               <ShoppingCart size={22} />
-              {t('shop.addToCart')}
+              {product.stock === 0 ? (i18n.language === 'ar' ? 'نفد المخزون' : 'Out of Stock') : t('shop.addToCart')}
             </button>
           </div>
 
           {/* Social Proof & Urgency */}
-          <div className="mb-10 p-6 rounded-3xl bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 flex items-start gap-4">
-            <div className="w-10 h-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-[#4F46E5] dark:text-indigo-400 shadow-sm flex-shrink-0">
+          <div className="mb-10 p-6 rounded-3xl bg-brand-gold/5 border border-brand-gold/10 flex items-start gap-4">
+            <div className="w-10 h-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-brand-gold shadow-sm flex-shrink-0">
               <Star size={18} fill="currentColor" />
             </div>
             <div>
               <p className="text-sm font-bold text-brand-charcoal dark:text-white mb-1">
                 {Math.floor(Math.random() * 10) + 5} people are looking at this item right now
               </p>
-              <p className="text-xs text-[#4F46E5] dark:text-indigo-400 font-black uppercase tracking-widest">
-                🔥 Low Stock: Only 3 pieces left in {selectedSize}
+              <p className={`text-xs font-black uppercase tracking-widest ${product.stock <= 5 ? 'text-red-500' : 'text-brand-gold'}`}>
+                {product.stock === 0 ? (
+                  i18n.language === 'ar' ? '❌ نفد المخزون: سنقوم بإعلامك عند توفره' : '❌ Out of Stock: We will notify you when available'
+                ) : product.stock <= 10 ? (
+                  i18n.language === 'ar' ? `🔥 مخزون منخفض: متبقي ${product.stock} قطع فقط!` : `🔥 Low Stock: Only ${product.stock} items left!`
+                ) : (
+                  i18n.language === 'ar' ? `✅ متوفر: ${product.stock} قطعة في المخزون` : `✅ In Stock: ${product.stock} items available`
+                )}
               </p>
             </div>
           </div>
@@ -355,7 +364,7 @@ const ProductDetailPage: React.FC = () => {
           {/* Trust Badges Section - Improved */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-10 border-t border-brand-charcoal/5 dark:border-white/10 mt-auto">
             <div className="flex items-center gap-4 group">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-white/5 flex items-center justify-center text-[#4F46E5] dark:text-indigo-400 group-hover:bg-[#4F46E5] group-hover:text-white transition-all duration-500 border border-transparent dark:border-white/5">
+              <div className="w-12 h-12 rounded-2xl bg-brand-gold/10 flex items-center justify-center text-brand-gold group-hover:bg-brand-gold group-hover:text-white transition-all duration-500 border border-transparent dark:border-white/5">
                 <Truck size={22} />
               </div>
               <div className="flex flex-col">
@@ -452,7 +461,7 @@ const ProductDetailPage: React.FC = () => {
                 <div className="mt-10 pt-8 border-t border-brand-charcoal/5">
                   <button 
                     onClick={() => setIsSizeGuideOpen(false)}
-                    className="w-full py-4 bg-brand-charcoal text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-[#4F46E5] transition-all"
+                    className="w-full py-4 bg-brand-charcoal text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-brand-gold transition-all"
                   >
                     Got it, thanks
                   </button>
@@ -468,12 +477,12 @@ const ProductDetailPage: React.FC = () => {
         <section className="mt-32 pt-20 border-t border-white/10">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
             <div>
-              <span className="text-[#4F46E5] dark:text-indigo-400 text-xs font-black uppercase tracking-[0.4em] mb-4 block">{t('shop.mightLike')}</span>
-              <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white">{t('shop.relatedProducts')}</h2>
+              <span className="text-brand-gold text-xs font-black uppercase tracking-[0.4em] mb-4 block">{t('shop.mightLike')}</span>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white uppercase">{t('shop.relatedProducts')}</h2>
             </div>
             <button 
               onClick={() => navigate('/shop')}
-              className="group flex items-center gap-3 text-sm font-black uppercase tracking-widest text-brand-charcoal/60 dark:text-white/60 hover:text-[#4F46E5] dark:hover:text-indigo-400 transition-colors"
+              className="group flex items-center gap-3 text-sm font-black uppercase tracking-widest text-brand-charcoal/60 dark:text-white/60 hover:text-brand-gold transition-colors"
             >
               {t('home.exploreAll')}
               <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />

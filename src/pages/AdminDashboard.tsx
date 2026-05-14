@@ -21,13 +21,13 @@ import {
 
 const AdminDashboard: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { products, deleteProduct, setIsAddModalOpen, setEditingProduct, addToProducts } = useStore();
+  const { products, deleteProduct, setIsAddModalOpen, setEditingProduct, addToProducts, updateProduct } = useStore();
   const { showAlert } = useAlert();
   const { user, isAdmin, login, signout } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'products' | 'winning' | 'marketing'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'products' | 'winning' | 'marketing' | 'inventory'>('analytics');
   const [importUrl, setImportUrl] = useState('');
   const [isAiGeneratingAd, setIsAiGeneratingAd] = useState(false);
   const [marketingProduct, setMarketingProduct] = useState<Product | null>(null);
@@ -159,7 +159,7 @@ const AdminDashboard: React.FC = () => {
           {!user ? (
             <button 
               onClick={() => login()}
-              className="w-full bg-[#4F46E5] text-white py-5 rounded-2xl font-black text-lg hover:bg-[#4338CA] transition-all shadow-2xl shadow-indigo-500/40 hover:-translate-y-1"
+              className="w-full bg-brand-gold text-brand-charcoal py-5 rounded-2xl font-black text-lg hover:bg-brand-gold/80 transition-all shadow-2xl shadow-brand-gold/40 hover:-translate-y-1"
             >
               {t('admin.loginWithGoogle')}
             </button>
@@ -175,7 +175,8 @@ const AdminDashboard: React.FC = () => {
                     <p className="text-xs font-bold text-red-400 mb-2 uppercase tracking-widest">Debug Info:</p>
                     <div className="space-y-1 text-[10px] font-mono text-white/40">
                         <p>Logged Email: <span className="text-white">{user.email || 'NO EMAIL'}</span></p>
-                        <p>Expected: <span className="text-brand-gold">kmerro25@gmail.com</span></p>
+                        <p>Expected: <span className="text-brand-gold">merro4h@gmail.com, kmerro25@gmail.com</span></p>
+                        <p>Admin Name: <span className="text-brand-gold">AMEER ALI</span></p>
                         <p>Project ID: <span className="text-brand-gold">{auth.app.options.projectId}</span></p>
                         <p>Current Domain: <span className="text-white">{window.location.hostname}</span></p>
                         <p>Auth Ready: <span className={user ? "text-green-400" : "text-red-400"}>{user ? "YES" : "NO"}</span></p>
@@ -226,7 +227,7 @@ const AdminDashboard: React.FC = () => {
                     href={`https://console.firebase.google.com/project/${auth.app.options.projectId}/authentication/settings`}
                     target="_blank" 
                     rel="noreferrer"
-                    className="bg-[#4F46E5]/20 text-[#4F46E5] p-2 rounded text-[10px] font-bold text-center border border-[#4F46E5]/30 hover:bg-[#4F46E5]/30"
+                    className="bg-brand-gold/20 text-brand-gold p-2 rounded text-[10px] font-bold text-center border border-brand-gold/30 hover:bg-brand-gold/30"
                    >
                        {i18n.language === 'ar' ? 'إعدادات تسجيل الدخول' : 'Firebase Settings'}
                    </a>
@@ -237,8 +238,8 @@ const AdminDashboard: React.FC = () => {
                        <code className="bg-black/40 p-2 rounded text-[10px] text-brand-gold break-all">game-hub-merro4h-alts-projects.vercel.app</code>
                        <code className="bg-black/40 p-2 rounded text-[10px] text-brand-gold break-all">ahstore.shop</code>
                    </div>
-                   <div className="mt-4 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                       <p className="text-xs font-bold text-indigo-400 mb-2">
+                   <div className="mt-4 p-4 bg-brand-gold/10 border border-brand-gold/20 rounded-xl">
+                       <p className="text-xs font-bold text-brand-gold mb-2">
                            {t('admin.howToFixLogin')}:
                        </p>
                        <p className="text-[10px] text-white/60 leading-relaxed">
@@ -362,7 +363,7 @@ const AdminDashboard: React.FC = () => {
           <h1 className="text-4xl font-black tracking-tighter text-white">
             {t('admin.dashboard')}
           </h1>
-          <p className="text-white/40 font-medium">
+          <p className="text-brand-gold font-medium">
             {t('admin.welcomeAdmin', { name: user?.displayName || 'Administrator' })}
           </p>
         </div>
@@ -371,6 +372,7 @@ const AdminDashboard: React.FC = () => {
             {[
                 { id: 'analytics', label: t('admin.analytics'), icon: TrendingUp },
                 { id: 'products', label: t('admin.products'), icon: Package },
+                { id: 'inventory', label: i18n.language === 'ar' ? 'المخزون' : 'Inventory', icon: Clipboard },
                 { id: 'orders', label: t('admin.orders'), icon: ShoppingBag },
                 { id: 'winning', label: t('admin.winning'), icon: ArrowUpRight },
                 { id: 'marketing', label: i18n.language === 'ar' ? 'التسويق' : 'Marketing', icon: Sparkles },
@@ -380,8 +382,8 @@ const AdminDashboard: React.FC = () => {
                     onClick={() => setActiveTab(tab.id as any)}
                     className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
                         activeTab === tab.id 
-                            ? 'bg-[#4F46E5] text-white shadow-lg shadow-indigo-500/20' 
-                            : 'text-white/40 hover:text-white hover:bg-white/5'
+                        ? 'bg-brand-gold text-brand-charcoal shadow-lg shadow-brand-gold/20' 
+                        : 'text-white/40 hover:text-white hover:bg-white/5'
                     }`}
                 >
                     <tab.icon size={14} />
@@ -475,7 +477,7 @@ const AdminDashboard: React.FC = () => {
                    <div className="bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-white/5 space-y-6">
                      <div>
                        <h3 className="text-xl font-black uppercase tracking-tighter mb-2 flex items-center gap-2">
-                         <TrendingUp className="text-[#4F46E5]" />
+                         <TrendingUp className="text-brand-gold" />
                          {i18n.language === 'ar' ? 'استراتيجية تسويق الدروبشيبينغ' : 'Dropshipping Marketing Strategy'}
                        </h3>
                        <p className="text-white/40 text-sm">
@@ -520,6 +522,130 @@ const AdminDashboard: React.FC = () => {
                </motion.div>
           )}
 
+          {activeTab === 'inventory' && (
+            <motion.div 
+              key="inventory"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-6"
+            >
+              <div className="bg-[#1A1A1A] rounded-[2.5rem] border border-white/5 overflow-hidden">
+                <div className="p-8 border-b border-white/5 flex justify-between items-center bg-brand-gold/5">
+                  <div>
+                    <h3 className="text-xl font-black uppercase tracking-tighter mb-1">
+                      {i18n.language === 'ar' ? 'تتبع المخزون' : 'Inventory Tracking'}
+                    </h3>
+                    <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">
+                      {i18n.language === 'ar' ? 'إدارة كميات المنتجات المتوفرة' : 'Manage product availability levels'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/10">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white/60">
+                        {i18n.language === 'ar' ? 'نقص المخزون (< 5)' : 'Low Stock (< 5)'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left rtl:text-right">
+                        <thead className="bg-black/20">
+                            <tr>
+                                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.products')}</th>
+                                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('shop.category')}</th>
+                                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'الكمية الحالية' : 'Current Stock'}</th>
+                                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'الحالة' : 'Status'}</th>
+                                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'تحديث سريع' : 'Quick Update'}</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {products.map((product) => (
+                                <tr key={product.id} className="hover:bg-white/5 transition-colors group">
+                                    <td className="px-8 py-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex-shrink-0">
+                                                <img src={product.image} className="w-full h-full object-cover" alt="" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-black text-white">{product.name}</p>
+                                                <p className="text-[10px] font-mono text-white/30">#{product.id.slice(-6).toUpperCase()}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest px-3 py-1 bg-white/5 rounded-full border border-white/10">
+                                            {product.category}
+                                        </span>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <span className={`text-sm font-black font-mono ${
+                                            (product.stock || 0) <= 0 ? 'text-red-500' : 
+                                            (product.stock || 0) <= 5 ? 'text-orange-500' : 'text-green-500'
+                                        }`}>
+                                            {product.stock || 0}
+                                        </span>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${
+                                                (product.stock || 0) <= 0 ? 'bg-red-500' : 
+                                                (product.stock || 0) <= 5 ? 'bg-orange-500' : 'bg-green-500'
+                                            }`} />
+                                            <span className={`text-[10px] font-black uppercase tracking-widest ${
+                                                (product.stock || 0) <= 0 ? 'text-red-500' : 
+                                                (product.stock || 0) <= 5 ? 'text-orange-500' : 'text-green-500'
+                                            }`}>
+                                                {(product.stock || 0) <= 0 ? (i18n.language === 'ar' ? 'نفذ' : 'Out') : 
+                                                 (product.stock || 0) <= 5 ? (i18n.language === 'ar' ? 'منخفض' : 'Low') : (i18n.language === 'ar' ? 'متوفر' : 'In Stock')}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <div className="flex items-center gap-2">
+                                            <button 
+                                                onClick={() => {
+                                                  const newStock = Math.max(0, (product.stock || 0) - 1);
+                                                  updateProduct({ ...product, stock: newStock });
+                                                }}
+                                                className="p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-red-500/20 hover:text-red-500 transition-all"
+                                                title="-1"
+                                            >
+                                                <ChevronDown size={14} />
+                                            </button>
+                                            <input 
+                                              type="number"
+                                              className="w-16 bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-center font-bold text-white outline-none focus:ring-1 focus:ring-brand-gold"
+                                              value={product.stock || 0}
+                                              onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                if (!isNaN(val) && val >= 0) {
+                                                  updateProduct({ ...product, stock: val });
+                                                }
+                                              }}
+                                            />
+                                            <button 
+                                                onClick={() => {
+                                                  const newStock = (product.stock || 0) + 1;
+                                                  updateProduct({ ...product, stock: newStock });
+                                                }}
+                                                className="p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-green-500/20 hover:text-green-500 transition-all"
+                                                title="+1"
+                                            >
+                                                <Plus size={14} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {activeTab === 'analytics' && (
               <motion.div 
                 key="analytics"
@@ -532,7 +658,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
                         { label: t('admin.stats.sales'), value: `$${totalRevenue.toLocaleString()}`, icon: <DollarSign />, color: 'bg-green-500' },
-                        { label: t('admin.stats.orders'), value: totalOrders, icon: <ShoppingBag />, color: 'bg-[#4F46E5]' },
+                        { label: t('admin.stats.orders'), value: totalOrders, icon: <ShoppingBag />, color: 'bg-brand-gold' },
                         { label: t('admin.stats.inventory'), value: products.length, icon: <Package />, color: 'bg-brand-gold' },
                         { label: t('admin.stats.users'), value: pendingOrders, icon: <Clock />, color: 'bg-amber-500' },
                     ].map((stat, i) => (
@@ -561,7 +687,7 @@ const AdminDashboard: React.FC = () => {
                                     <Tooltip 
                                         contentStyle={{ backgroundColor: '#111', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}
                                     />
-                                    <Line type="monotone" dataKey="revenue" stroke="#4F46E5" strokeWidth={5} dot={{ r: 6, fill: '#4F46E5', strokeWidth: 0 }} activeDot={{ r: 8, strokeWidth: 0 }} />
+                                    <Line type="monotone" dataKey="revenue" stroke="#C5A059" strokeWidth={5} dot={{ r: 6, fill: '#C5A059', strokeWidth: 0 }} activeDot={{ r: 8, strokeWidth: 0 }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -594,7 +720,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="bg-[#1A1A1A] rounded-[2.5rem] border border-white/5 overflow-hidden">
                     <div className="p-8 border-b border-white/5 flex justify-between items-center">
                         <h3 className="text-lg font-black uppercase tracking-widest text-white/40">{t('admin.recentActivity')}</h3>
-                        <button onClick={() => setActiveTab('orders')} className="text-[10px] font-black uppercase tracking-widest text-[#4F46E5] hover:underline">{t('admin.viewAllOrders')}</button>
+                        <button onClick={() => setActiveTab('orders')} className="text-[10px] font-black uppercase tracking-widest text-brand-gold hover:underline">{t('admin.viewAllOrders')}</button>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left rtl:text-right">
@@ -621,7 +747,7 @@ const AdminDashboard: React.FC = () => {
                                             <span className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
                                                 order.status === 'delivered' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
                                                 order.status === 'pending' ? 'bg-amber-400/10 text-amber-400 border-amber-400/20' :
-                                                'bg-indigo-400/10 text-indigo-400 border-indigo-400/20'
+                                                'bg-brand-gold/10 text-brand-gold border-brand-gold/20'
                                             }`}>
                                                 {order.status}
                                             </span>
@@ -656,7 +782,7 @@ const AdminDashboard: React.FC = () => {
                             placeholder={t('common.search')}
                             value={productSearch}
                             onChange={(e) => setProductSearch(e.target.value)}
-                            className="w-full bg-[#1A1A1A] border border-white/5 rounded-2xl pl-12 pr-4 py-3.5 text-sm text-white focus:ring-2 focus:ring-[#4F46E5] outline-none transition-all"
+                            className="w-full bg-[#1A1A1A] border border-white/5 rounded-2xl pl-12 pr-4 py-3.5 text-sm text-white focus:ring-2 focus:ring-brand-gold outline-none transition-all"
                           />
                       </div>
                       <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -686,7 +812,7 @@ const AdminDashboard: React.FC = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       {filteredProductsManage.map(product => (
-                          <div key={product.id} className="bg-[#1A1A1A] p-4 rounded-[2rem] border border-white/5 group hover:border-[#4F46E5]/40 transition-all">
+                          <div key={product.id} className="bg-[#1A1A1A] p-4 rounded-[2rem] border border-white/5 group hover:border-brand-gold/40 transition-all">
                               <div className="aspect-square rounded-2xl overflow-hidden mb-4 relative bg-black/40">
                                   <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={product.name} />
                                   <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
@@ -695,7 +821,7 @@ const AdminDashboard: React.FC = () => {
                                             setEditingProduct(product);
                                             setIsAddModalOpen(true);
                                         }}
-                                        className="p-2 bg-white text-black rounded-lg shadow-xl hover:bg-[#4F46E5] hover:text-white transition-colors"
+                                        className="p-2 bg-white text-black rounded-lg shadow-xl hover:bg-brand-gold hover:text-brand-charcoal transition-colors"
                                       >
                                           <Edit size={14} />
                                       </button>
@@ -718,7 +844,7 @@ const AdminDashboard: React.FC = () => {
                               </div>
                               <h4 className="font-black text-sm mb-1 truncate">{product.name}</h4>
                               <div className="flex items-center justify-between">
-                                  <span className="text-indigo-400 font-mono font-black text-xs">${product.price}</span>
+                                  <span className="text-brand-gold font-mono font-black text-xs">${product.price}</span>
                                   <span className="text-[10px] text-white/30 font-bold uppercase tracking-widest">{product.colors.length} Colors</span>
                               </div>
                           </div>
@@ -799,6 +925,7 @@ const AdminDashboard: React.FC = () => {
                                                     colors: prod.colors,
                                                     sizes: prod.sizes,
                                                     rating: 5,
+                                                    stock: 100,
                                                     supplierName: prod.supplierName,
                                                     supplierUrl: prod.supplierUrl,
                                                     colorImages: {}
@@ -854,9 +981,9 @@ const AdminDashboard: React.FC = () => {
                                 {orders.map((order) => (
                                     <tr key={order.id} className="hover:bg-white/5 transition-colors group">
                                         <td className="px-8 py-6">
-                                            <span className="text-xs font-mono font-bold text-indigo-400">#{order.id.slice(-8).toUpperCase()}</span>
+                                            <span className="text-xs font-mono font-bold text-brand-gold">#{order.id.slice(-8).toUpperCase()}</span>
                                             <div className="flex gap-1 mt-1">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse"></div>
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
@@ -912,7 +1039,7 @@ const AdminDashboard: React.FC = () => {
                                                         className={`text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border bg-transparent outline-none cursor-pointer ${
                                                             order.status === 'delivered' ? 'text-green-400 border-green-500/20' :
                                                             order.status === 'pending' ? 'text-amber-400 border-amber-400/20' :
-                                                            'text-indigo-400 border-indigo-400/20'
+                                                            'text-brand-gold border-brand-gold/20'
                                                         }`}
                                                         value={order.status}
                                                         onChange={async (e) => {

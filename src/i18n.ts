@@ -112,7 +112,10 @@ const resources = {
         "removeFromWishlist": "Remove from Wishlist",
         "priceDropAlert": "Price Drop Alert!",
         "priceDropMsg": "Price for {{name}} in your wishlist has dropped! Now only {{price}}",
-        "noWishlist": "Your wishlist is empty"
+        "noWishlist": "Your wishlist is empty",
+        "onlyLeft": "Only {{count}} left!",
+        "lowStock": "Low Stock!",
+        "inStockCount": "{{count}} in stock"
       },
       "categories": {
         "new": "New",
@@ -485,7 +488,10 @@ const resources = {
         "removeFromWishlist": "إزالة من المفضلة",
         "priceDropAlert": "تنبيه انخفاض السعر!",
         "priceDropMsg": "انخفض سعر {{name}} في قائمة أمنياتك! الآن فقط {{price}}",
-        "noWishlist": "قائمة المفضلة فارغة"
+        "noWishlist": "قائمة المفضلة فارغة",
+        "onlyLeft": "متبقي {{count}} فقط!",
+        "lowStock": "مخزون منخفض!",
+        "inStockCount": "{{count}} في المخزون"
       },
       "categories": {
         "new": "جديد",
@@ -536,7 +542,7 @@ const resources = {
         "search": "بحث...",
         "noData": "لا توجد بيانات",
         "admin": "مسؤول",
-        "orderHistory": "تاريخ الطلبات",
+        "orderHistory": "الطلبات",
         "login": "تسجيل الدخول",
         "send": "إرسال",
         "total": "الإجمالي",

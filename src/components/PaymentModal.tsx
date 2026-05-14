@@ -132,7 +132,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
 
   const fullPhoneNumber = `${phonePrefix} ${formData.phone}`;
 
-  const finalTotal = total + shippingFee;
+  const effectiveShippingFee = paymentMethod === 'cod' ? shippingFee : 0;
+  const finalTotal = total + effectiveShippingFee;
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -191,11 +192,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
       `📍 *العنوان:* \n${countries.find(c => c.code === selectedCountry)?.name || selectedCountry} - ${formData.address}\n\n` +
       `📦 *المنتجات:*\n${itemsText}\n\n` +
       `💳 *طريقة الدفع:* ${methodLabel}${receiptFile ? (isArabic ? '\n✅ تم إرفاق إيصال الدفع' : '\n✅ Payment Receipt Attached') : ''}\n` +
-      `🚚 *شركة الشحن:* ${shippingProviders.find(p => p.id === selectedProvider)?.name || selectedProvider}\n` +
+      `🚚 *شركة الشحن:* ${paymentMethod === 'cod' ? (shippingProviders.find(p => p.id === selectedProvider)?.name || selectedProvider) : (isArabic ? 'شحن إلكتروني' : 'Electronic Shipping')}\n` +
       `--------------------------\n` +
       `💰 *المجموع:* ${formatPrice(total)}\n` +
-      `🚚 *الشحن:* ${formatPrice(shippingFee)}\n` +
-      `✨ *الإجمالي:* ${formatPrice(total + shippingFee)}\n` +
+      `🚚 *الشحن:* ${formatPrice(effectiveShippingFee)}\n` +
+      `✨ *الإجمالي:* ${formatPrice(finalTotal)}\n` +
       `--------------------------\n` +
       `🔗 *رابط التتبع:* ${info.trackingLink}\n` +
       `⏰ *التاريخ:* ${new Date().toLocaleString()}`
@@ -230,11 +231,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
         paymentMethod,
         cardholderName: cardholderName || null,
         walletProvider: paymentMethod === 'wallet' ? selectedWallet : null,
-        shippingProvider: selectedProvider,
+        shippingProvider: paymentMethod === 'cod' ? selectedProvider : 'electronic_standard',
         shippingSpeed,
         total: finalTotal,
         subtotal: total,
-        shippingFee,
+        shippingFee: effectiveShippingFee,
         items: cart.map(item => ({
           id: item.id,
           name: item.name,
@@ -471,42 +472,44 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                           <Globe size={20} className={`absolute ${isArabic ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-brand-gold`} />
                         </div>
 
-                        {/* Shipping Provider Selection */}
-                        <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold">{t('checkout.shippingProvider')}</label>
-                          <div className="grid grid-cols-1 gap-2">
-                            {shippingProviders
-                              .filter(p => {
-                                if (selectedCountry === 'IQ') return true; // Show all for Iraq including Al-Waseet
-                                return p.id !== 'al-waseet'; // Hide Al-Waseet for other countries
-                              })
-                              .map((p) => (
-                              <button
-                                key={p.id}
-                                type="button"
-                                onClick={() => setSelectedProvider(p.id)}
-                                className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${
-                                  selectedProvider === p.id 
-                                    ? 'border-brand-gold bg-brand-gold/5 shadow-sm' 
-                                    : 'border-brand-charcoal/5 hover:border-brand-charcoal/10'
-                                }`}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedProvider === p.id ? 'bg-brand-gold text-white' : 'bg-brand-charcoal/5 text-brand-charcoal/40'}`}>
-                                    <Truck size={14} />
+                        {/* Shipping Provider Selection - Only for COD as per request */}
+                        {paymentMethod === 'cod' && (
+                          <div className="space-y-3">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold">{t('checkout.shippingProvider')}</label>
+                            <div className="grid grid-cols-1 gap-2">
+                              {shippingProviders
+                                .filter(p => {
+                                  if (selectedCountry === 'IQ') return true; // Show all for Iraq including Al-Waseet
+                                  return p.id !== 'al-waseet'; // Hide Al-Waseet for other countries
+                                })
+                                .map((p) => (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => setSelectedProvider(p.id)}
+                                  className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${
+                                    selectedProvider === p.id 
+                                      ? 'border-brand-gold bg-brand-gold/5 shadow-sm' 
+                                      : 'border-brand-charcoal/5 hover:border-brand-charcoal/10'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedProvider === p.id ? 'bg-brand-gold text-white' : 'bg-brand-charcoal/5 text-brand-charcoal/40'}`}>
+                                      <Truck size={14} />
+                                    </div>
+                                    <div className={isArabic ? 'text-right' : 'text-left'}>
+                                      <span className="block text-sm font-bold text-brand-charcoal">{p.name}</span>
+                                      <span className="block text-[10px] text-brand-charcoal/40 font-medium">{t('checkout.deliveryWithin')}: {p.speed}</span>
+                                    </div>
                                   </div>
-                                  <div className={isArabic ? 'text-right' : 'text-left'}>
-                                    <span className="block text-sm font-bold text-brand-charcoal">{p.name}</span>
-                                    <span className="block text-[10px] text-brand-charcoal/40 font-medium">{t('checkout.deliveryWithin')}: {p.speed}</span>
+                                  <div className={`text-sm font-bold ${selectedProvider === p.id ? 'text-brand-gold' : 'text-brand-charcoal/60'}`}>
+                                    {formatPrice(Math.round(p.base * (COUNTRY_ADJUSTMENT_LOCAL[selectedCountry] || 1.5)))}
                                   </div>
-                                </div>
-                                <div className={`text-sm font-bold ${selectedProvider === p.id ? 'text-brand-gold' : 'text-brand-charcoal/60'}`}>
-                                  {formatPrice(Math.round(p.base * (COUNTRY_ADJUSTMENT_LOCAL[selectedCountry] || 1.5)))}
-                                </div>
-                              </button>
-                            ))}
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         {/* Name Input */}
                         <div className="relative">

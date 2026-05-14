@@ -24,7 +24,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose }) => 
     setIsSending(true);
 
     try {
-      await fetch('https://formsubmit.co/ajax/kmerro25@gmail.com', {
+      await fetch('https://formsubmit.co/ajax/merro4h@gmail.com', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

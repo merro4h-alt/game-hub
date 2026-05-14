@@ -25,9 +25,10 @@
         "category": { "type": "string" },
         "colors": { "type": "array" },
         "sizes": { "type": "array" },
-        "rating": { "type": "number" }
+        "rating": { "type": "number" },
+        "stock": { "type": "number", "description": "Available inventory quantity" }
       },
-      "required": ["id", "name", "price"]
+      "required": ["id", "name", "price", "stock"]
     },
     "Order": {
       "title": "Order",

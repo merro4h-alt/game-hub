@@ -168,6 +168,11 @@ const CartPage: React.FC = () => {
                       </span>
                       <span className="flex items-center gap-1 uppercase">| {isArabic ? 'المقاس' : 'Size'}: {item.selectedSize}</span>
                     </div>
+                    {item.stock <= 10 && (
+                      <p className="text-[10px] text-brand-gold font-bold mt-2 uppercase animate-pulse">
+                        {t('shop.onlyLeft', { count: item.stock })}
+                      </p>
+                    )}
                   </div>
 
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-4 sm:pt-6">

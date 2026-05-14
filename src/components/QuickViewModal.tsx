@@ -43,9 +43,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
   }, [selectedColor]);
 
   const handleAddToCart = () => {
-    for (let i = 0; i < quantity; i++) {
-      addToCart(product, selectedColor, selectedSize);
-    }
+    addToCart(product, selectedColor, selectedSize, quantity);
     onClose();
   };
 
@@ -132,6 +130,20 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
                 {product.description}
               </p>
 
+              {/* Stock Status */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 w-fit">
+                <div className={`w-2 h-2 rounded-full ${
+                  (product.stock || 0) <= 0 ? 'bg-red-500' : (product.stock || 0) <= 5 ? 'bg-orange-500' : 'bg-green-500'
+                }`} />
+                <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider">
+                  {(product.stock || 0) <= 0 
+                    ? (isArabic ? 'نفذت الكمية' : 'Out of Stock') 
+                    : (product.stock || 0) <= 5 
+                      ? (isArabic ? `بقي ${product.stock} فقط!` : `Only ${product.stock} left!`)
+                      : (isArabic ? 'متوفر في المخزون' : 'In Stock')}
+                </span>
+              </div>
+
               {/* Color Selector */}
               {product.colors.length > 0 && product.colors[0] !== 'Default' && (
                 <div className="space-y-3">
@@ -183,20 +195,31 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
             <div className="space-y-4 pt-4 border-t border-white/5 mt-auto">
               <div className="flex items-center gap-4">
                 <div className="flex items-center bg-white/5 rounded-2xl p-1 border border-white/10 h-14">
-                  <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="p-3 text-white/40 hover:text-white transition-colors">
+                  <button 
+                    onClick={() => setQuantity(q => Math.max(1, q - 1))} 
+                    className="p-3 text-white/40 hover:text-white transition-colors"
+                  >
                     <Minus size={16} />
                   </button>
                   <span className="w-8 text-center text-sm font-bold text-white">{quantity}</span>
-                  <button onClick={() => setQuantity(q => q + 1)} className="p-3 text-white/40 hover:text-white transition-colors">
+                  <button 
+                    onClick={() => setQuantity(q => Math.min(product.stock || 100, q + 1))} 
+                    className="p-3 text-white/40 hover:text-white transition-colors"
+                  >
                     <Plus size={16} />
                   </button>
                 </div>
                 <button 
                   onClick={handleAddToCart}
-                  className="flex-1 bg-[#4F46E5] text-white h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 hover:bg-[#4338CA] transition-all active:scale-[0.98] shadow-lg shadow-indigo-500/10"
+                  disabled={(product.stock || 0) <= 0}
+                  className={`flex-1 ${
+                    (product.stock || 0) <= 0 ? 'bg-white/10 text-white/20' : 'bg-[#4F46E5] text-white hover:bg-[#4338CA]'
+                  } h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-lg shadow-indigo-500/10`}
                 >
                   <ShoppingCart size={16} />
-                  {t('shop.addToCart')}
+                  {(product.stock || 0) <= 0 
+                    ? (isArabic ? 'نفذت الكمية' : 'Out of Stock') 
+                    : t('shop.addToCart')}
                 </button>
               </div>
               

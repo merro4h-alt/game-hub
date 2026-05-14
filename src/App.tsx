@@ -30,7 +30,6 @@ import { ChatWidget } from './components/ChatWidget';
 import { useStore } from './StoreContext';
 import { PromotionBar } from './components/PromotionBar';
 import { NewsletterPopup } from './components/NewsletterPopup';
-import { BeautyAIConsultant } from './components/BeautyAIConsultant';
 import ScrollProgress from './components/ScrollProgress';
 import { useAuth } from './AuthContext';
 import { AnimatePresence } from 'motion/react';
@@ -166,7 +165,6 @@ function AppContent() {
       <GlobalModals />
       <ChatWidget />
       <NewsletterPopup />
-      <BeautyAIConsultant />
       <ScrollProgress />
     </>
   );

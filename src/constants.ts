@@ -15,6 +15,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     colors: ['White', 'Beige', 'Navy'],
     sizes: ['S', 'M', 'L', 'XL'],
     rating: 4.5,
+    stock: 100,
   },
   {
     id: '2',
@@ -30,6 +31,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     colors: ['Transparent'],
     sizes: ['30ml', '50ml'],
     rating: 4.8,
+    stock: 100,
   },
   {
     id: '3',
@@ -45,6 +47,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     colors: ['Red', 'Black', 'Blue'],
     sizes: ['40', '41', '42', '43', '44'],
     rating: 4.7,
+    stock: 100,
   }
 ];
 

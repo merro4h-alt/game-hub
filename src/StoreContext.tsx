@@ -14,7 +14,7 @@ interface StoreContextType {
   addToProducts: (product: Product) => void;
   updateProduct: (product: Product) => void;
   deleteProduct: (productId: string) => void;
-  addToCart: (product: Product, color: string, size: string) => void;
+  addToCart: (product: Product, color: string, size: string, quantity?: number) => void;
   removeFromCart: (productId: string, color: string, size: string) => void;
   updateCartQuantity: (productId: string, color: string, size: string, quantity: number) => void;
   clearCart: () => void;
@@ -54,7 +54,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { user } = useAuth();
   const { showAlert } = useAlert();
   const [products, setProducts] = useState<Product[]>([]);
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [wishlist, setWishlist] = useState<WishlistItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('trendifi_wishlist');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    if (!user) {
+      localStorage.setItem('trendifi_wishlist', JSON.stringify(wishlist));
+    }
+  }, [wishlist, user]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Cart and other state from localStorage
@@ -244,7 +257,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Fetch wishlist from Firestore
   useEffect(() => {
     if (!user) {
-      setWishlist([]);
+      // Local wishlist is already loaded initially and managed by useEffect
       return;
     }
 
@@ -253,8 +266,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const loadWishlist = async () => {
       try {
         const { db } = await import('./lib/firebase');
-        const { collection, onSnapshot, query } = await import('firebase/firestore');
+        const { collection, onSnapshot, query, writeBatch, doc } = await import('firebase/firestore');
         
+        // Merge guest wishlist with cloud wishlist if exists
+        const guestWishlist = JSON.parse(localStorage.getItem('trendifi_wishlist') || '[]');
+        if (guestWishlist.length > 0) {
+          const batch = writeBatch(db);
+          guestWishlist.forEach((item: WishlistItem) => {
+            const ref = doc(db, 'users', user.uid, 'wishlist', item.productId);
+            batch.set(ref, item, { merge: true });
+          });
+          await batch.commit();
+          localStorage.removeItem('trendifi_wishlist');
+        }
+
         const q = query(collection(db, 'users', user.uid, 'wishlist'));
         
         unsubscribe = onSnapshot(q, (snapshot) => {
@@ -298,7 +323,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const toggleWishlist = async (productId: string) => {
     if (!user) {
-      showAlert(i18n.language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first', 'info');
+      // Handle guest wishlist in localStorage
+      setWishlist(prev => {
+        const index = prev.findIndex(item => item.productId === productId);
+        if (index > -1) {
+          return prev.filter(item => item.productId !== productId);
+        } else {
+          const product = products.find(p => p.id === productId);
+          if (!product) return prev;
+          
+          return [...prev, {
+            productId,
+            addedPrice: product.discountPrice ?? product.price,
+            createdAt: new Date().toISOString()
+          }];
+        }
+      });
       return;
     }
 
@@ -349,11 +389,49 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return { success: false, message: 'كود الخصم غير صحيح.' };
   };
 
-  const completePurchase = () => {
-    localStorage.setItem('trendifi_has_purchased', 'true');
-    setHasPurchased(true);
-    setAppliedDiscount(null);
-    clearCart();
+  const completePurchase = async () => {
+    try {
+      const { db } = await import('./lib/firebase');
+      const { doc, runTransaction } = await import('firebase/firestore');
+
+      await runTransaction(db, async (transaction) => {
+        // First check all stocks
+        for (const item of cart) {
+          const productRef = doc(db, 'products', item.id);
+          const productDoc = await transaction.get(productRef);
+          
+          if (!productDoc.exists()) {
+            throw new Error(`Product ${item.name} not found`);
+          }
+          
+          const currentStock = productDoc.data().stock || 0;
+          if (currentStock < item.quantity) {
+            throw new Error(i18n.language === 'ar' 
+              ? `عذراً، نفد مخزون ${item.name}` 
+              : `Sorry, ${item.name} is out of stock`);
+          }
+        }
+
+        // Decrement stocks
+        for (const item of cart) {
+          const productRef = doc(db, 'products', item.id);
+          const productDoc = await transaction.get(productRef);
+          const currentStock = productDoc.data().stock || 0;
+          transaction.update(productRef, { stock: currentStock - item.quantity });
+        }
+      });
+
+      localStorage.setItem('trendifi_has_purchased', 'true');
+      setHasPurchased(true);
+      setAppliedDiscount(null);
+      clearCart();
+      showAlert(i18n.language === 'ar' 
+        ? 'تمت عملية الشراء بنجاح! تم تحديث المخزون.' 
+        : 'Purchase successful! Stock updated.', 'success');
+    } catch (e: any) {
+      console.error("Purchase error:", e);
+      showAlert(e.message || 'Error processing purchase', 'error');
+    }
   };
 
   const addToProducts = async (product: Product) => {
@@ -397,18 +475,28 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const addToCart = (product: Product, color: string, size: string) => {
+  const addToCart = (product: Product, color: string, size: string, requestedQuantity: number = 1) => {
     setCart((prev) => {
       const existing = prev.find(item => item.id === product.id && item.selectedColor === color && item.selectedSize === size);
+      const currentQuantityInCart = existing ? existing.quantity : 0;
+      
+      // Check if enough stock is available
+      if (currentQuantityInCart + requestedQuantity > product.stock) {
+        showAlert(i18n.language === 'ar' 
+          ? `عذراً، الكمية المتوفرة من هذا المنتج هي ${product.stock} فقط` 
+          : `Sorry, only ${product.stock} items left in stock`, 'error');
+        return prev;
+      }
+
       if (existing) {
         return prev.map(item => 
           (item.id === product.id && item.selectedColor === color && item.selectedSize === size)
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + requestedQuantity }
             : item
         );
       }
       const itemImage = product.colorImages?.[color] || product.image;
-      return [...prev, { ...product, image: itemImage, quantity: 1, selectedColor: color, selectedSize: size }];
+      return [...prev, { ...product, image: itemImage, quantity: requestedQuantity, selectedColor: color, selectedSize: size }];
     });
   };
 
@@ -418,6 +506,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updateCartQuantity = (productId: string, color: string, size: string, quantity: number) => {
     if (quantity < 1) return;
+    
+    // Find item to check stock
+    const item = cart.find(i => i.id === productId && i.selectedColor === color && i.selectedSize === size);
+    if (item && quantity > item.stock) {
+      showAlert(i18n.language === 'ar' 
+        ? `عذراً، الكمية المتوفرة هي ${item.stock} فقط` 
+        : `Only ${item.stock} items left in stock`, 'error');
+      return;
+    }
+
     setCart((prev) => prev.map(item => 
       (item.id === productId && item.selectedColor === color && item.selectedSize === size) ? { ...item, quantity } : item
     ));

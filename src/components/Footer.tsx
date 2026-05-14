@@ -54,7 +54,10 @@ const Footer: React.FC = () => {
               <li><Link to="/admin" className="hover:text-brand-gold transition-colors text-white/30 text-xs italic">{t('admin.dashboard')}</Link></li>
               <li className="pt-4 mt-4 border-t border-white/5">
                 <span className="block text-xs uppercase tracking-widest text-white/30 mb-1">{t('footer.emailLabel')}</span>
-                <a href="mailto:merro4h@gmail.com" className="text-brand-gold hover:underline font-medium">merro4h@gmail.com</a>
+                <div className="flex flex-col gap-1">
+                  <a href="mailto:merro4h@gmail.com" className="text-brand-gold hover:underline font-medium text-sm transition-all">merro4h@gmail.com</a>
+                  <a href="mailto:kmerro25@gmail.com" className="text-brand-gold hover:underline font-medium text-sm transition-all">kmerro25@gmail.com</a>
+                </div>
               </li>
             </ul>
           </div>

@@ -44,6 +44,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
     colorImages: {} as Record<string, string>,
     supplierName: '',
     supplierUrl: '',
+    stock: '100',
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -68,6 +69,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
         colorImages: editingProduct.colorImages || {},
         supplierName: editingProduct.supplierName || '',
         supplierUrl: editingProduct.supplierUrl || '',
+        stock: editingProduct.stock.toString(),
       });
     } else {
       setFormData({
@@ -85,6 +87,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
         colorImages: {},
         supplierName: '',
         supplierUrl: '',
+        stock: '100',
       });
     }
   }, [editingProduct, isOpen]);
@@ -341,6 +344,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
         return;
       }
 
+      const parsedStock = parseInt(formData.stock);
+      if (isNaN(parsedStock) || parsedStock < 0) {
+        setIsProcessing(false);
+        setErrorMsg(isArabic ? 'الرجاء إدخال عدد صحيح للمخزون' : 'Please enter a valid stock number');
+        return;
+      }
+
       let parsedDiscountPrice: number | undefined = undefined;
       if (formData.discountPrice && formData.discountPrice.trim() !== '') {
         parsedDiscountPrice = parseFloat(formData.discountPrice);
@@ -365,6 +375,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
         colorImages: formData.colorImages || {},
         sizes: formData.sizes.length > 0 ? formData.sizes : ['One Size'],
         rating: editingProduct ? editingProduct.rating : 5,
+        stock: parsedStock,
         supplierName: formData.supplierName || 'Self',
         supplierUrl: formData.supplierUrl || '',
       };
@@ -596,6 +607,18 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold focus:border-transparent outline-none text-brand-charcoal"
                     placeholder="99.99"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-brand-charcoal/50">
+                    {isArabic ? 'المخزون (الكمية المتاحة)' : 'Stock (Available Quantity)'}
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.stock}
+                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                    className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold focus:border-transparent outline-none text-brand-charcoal"
+                    placeholder="100"
                   />
                 </div>
                 <div className="space-y-2">

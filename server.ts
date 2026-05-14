@@ -1,11 +1,7 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
-import { fileURLToPath } from "url";
 import Stripe from "stripe";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Initialize Stripe (lazy load it inside routes if needed, but here is fine for demonstration)
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
@@ -176,9 +172,9 @@ Total: $${total.toFixed(2)}
       let emailSent = false;
       if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         const mailOptions = {
-          from: `"AH Store" <${process.env.EMAIL_USER || 'noreply@ahstore.shop'}>`,
+          from: `"AMEER ALI Store" <${process.env.EMAIL_USER || 'noreply@ahstore.shop'}>`,
           to: emailTo || 'merro4h@gmail.com',
-          subject: `New Order #${trackingId} from ${name} - AH Store`,
+          subject: `New Order #${trackingId} from ${name} - AMEER ALI Store`,
           text: orderSummary,
           html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee;">
@@ -222,7 +218,7 @@ Total: $${total.toFixed(2)}
       if (accountSid && authToken && fromWhatsApp) {
         const client = twilio(accountSid, authToken);
         await client.messages.create({
-          body: `*AH Store - New Order #${trackingId}*\n\nTrack here: ${trackingLink}\n\n${orderSummary}`,
+          body: `*AMEER ALI Store - New Order #${trackingId}*\n\nTrack here: ${trackingLink}\n\n${orderSummary}`,
           from: fromWhatsApp,
           to: toWhatsApp
         });

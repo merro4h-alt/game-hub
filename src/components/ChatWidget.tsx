@@ -24,7 +24,7 @@ export const ChatWidget: React.FC = () => {
 
     try {
       // Send email using FormSubmit (Free & No backend needed)
-      await fetch('https://formsubmit.co/ajax/kmerro25@gmail.com', {
+      await fetch('https://formsubmit.co/ajax/merro4h@gmail.com', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -70,12 +70,12 @@ export const ChatWidget: React.FC = () => {
             style={{ height: '500px' }}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] text-white p-6 flex justify-between items-center">
+            <div className="bg-gradient-to-r from-brand-charcoal to-brand-charcoal/90 text-brand-cream p-6 flex justify-between items-center">
               <div>
                 <h3 className="font-bold tracking-tight text-lg">{t('order.chat.title')}</h3>
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  <span className="text-[10px] uppercase tracking-widest text-white/60">Online</span>
+                  <span className="w-2 h-2 bg-brand-gold rounded-full animate-pulse" />
+                  <span className="text-[10px] uppercase tracking-widest text-[#D4AF37]/60">Online</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -118,7 +118,7 @@ export const ChatWidget: React.FC = () => {
                 >
                   <div className={`p-4 rounded-2xl max-w-[80%] shadow-sm ${
                     msg.sender === 'user' 
-                      ? 'bg-brand-gold text-brand-charcoal rounded-tr-none' 
+                      ? 'bg-[#4F46E5] text-white rounded-tr-none' 
                       : 'bg-white border border-brand-charcoal/5 text-brand-charcoal rounded-tl-none'
                   }`}>
                     <p className="text-sm font-light leading-relaxed">
@@ -137,11 +137,11 @@ export const ChatWidget: React.FC = () => {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={t('order.chat.inputPlaceholder')}
-                  className={`w-full bg-brand-charcoal/5 border-none rounded-2xl py-4 ${isRtl ? 'pr-6 pl-14' : 'pl-6 pr-14'} text-sm text-brand-charcoal focus:ring-1 focus:ring-brand-gold outline-none`}
+                  className={`w-full bg-brand-charcoal/5 border-none rounded-2xl py-4 ${isRtl ? 'pr-6 pl-14' : 'pl-6 pr-14'} text-sm text-brand-charcoal focus:ring-1 focus:ring-[#4F46E5] outline-none`}
                 />
                 <button 
                   type="submit"
-                  className={`absolute top-1/2 -translate-y-1/2 ${isRtl ? 'left-4' : 'right-4'} text-brand-gold hover:scale-110 transition-all duration-300 disabled:opacity-30`}
+                  className={`absolute top-1/2 -translate-y-1/2 ${isRtl ? 'left-4' : 'right-4'} text-[#4F46E5] hover:scale-110 transition-all duration-300 disabled:opacity-30`}
                   disabled={!message.trim()}
                 >
                   <Send size={18} />
@@ -158,8 +158,8 @@ export const ChatWidget: React.FC = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-[#4F46E5] to-[#7C3AED] text-white rounded-full shadow-2xl flex items-center justify-center relative group overflow-hidden border border-white/10"
       >
-        <div className="absolute inset-0 bg-[#3730A3] translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-        <span className="relative z-10 transition-transform duration-500">
+        <div className="absolute inset-0 bg-brand-charcoal translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+        <span className="relative z-10 transition-transform duration-500 group-hover:text-white">
           {isOpen ? <X size={28} /> : <MessageCircle size={28} />}
         </span>
       </motion.button>
