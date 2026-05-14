@@ -24,6 +24,7 @@ import OrdersPage from './pages/OrdersPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import AdminDashboard from './pages/AdminDashboard';
 import DropShippingPage from './pages/DropShippingPage';
+import PoliciesPage from './pages/PoliciesPage';
 import AddProductModal from './components/AddProductModal';
 import QuickViewModal from './components/QuickViewModal';
 import { ChatWidget } from './components/ChatWidget';
@@ -158,6 +159,7 @@ function AppContent() {
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/drop-shipping" element={<DropShippingPage />} />
+          <Route path="/policies" element={<PoliciesPage />} />
           <Route path="/product/:productId" element={<ProductDetailPage />} />
         </Routes>
       </main>

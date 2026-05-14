@@ -43,7 +43,7 @@ const WishlistPage: React.FC = () => {
       </div>
 
       {wishlistProducts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 sm:gap-8">
           <AnimatePresence mode="popLayout">
             {wishlistProducts.map((product: any) => (
               <motion.div

@@ -174,7 +174,7 @@ const ShopPage: React.FC = () => {
         {isLoading ? (
           <ListingSkeleton />
         ) : filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-16">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10 sm:gap-x-8 sm:gap-y-16">
             <AnimatePresence>
               {filteredProducts.map((product) => (
                 <ProductCard 

@@ -55,8 +55,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
   const { showAlert } = useAlert();
   const isArabic = i18n.language === 'ar';
 
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cod' | 'wallet' | 'crypto'>('card');
-  const [selectedWallet, setSelectedWallet] = useState<'zaincash' | 'asiahawala' | 'wallet' | 'nass' | 'fast' | 'bank'>('zaincash');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cod' | 'googlepay' | 'crypto'>('card');
   const [selectedCountry, setSelectedCountry] = useState('SA'); // Default to SA for better payment coverage
   const [phonePrefix, setPhonePrefix] = useState('+966');
   const [shippingProviders, setShippingProviders] = useState<any[]>(SHIPPING_PROVIDERS);
@@ -175,7 +174,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
     const methodLabel = paymentMethod === 'cod' ? (isArabic ? 'الدفع عند الاستلام (افحص واستلم) 🤝' : 'Cash on Delivery (Check & Collect) 🤝') : 
                        paymentMethod === 'card' ? t('checkout.card') : 
                        paymentMethod === 'crypto' ? (isArabic ? 'عملات رقمية 🪙' : 'Cryptocurrency 🪙') :
-                       paymentMethod === 'wallet' ? (isArabic ? `تحويل محفظة (${selectedWallet === 'zaincash' ? 'زين كاش' : selectedWallet === 'asiahawala' ? 'آسيا حوالة' : selectedWallet === 'nass' ? 'نص باي' : selectedWallet === 'fast' ? 'فاست باي' : 'محفظة'}) 📱` : `Wallet Transfer (${selectedWallet === 'zaincash' ? 'ZainCash' : selectedWallet === 'asiahawala' ? 'AsiaHawala' : selectedWallet === 'nass' ? 'NassPay' : selectedWallet === 'fast' ? 'FastPay' : 'Wallet'}) 📱`) :
+                       paymentMethod === 'googlepay' ? (isArabic ? 'جوجل باي (الدفع السريع) 📱' : 'Google Pay (Rapid) 📱') :
                        t('checkout.paypal');
     
     // Formatting items with price
@@ -230,7 +229,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
         phone: fullPhoneNumber,
         paymentMethod,
         cardholderName: cardholderName || null,
-        walletProvider: paymentMethod === 'wallet' ? selectedWallet : null,
+        googlePayVerified: paymentMethod === 'googlepay',
         shippingProvider: paymentMethod === 'cod' ? selectedProvider : 'electronic_standard',
         shippingSpeed,
         total: finalTotal,
@@ -307,13 +306,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
     card: '#008296',
     crypto: '#f7931a',
     cod: '#22c55e',
-    wallet: '#ffcb05'
+    googlepay: '#4285F4'
   };
 
     const methodLabel = paymentMethod === 'cod' ? (isArabic ? 'دفع عند الاستلام' : 'Cash on Delivery') : 
                        paymentMethod === 'card' ? (isArabic ? 'بطاقة بنكية' : 'Bank Card') : 
                        paymentMethod === 'crypto' ? (isArabic ? 'عملات رقمية' : 'Crypto') :
-                       paymentMethod === 'wallet' ? (isArabic ? 'محفظة إلكترونية' : 'E-Wallet') :
+                       paymentMethod === 'googlepay' ? (isArabic ? 'جوجل باي' : 'Google Pay') :
                        '';
 
     return (
@@ -408,7 +407,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                 <div className="space-y-8">
                   {/* Payment Selection Toggles - Grid for desktop to ensure all are visible */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 bg-brand-charcoal/[0.03] p-2 rounded-2xl gap-2 sm:gap-3 border border-brand-charcoal/5">
-                    {(['card', 'crypto', 'cod', 'wallet'] as const).map((method) => (
+                    {(['card', 'crypto', 'cod', 'googlepay'] as const).map((method) => (
                       <button
                         key={method}
                         type="button"
@@ -433,7 +432,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                         >
                           {method === 'card' ? <CreditCard size={24} strokeWidth={2} /> : 
                            method === 'cod' ? <Truck size={24} strokeWidth={2} /> : 
-                           method === 'wallet' ? <Smartphone size={24} strokeWidth={2} /> : 
+                           method === 'googlepay' ? <Smartphone size={24} strokeWidth={2} /> : 
                            method === 'crypto' ? <Coins size={24} strokeWidth={2} /> :
                            <Banknote size={24} />}
                         </div>
@@ -441,7 +440,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                           className={`text-[10px] font-black uppercase tracking-wider whitespace-nowrap text-center transition-all ${paymentMethod === method ? '' : 'text-brand-charcoal/40'}`}
                           style={{ color: paymentMethod === method ? paymentMethodColors[method] : '' }}
                         >
-                          {method === 'wallet' ? (isArabic ? 'محفظة' : 'Wallet') :
+                          {method === 'googlepay' ? (isArabic ? 'جوجل باي' : 'Google Pay') :
                            method === 'crypto' ? (isArabic ? 'عملات رقمية' : 'Crypto') :
                            texts[method as keyof typeof texts]}
                         </span>
@@ -638,117 +637,55 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                              <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-4" />
                            </div>
                         </div>
-                      ) : paymentMethod === 'wallet' ? (
-                        <div className="space-y-6">
-                           <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2 mb-4">
-                             <Globe size={12} strokeWidth={3} /> {isArabic ? 'اختر المحفظة والتحويل' : 'Select Wallet & Transfer'}
-                           </h4>
-                           <div className="grid grid-cols-2 gap-3 mb-4">
-                              {[
-                                { id: 'zaincash', name: 'ZainCash', ar: 'زين كاش', color: '#ffcb05', label: 'ZC' },
-                                { id: 'asiahawala', name: 'AsiaHawala', ar: 'آسيا حوالة', color: '#ed1c24', label: 'AH' },
-                                { id: 'nass', name: 'NassPay', ar: 'نص باي', color: '#00a651', label: 'NP' },
-                                { id: 'fast', name: 'FastPay', ar: 'فاست باي', color: '#00adef', label: 'FP' }
-                              ].map((wallet) => (
-                                <button 
-                                  key={wallet.id}
-                                  onClick={() => setSelectedWallet(wallet.id as any)}
-                                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 relative overflow-hidden group ${
-                                    selectedWallet === wallet.id 
-                                      ? `border-[${wallet.color}] bg-[${wallet.color}]/5 ring-4 ring-[${wallet.color}]/10` 
-                                      : 'border-brand-charcoal/5 bg-gray-50/50 hover:bg-white hover:border-brand-gold/20'
-                                  }`}
-                                  style={{ borderColor: selectedWallet === wallet.id ? wallet.color : '' }}
-                                >
-                                  {selectedWallet === wallet.id && (
-                                    <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-brand-gold border-2 border-white shadow-sm z-10" 
-                                         style={{ backgroundColor: wallet.color }} />
-                                  )}
-                                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-xs shadow-lg transform transition-transform group-hover:scale-110"
-                                       style={{ backgroundColor: wallet.color }}>
-                                    {wallet.label}
-                                  </div>
-                                  <div className="flex flex-col items-center text-center">
-                                    <span className="text-[11px] font-black text-brand-charcoal leading-none mb-1">{wallet.name}</span>
-                                    <span className="text-[9px] font-bold text-brand-charcoal/40 leading-none">{wallet.ar}</span>
-                                  </div>
-                                </button>
-                              ))}
-                           </div>
-
-                           <div className="bg-brand-charcoal/[0.03] p-6 rounded-3xl border border-brand-charcoal/10 text-center space-y-4 relative overflow-hidden">
-                              <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none">
-                                <Globe size={80} />
-                              </div>
-                              <p className="text-xs text-brand-charcoal/70 font-medium leading-relaxed relative z-10">
-                                {isArabic 
-                                  ? `يرجى تحويل مبلغ (${formatPrice(finalTotal)}) إلى الرقم التالي، ثم اضغط تأكيد السداد:` 
-                                  : `Please transfer (${formatPrice(finalTotal)}) to the following Number, then verify:`}
+                      ) : paymentMethod === 'googlepay' ? (
+                        <div className="space-y-6 text-center">
+                          <div className="bg-[#4285F4]/5 p-8 rounded-[2.5rem] border-2 border-[#4285F4]/20 space-y-6">
+                            <div className="w-20 h-20 bg-[#4285F4] rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-[#4285F4]/20 animate-bounce">
+                              <Smartphone size={40} className="text-white" />
+                            </div>
+                            <div className="space-y-2">
+                              <h4 className="text-xl font-black text-brand-charcoal leading-tight">
+                                {isArabic ? 'الدفع السريع بنقرة واحدة' : 'One-Tap Fast Payment'}
+                              </h4>
+                              <p className="text-[10px] font-bold text-brand-charcoal/40 uppercase tracking-widest">
+                                {isArabic ? 'آمن • سريع • خصوصية كاملة' : 'Secure • Fast • Total Privacy'}
                               </p>
-                              <div className="bg-white py-4 px-6 rounded-2xl border border-brand-charcoal/10 shadow-sm relative z-10 group cursor-pointer active:scale-95 transition-transform">
-                                <p className="text-2xl font-mono font-black text-brand-charcoal tracking-[0.2em]">
-                                  {selectedWallet === 'zaincash' ? '07837814009' : 
-                                   selectedWallet === 'asiahawala' ? '07730000000' :
-                                   selectedWallet === 'nass' ? '07500000000' :
-                                   '07800000000'}
-                                </p>
-                                <div className="mt-3 flex items-center justify-center gap-3 opacity-80 group-hover:opacity-100 transition-opacity">
-                                  <div className="h-[1px] w-6 bg-brand-gold/40" />
-                                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold">{isArabic ? 'اضغط للنسخ' : 'CLICK TO COPY'}</span>
-                                  <div className="h-[1px] w-6 bg-brand-gold/40" />
-                                </div>
+                            </div>
+                            
+                            <div className="bg-white p-4 rounded-2xl border border-brand-charcoal/5 flex flex-col items-center gap-3">
+                              <div className="flex items-center gap-2">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="Google Pay" className="h-8" />
                               </div>
-                              <p className="text-[10px] text-brand-gold font-black uppercase tracking-wider relative z-10">
-                                {isArabic ? '✓ يرجى إرسال صورة التحويل عبر الواتساب' : '✓ Please send transfer screenshot via WhatsApp'}
+                              <p className="text-[10px] text-brand-charcoal/60 leading-relaxed max-w-[200px]">
+                                {isArabic ? 'سيتم استخدام معلومات الدفع المحفوظة في حساب جوجل الخاص بك' : 'Saved payment info from your Google account will be used securely'}
                               </p>
-                           </div>
+                            </div>
+                          </div>
 
-                           {/* Trust & Guarantees Section */}
-                           <div className="mt-8 grid grid-cols-3 gap-2 border-t border-brand-charcoal/5 pt-6">
-                              <div className="flex flex-col items-center text-center gap-1.5">
-                                <div className="w-8 h-8 rounded-full bg-brand-gold/10 flex items-center justify-center text-brand-gold">
-                                  <ShieldCheck size={16} />
-                                </div>
-                                <span className="text-[8px] font-bold text-brand-charcoal/70 leading-tight uppercase tracking-tighter">
-                                  {isArabic ? 'ضمان حقيقي' : 'Real Guarantee'}
-                                </span>
-                              </div>
-                              <div className="flex flex-col items-center text-center gap-1.5">
-                                <div className="w-8 h-8 rounded-full bg-brand-gold/10 flex items-center justify-center text-brand-gold">
-                                  <Truck size={16} />
-                                </div>
-                                <span className="text-[8px] font-bold text-brand-charcoal/70 leading-tight uppercase tracking-tighter">
-                                  {isArabic ? 'فحص قبل الدفع' : 'Check Before Pay'}
-                                </span>
-                              </div>
-                              <div className="flex flex-col items-center text-center gap-1.5">
-                                <div className="w-8 h-8 rounded-full bg-brand-gold/10 flex items-center justify-center text-brand-gold">
-                                  <Lock size={16} />
-                                </div>
-                                <span className="text-[8px] font-bold text-brand-charcoal/70 leading-tight uppercase tracking-tighter">
-                                  {isArabic ? 'دفع آمن 100%' : '100% Secure'}
-                                </span>
-                              </div>
-                           </div>
+                          <button
+                            disabled={isProcessing}
+                            onClick={() => handleSubmit()}
+                            type="button"
+                            className="w-full bg-[#4285F4] text-white font-black py-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-brand-charcoal shadow-2xl shadow-[#4285F4]/20 transition-all disabled:opacity-50 active:scale-95 group uppercase tracking-widest text-xs"
+                          >
+                            {isProcessing ? (
+                              <span className="flex items-center gap-2 font-bold">
+                                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                {texts.processing}
+                              </span>
+                            ) : (
+                              <>
+                                <ShieldCheck className="group-hover:scale-110 transition-transform" />
+                                {isArabic ? 'ادفع الآن بوساطة Google Pay' : 'Pay Now with Google Pay'}
+                              </>
+                            )}
+                          </button>
 
-                           <button
-                             disabled={isProcessing}
-                             onClick={() => handleSubmit()}
-                             type="button"
-                             className="w-full bg-brand-charcoal text-white font-bold py-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-brand-gold shadow-2xl shadow-brand-charcoal/20 transition-all disabled:opacity-50 active:scale-95 group"
-                           >
-                             {isProcessing ? (
-                               <span className="flex items-center gap-2">
-                                  <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                                  {texts.processing}
-                               </span>
-                             ) : (
-                               <>
-                                 <ShieldCheck className="group-hover:scale-110 transition-transform" />
-                                 {texts.confirmOrder}
-                               </>
-                             )}
-                           </button>
+                          <div className="flex items-center justify-center gap-4 opacity-50 grayscale pt-2">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/c/cb/Google_Pay_Logo_2020.svg" alt="GP" className="h-4" />
+                            <div className="w-[1px] h-3 bg-brand-charcoal/20" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-brand-charcoal">Smart Auth</span>
+                          </div>
                         </div>
                       ) : paymentMethod === 'crypto' ? (
                         <div className="space-y-6">

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingBag, ArrowRight, Trash2, Plus, Minus, CreditCard, ArrowLeft, Truck, Banknote, ShieldCheck, Ticket, X, Coins } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Trash2, Plus, Minus, CreditCard, ArrowLeft, Truck, Banknote, ShieldCheck, Ticket, X, Coins, Smartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../StoreContext';
 import PaymentModal from '../components/PaymentModal';
@@ -51,7 +51,7 @@ const CartPage: React.FC = () => {
     redirecting: isArabic ? 'جاري التحويل...' : 'Redirecting...',
     secureOptions: isArabic ? 'خيارات دفع وقبول آمنة' : 'Secure Payment Options',
     codAvailable: isArabic ? 'تتوفر خاصية الدفع عند الاستلام' : 'Cash on Delivery Available',
-    bankAvailable: isArabic ? 'تتوفر خاصية الدفع عبر المحفظة والعملات الرقمية' : 'Wallet & Crypto Payment Available',
+    bankAvailable: isArabic ? 'تتوفر خاصية الدفع عبر Google Pay والعملات الرقمية' : 'Google Pay & Crypto Payment Available',
     promoCode: isArabic ? 'كود الخصم' : 'Promo Code',
     apply: isArabic ? 'تطبيق' : 'Apply',
     discount: isArabic ? 'الخصم' : 'Discount'
@@ -318,9 +318,11 @@ const CartPage: React.FC = () => {
                       </div>
                       <span className="text-[7px] text-white font-black tracking-tight group-hover:text-white transition-colors uppercase">Crypto</span>
                    </div>
-                   <div className="bg-[#ffcb05] px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-[#ffd633] transition-all">
-                      <div className="w-5 h-5 rounded-full bg-brand-charcoal flex items-center justify-center text-[#ffcb05] font-black text-[8px] transform group-hover:scale-110 transition-transform">ZC</div>
-                      <span className="text-[7px] text-brand-charcoal font-black tracking-tight group-hover:text-white transition-colors uppercase">ZainCash</span>
+                   <div className="bg-[#4285F4] px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-white hover:border-[#4285F4] transition-all">
+                      <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-[#4285F4] font-black text-[8px] transform group-hover:scale-110 transition-transform">
+                        <Smartphone size={12} />
+                      </div>
+                      <span className="text-[7px] text-white group-hover:text-[#4285F4] font-black tracking-tight transition-colors uppercase">Google Pay</span>
                    </div>
                    <div className="bg-[#22c55e] px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 w-full border border-white/10 group cursor-pointer hover:bg-[#16a34a] transition-all">
                       <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -376,10 +378,12 @@ const CartPage: React.FC = () => {
               </div>
             </div>
             <div className="bg-white px-6 py-4 rounded-2xl shadow-xl h-16 flex items-center gap-3 transition-transform hover:scale-110 active:scale-95 cursor-pointer">
-              <div className="w-10 h-10 rounded-full bg-[#ffcb05] flex items-center justify-center text-black font-black text-xs shadow-lg">ZC</div>
+              <div className="w-10 h-10 rounded-full bg-[#4285F4] flex items-center justify-center text-white shadow-lg">
+                <Smartphone size={20} />
+              </div>
               <div className="flex flex-col">
-                <span className="font-black text-brand-charcoal text-[13px] leading-none uppercase">ZainCash</span>
-                <span className="font-bold text-brand-charcoal/40 text-[9px] uppercase tracking-tighter mt-1">Wallet</span>
+                <span className="font-black text-brand-charcoal text-[13px] leading-none uppercase">Google Pay</span>
+                <span className="font-bold text-brand-charcoal/40 text-[9px] uppercase tracking-tighter mt-1">{isArabic ? 'دفع سريع' : 'Fast Pay'}</span>
               </div>
             </div>
             <div className="bg-white px-6 py-4 rounded-2xl shadow-xl h-16 flex items-center gap-4 text-brand-charcoal transition-transform hover:scale-110 active:scale-95 cursor-pointer">

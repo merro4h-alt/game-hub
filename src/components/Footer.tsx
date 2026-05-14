@@ -51,6 +51,7 @@ const Footer: React.FC = () => {
               <li><Link to="/about" className="hover:text-brand-gold transition-colors">{t('nav.about')}</Link></li>
               <li><Link to="/contact" className="hover:text-brand-gold transition-colors">{t('nav.contact')}</Link></li>
               <li><Link to="/track" className="hover:text-brand-gold transition-colors">{t('nav.trackOrder')}</Link></li>
+              <li><Link to="/policies" className="hover:text-brand-gold transition-colors">{i18n.language === 'ar' ? 'سياسات المتجر' : 'Store Policies'}</Link></li>
               <li><Link to="/admin" className="hover:text-brand-gold transition-colors text-white/30 text-xs italic">{t('admin.dashboard')}</Link></li>
               <li className="pt-4 mt-4 border-t border-white/5">
                 <span className="block text-xs uppercase tracking-widest text-white/30 mb-1">{t('footer.emailLabel')}</span>
@@ -104,8 +105,9 @@ const Footer: React.FC = () => {
             {t('footer.copyright')}
           </p>
           <div className="flex gap-8 text-brand-cream/40 text-xs uppercase tracking-widest">
-            <a href="#" className="hover:text-brand-gold">Privacy Policy</a>
-            <a href="#" className="hover:text-brand-gold">Terms of Service</a>
+            <Link to="/policies" className="hover:text-brand-gold">{i18n.language === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'}</Link>
+            <Link to="/policies" className="hover:text-brand-gold">{i18n.language === 'ar' ? 'شروط الخدمة' : 'Terms of Service'}</Link>
+            <Link to="/contact" className="hover:text-brand-gold">{i18n.language === 'ar' ? 'اتصل بنا' : 'Contact Us'}</Link>
           </div>
           {/* Payment Badges */}
           <div className="flex flex-wrap items-center justify-center md:justify-end gap-3">
@@ -120,8 +122,10 @@ const Footer: React.FC = () => {
                <span className="text-[9px] font-black tracking-widest text-white/40 group-hover:text-white uppercase">Crypto</span>
              </div>
              <div className="bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 transition-all group">
-               <div className="w-4 h-4 rounded-full bg-[#ffcb05] flex items-center justify-center text-black font-black text-[7px]">ZC</div>
-               <span className="text-[9px] font-black tracking-widest text-white/40 group-hover:text-white uppercase">ZainCash</span>
+               <div className="w-4 h-4 rounded-full bg-[#4285F4] flex items-center justify-center text-white">
+                 <ShieldCheck size={10} />
+               </div>
+               <span className="text-[9px] font-black tracking-widest text-white/40 group-hover:text-white uppercase transition-colors">Google Pay</span>
              </div>
              <div className="bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 transition-all group">
                <Banknote size={14} className="text-brand-gold opacity-50 group-hover:opacity-100" />

@@ -63,9 +63,10 @@ const Navbar: React.FC = () => {
     { name: t('nav.home'), path: '/' },
     { name: t('nav.shop'), path: '/shop' },
     { name: t('nav.supplierPortal'), path: '/drop-shipping' },
+    { name: t('nav.trackOrder'), path: '/track' },
     { name: t('nav.about'), path: '/about' },
     { name: t('nav.contact'), path: '/contact' },
-    { name: t('nav.trackOrder'), path: '/track' },
+    { name: i18n.language === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy', path: '/policies' },
   ];
 
   const categories = [

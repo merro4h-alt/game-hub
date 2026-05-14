@@ -230,13 +230,12 @@ const HomePage: React.FC = () => {
           {isLoading ? (
             <ListingSkeleton count={4} />
           ) : (
-            <div className="flex overflow-x-auto pb-8 gap-6 no-scrollbar snap-x">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 sm:gap-8">
               {featuredProducts.map((product, index) => (
                 <motion.div 
                   key={product.id} 
-                  className="min-w-[280px] sm:min-w-[320px] snap-start"
-                  initial={{ opacity: 0, x: 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
                 >

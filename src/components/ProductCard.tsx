@@ -140,39 +140,31 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
               <span>{t('shop.addToCart')}</span>
             </button>
           </div>
-          <div className="absolute top-5 left-5 flex items-start gap-2.5 z-20">
-            <div className="flex flex-col gap-2.5">
-              <div className="bg-brand-gold px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] shadow-xl shadow-brand-gold/20 border border-white/20 text-brand-charcoal">
-                {product.category === 'New' ? t('categories.new') : 
-                 product.category === 'Best Seller' ? t('categories.bestSeller') : 
-                 t('categories.offers')}
-              </div>
-              {product.discountPrice && (
-                <motion.div 
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="bg-[#EF4444] text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] shadow-xl shadow-red-500/20 flex items-center gap-1.5 border border-white/10"
-                >
-                  <Sparkles size={10} className="text-white/80" />
-                  <span>-{Math.round(((product.price - product.discountPrice) / product.price) * 100)}%</span>
-                </motion.div>
-              )}
-            </div>
-
+          <div className="absolute top-5 left-5 z-20 flex flex-col gap-2.5">
             <button 
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 toggleWishlist(product.id);
               }}
-              className={`p-2.5 rounded-2xl backdrop-blur-md shadow-xl transition-all active:scale-90 ${
+              className={`p-3 rounded-2xl backdrop-blur-md shadow-xl transition-all active:scale-90 ${
                 isInWishlist(product.id) 
-                  ? 'bg-red-500 text-white' 
-                  : 'bg-white/80 text-brand-charcoal hover:text-red-500'
+                  ? 'bg-red-500 text-white shadow-red-500/30' 
+                  : 'bg-white/90 text-brand-charcoal hover:text-red-500'
               }`}
             >
-              <Heart size={16} fill={isInWishlist(product.id) ? "currentColor" : "none"} />
+              <Heart size={18} fill={isInWishlist(product.id) ? "currentColor" : "none"} />
             </button>
+            {product.discountPrice && (
+              <motion.div 
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="bg-[#EF4444] text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] shadow-xl shadow-red-500/20 flex items-center gap-1.5 border border-white/10"
+              >
+                <Sparkles size={10} className="text-white/80" />
+                <span>-{Math.round(((product.price - product.discountPrice) / product.price) * 100)}%</span>
+              </motion.div>
+            )}
           </div>
 
           <button 
@@ -220,7 +212,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
       
       <div className="space-y-3 px-1">
         <div className="flex flex-col gap-1">
-          <Link to={`/product/${product.id}`}>
+            <Link to={`/product/${product.id}`}>
             <h3 className="font-semibold text-lg hover:text-[#007bff] dark:hover:text-blue-400 transition-colors cursor-pointer line-clamp-1 text-white">
               {product.name}
             </h3>
