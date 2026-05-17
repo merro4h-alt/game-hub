@@ -45,6 +45,19 @@ interface StoreContextType {
   addToRecentlyViewed: (product: Product) => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  settings: {
+    googlePayMerchantId: string;
+    storeName: string;
+    whatsappNumber: string;
+    baseShippingRate: number;
+    stripePublicKey: string;
+    bankDetails: import('./types').BankDetails;
+  };
+  campaigns: import('./types').Campaign[];
+  addCampaign: (campaign: Omit<import('./types').Campaign, 'id'>) => Promise<void>;
+  updateCampaign: (campaign: import('./types').Campaign) => Promise<void>;
+  deleteCampaign: (id: string) => Promise<void>;
+  updateSettings: (newSettings: Partial<StoreContextType['settings']>) => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -162,6 +175,67 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   useEffect(() => {
+    // Load campaigns from Firestore
+    const loadCampaigns = async () => {
+      try {
+        const { db } = await import('./lib/firebase');
+        const { collection, onSnapshot, query, orderBy } = await import('firebase/firestore');
+        const q = query(collection(db, 'campaigns'), orderBy('isActive', 'desc'));
+        return onSnapshot(q, (snapshot) => {
+          const campaignsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as import('./types').Campaign[];
+          setCampaigns(campaignsData);
+        });
+      } catch (e) {
+        console.error("Error loading campaigns:", e);
+      }
+    };
+    let unsub: any;
+    loadCampaigns().then(u => unsub = u);
+    return () => unsub?.();
+  }, []);
+
+  const addCampaign = async (campaignData: Omit<import('./types').Campaign, 'id'>) => {
+    try {
+      const { db } = await import('./lib/firebase');
+      const { collection, addDoc } = await import('firebase/firestore');
+      
+      const newCampaign = {
+        ...campaignData,
+        isActive: true,
+        startDate: new Date().toISOString(),
+      };
+      
+      await addDoc(collection(db, 'campaigns'), newCampaign);
+      console.log('Campaign added successfully');
+    } catch (error) {
+      console.error("Error adding campaign:", error);
+    }
+  };
+
+  const updateCampaign = async (campaign: import('./types').Campaign) => {
+    try {
+      const { db } = await import('./lib/firebase');
+      const { doc, setDoc } = await import('firebase/firestore');
+      await setDoc(doc(db, 'campaigns', campaign.id), campaign, { merge: true });
+      showAlert(i18n.language === 'ar' ? 'تم تحديث الحملة!' : 'Campaign updated!', 'success');
+    } catch (error) {
+      console.error("Error updating campaign:", error);
+      showAlert(i18n.language === 'ar' ? 'فشل تحديث الحملة' : 'Failed to update campaign', 'error');
+    }
+  };
+
+  const deleteCampaign = async (id: string) => {
+    try {
+      const { db } = await import('./lib/firebase');
+      const { doc, deleteDoc } = await import('firebase/firestore');
+      await deleteDoc(doc(db, 'campaigns', id));
+      showAlert(i18n.language === 'ar' ? 'تم حذف الحملة!' : 'Campaign deleted!', 'success');
+    } catch (error) {
+      console.error("Error deleting campaign:", error);
+    }
+  };
+
+  useEffect(() => {
     localStorage.setItem('trendifi_currency', currency);
     setExchangeRate(allRates[currency] || 1);
   }, [currency, allRates]);
@@ -207,6 +281,63 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const saved = localStorage.getItem('trendifi_dark');
     return saved === 'true' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
+
+  const [settings, setSettings] = useState({
+    googlePayMerchantId: 'BCR2DN5TROGI7Q2U',
+    storeName: 'Trendifi Store',
+    whatsappNumber: '9647837814009',
+    baseShippingRate: 20,
+    stripePublicKey: '',
+    bankDetails: {
+      bankName: '',
+      accountHolder: '',
+      iban: '',
+      swiftCode: '',
+      isAvailable: false
+    }
+  });
+
+  const [campaigns, setCampaigns] = useState<import('./types').Campaign[]>([]);
+
+  useEffect(() => {
+    // Load settings from Firestore
+    const loadSettings = async () => {
+      try {
+        const { db } = await import('./lib/firebase');
+        const { doc, onSnapshot } = await import('firebase/firestore');
+        
+        return onSnapshot(doc(db, 'settings', 'general'), (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            setSettings(prev => ({
+              ...prev,
+              ...data
+            }));
+          }
+        });
+      } catch (e) {
+        console.error("Error loading settings:", e);
+      }
+    };
+
+    let unsub: any;
+    loadSettings().then(u => unsub = u);
+    return () => unsub?.();
+  }, []);
+
+  const updateSettings = async (newSettings: Partial<typeof settings>) => {
+    try {
+      const { db } = await import('./lib/firebase');
+      const { doc, setDoc } = await import('firebase/firestore');
+      const updated = { ...settings, ...newSettings };
+      await setDoc(doc(db, 'settings', 'general'), updated, { merge: true });
+      setSettings(updated);
+      showAlert(i18n.language === 'ar' ? 'تم تحديث الإعدادات!' : 'Settings updated!', 'success');
+    } catch (error) {
+      console.error("Error updating settings:", error);
+      showAlert(i18n.language === 'ar' ? 'فشل تحديث الإعدادات' : 'Failed to update settings', 'error');
+    }
+  };
 
   useEffect(() => {
     // Fetch products from Firestore
@@ -310,10 +441,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           // Check if we already notified for this specific price drop in this session
           const sessionKey = `notified_drop_${item.productId}_${currentPrice}`;
           if (!sessionStorage.getItem(sessionKey)) {
-            showAlert(`${t('shop.priceDropAlert')}: ${t('shop.priceDropMsg', { 
-              name: product.name, 
-              price: formatPrice(currentPrice) 
-            })}`, 'info');
+            // Wrap in setTimeout to avoid "Cannot update a component while rendering a different component"
+            setTimeout(() => {
+              showAlert(`${t('shop.priceDropAlert')}: ${t('shop.priceDropMsg', { 
+                name: product.name, 
+                price: formatPrice(currentPrice) 
+              })}`, 'info');
+            }, 0);
             sessionStorage.setItem(sessionKey, 'true');
           }
         }
@@ -439,7 +573,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const { db } = await import('./lib/firebase');
       const { doc, setDoc } = await import('firebase/firestore');
-      await setDoc(doc(db, 'products', product.id), product);
+      
+      const productWithTimestamp = {
+        ...product,
+        createdAt: product.createdAt || new Date().toISOString()
+      };
+      
+      await setDoc(doc(db, 'products', productWithTimestamp.id), productWithTimestamp);
       console.log('Successfully added product to Firestore');
     } catch (error) {
       console.warn('Error adding product to Firestore:', error);
@@ -452,10 +592,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const { db, handleFirestoreError, OperationType } = await import('./lib/firebase');
       const { doc, setDoc } = await import('firebase/firestore');
-      await setDoc(doc(db, 'products', updatedProduct.id), updatedProduct);
-    } catch (error) {
-      console.warn('Error updating product:', error);
+      
+      console.log(`Attempting to update product ${updatedProduct.id} in Firestore`);
+      
+      // Ensure specific keys are present for rules
+      if (!updatedProduct.name || updatedProduct.price === undefined) {
+        throw new Error("Product data missing name or price");
+      }
+
+      await setDoc(doc(db, 'products', updatedProduct.id), updatedProduct, { merge: true });
+      console.log(`Successfully updated product ${updatedProduct.id} in Firestore`);
+      showAlert(i18n.language === 'ar' ? 'تم تحديث المنتج بنجاح!' : 'Product updated successfully!', 'success');
+    } catch (error: any) {
+      console.warn('Error updating product in Firestore:', error);
       const { handleFirestoreError, OperationType } = await import('./lib/firebase');
+      showAlert(i18n.language === 'ar' ? `فشل التحديث: ${error.message}` : `Update failed: ${error.message}`, 'error');
       handleFirestoreError(error, OperationType.WRITE, `products/${updatedProduct.id}`);
     }
   };
@@ -476,18 +627,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addToCart = (product: Product, color: string, size: string, requestedQuantity: number = 1) => {
+    // Check stock BEFORE setting state to avoid side effects in updater
+    const existingInCart = cart.find(item => item.id === product.id && item.selectedColor === color && item.selectedSize === size);
+    const currentQuantityInCart = existingInCart ? existingInCart.quantity : 0;
+    
+    if (currentQuantityInCart + requestedQuantity > product.stock) {
+      showAlert(i18n.language === 'ar' 
+        ? `عذراً، الكمية المتوفرة من هذا المنتج هي ${product.stock} فقط` 
+        : `Sorry, only ${product.stock} items left in stock`, 'error');
+      return;
+    }
+
     setCart((prev) => {
       const existing = prev.find(item => item.id === product.id && item.selectedColor === color && item.selectedSize === size);
-      const currentQuantityInCart = existing ? existing.quantity : 0;
-      
-      // Check if enough stock is available
-      if (currentQuantityInCart + requestedQuantity > product.stock) {
-        showAlert(i18n.language === 'ar' 
-          ? `عذراً، الكمية المتوفرة من هذا المنتج هي ${product.stock} فقط` 
-          : `Sorry, only ${product.stock} items left in stock`, 'error');
-        return prev;
-      }
-
       if (existing) {
         return prev.map(item => 
           (item.id === product.id && item.selectedColor === color && item.selectedSize === size)
@@ -526,7 +678,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
-  const totalPrice = cart.reduce((acc, item) => acc + ((item.discountPrice ?? item.price) * item.quantity), 0);
+  const totalPrice = cart.reduce((acc, item) => {
+    const itemDiscountPrice = item.colorDiscountPrices?.[item.selectedColor] ?? item.discountPrice;
+    const itemPrice = item.colorPrices?.[item.selectedColor] ?? item.price;
+    return acc + ((itemDiscountPrice ?? itemPrice) * item.quantity);
+  }, 0);
   const discountedTotal = appliedDiscount 
     ? totalPrice * (1 - appliedDiscount.percent / 100) 
     : totalPrice;
@@ -611,7 +767,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       currency, setCurrency, exchangeRate, formatPrice,
       filteredProducts, isLoading,
       recentlyViewed, addToRecentlyViewed,
-      isDarkMode, toggleDarkMode
+      isDarkMode, toggleDarkMode,
+      settings, updateSettings,
+      campaigns, addCampaign, updateCampaign, deleteCampaign
     }}>
       {children}
     </StoreContext.Provider>

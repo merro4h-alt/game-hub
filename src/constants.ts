@@ -48,6 +48,23 @@ export const INITIAL_PRODUCTS: Product[] = [
     sizes: ['40', '41', '42', '43', '44'],
     rating: 4.7,
     stock: 100,
+  },
+  {
+    id: '4',
+    name: 'Stealth Pro Smartwatch + Hi-Fi Earbuds',
+    description: 'High-end business smartwatch with built-in dual Bluetooth 5.0 wireless earbuds. Features HD full circle touch screen, metal technology, heart rate monitoring, and 25 days standby time.',
+    price: 249.00,
+    image: 'https://images.unsplash.com/photo-1508685096489-7aac29a1bd3b?auto=format&fit=crop&q=80&w=800',
+    images: [
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800',
+      'https://images.unsplash.com/photo-1544117518-33bc0f7a61d9?auto=format&fit=crop&q=80&w=800'
+    ],
+    category: 'Imported',
+    colors: ['Black', 'Brown Leather'],
+    sizes: ['One Size'],
+    rating: 4.9,
+    stock: 50,
+    videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
   }
 ];
 

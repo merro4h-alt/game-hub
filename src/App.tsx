@@ -109,7 +109,7 @@ function AppContent() {
       <div className="fixed inset-0 bg-[#0A0A0B] flex flex-col items-center justify-center z-[9999]">
         <div className="flex items-center gap-4 mb-8 animate-pulse">
           <span className="text-6xl font-black italic tracking-tighter text-white">
-            Trendi<span className="text-[#A78BFA]">fi</span>
+            Trendi<span className="text-[#4F46E5]">fi</span>
           </span>
           <Logo className="w-16 h-16" variant="gradient" />
         </div>

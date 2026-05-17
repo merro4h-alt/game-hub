@@ -16,7 +16,7 @@ interface AddProductModalProps {
 
 const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, editingProduct }) => {
   const { t, i18n } = useTranslation();
-  const { addToProducts, updateProduct } = useStore();
+  const { addToProducts, updateProduct, addCampaign } = useStore();
   const { user } = useAuth();
   const isArabic = i18n.language?.startsWith('ar') || false;
 
@@ -42,8 +42,11 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
     images: [] as string[],
     gallery: [] as string[],
     colorImages: {} as Record<string, string>,
+    colorPrices: {} as Record<string, string>,
+    colorDiscountPrices: {} as Record<string, string>,
     supplierName: '',
     supplierUrl: '',
+    videoUrl: '',
     stock: '100',
   });
 
@@ -55,21 +58,28 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
   useEffect(() => {
     if (editingProduct) {
       setFormData({
-        name: editingProduct.name,
-        description: editingProduct.description,
-        price: editingProduct.price.toString(),
+        name: editingProduct.name || '',
+        description: editingProduct.description || '',
+        price: editingProduct.price?.toString() || '',
         discountPrice: editingProduct.discountPrice?.toString() || '',
-        category: editingProduct.category,
-        colors: editingProduct.colors,
-        sizes: editingProduct.sizes,
+        category: editingProduct.category || 'New',
+        colors: editingProduct.colors || [],
+        sizes: editingProduct.sizes || [],
         image: null,
-        imagePreview: editingProduct.image,
-        images: editingProduct.images || [editingProduct.image],
-        gallery: editingProduct.images || [editingProduct.image],
+        imagePreview: editingProduct.image || '',
+        images: editingProduct.images || (editingProduct.image ? [editingProduct.image] : []),
+        gallery: editingProduct.images || (editingProduct.image ? [editingProduct.image] : []),
         colorImages: editingProduct.colorImages || {},
+        colorPrices: Object.fromEntries(
+          Object.entries(editingProduct.colorPrices || {}).map(([c, p]) => [c, p.toString()])
+        ),
+        colorDiscountPrices: Object.fromEntries(
+          Object.entries(editingProduct.colorDiscountPrices || {}).map(([c, p]) => [c, p.toString()])
+        ),
         supplierName: editingProduct.supplierName || '',
         supplierUrl: editingProduct.supplierUrl || '',
-        stock: editingProduct.stock.toString(),
+        videoUrl: editingProduct.videoUrl || '',
+        stock: editingProduct.stock?.toString() || '0',
       });
     } else {
       setFormData({
@@ -85,8 +95,11 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
         images: [],
         gallery: [],
         colorImages: {},
+        colorPrices: {},
+        colorDiscountPrices: {},
         supplierName: '',
         supplierUrl: '',
+        videoUrl: '',
         stock: '100',
       });
     }
@@ -182,13 +195,35 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
       ? list.filter(i => i !== item) 
       : [...list, item];
     
-    // Clear color image if color is removed
+    // Clear color values if color is removed
     const newColorImages = { ...formData.colorImages };
+    const newColorPrices = { ...formData.colorPrices };
+    const newColorDiscountPrices = { ...formData.colorDiscountPrices };
+    
     if (key === 'colors' && list.includes(item)) {
       delete newColorImages[item];
+      delete newColorPrices[item];
+      delete newColorDiscountPrices[item];
     }
 
-    setFormData({ ...formData, [key]: newList, colorImages: newColorImages });
+    setFormData({ 
+      ...formData, 
+      [key]: newList, 
+      colorImages: newColorImages,
+      colorPrices: newColorPrices,
+      colorDiscountPrices: newColorDiscountPrices
+    });
+  };
+
+  const handleColorPriceChange = (color: string, price: string, isDiscount: boolean = false) => {
+    const target = isDiscount ? 'colorDiscountPrices' : 'colorPrices';
+    setFormData({
+      ...formData,
+      [target]: {
+        ...formData[target],
+        [color]: price
+      }
+    });
   };
 
   const handleColorImageChange = (color: string, url: string) => {
@@ -373,12 +408,22 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
         category: formData.category,
         colors: formData.colors.length > 0 ? formData.colors : ['Default'],
         colorImages: formData.colorImages || {},
+        colorPrices: Object.fromEntries(
+          Object.entries(formData.colorPrices).map(([c, p]) => [c, parseFloat(String(p))]).filter(([_, p]) => !isNaN(p as number))
+        ),
+        colorDiscountPrices: Object.fromEntries(
+          Object.entries(formData.colorDiscountPrices).map(([c, p]) => [c, parseFloat(String(p))]).filter(([_, p]) => !isNaN(p as number))
+        ),
         sizes: formData.sizes.length > 0 ? formData.sizes : ['One Size'],
         rating: editingProduct ? editingProduct.rating : 5,
         stock: parsedStock,
         supplierName: formData.supplierName || 'Self',
         supplierUrl: formData.supplierUrl || '',
+        videoUrl: formData.videoUrl || '',
       };
+
+      if (Object.keys(productData.colorPrices || {}).length === 0) delete productData.colorPrices;
+      if (Object.keys(productData.colorDiscountPrices || {}).length === 0) delete productData.colorDiscountPrices;
 
       // Ensure optional fields are not undefined for Firestore
       if (parsedDiscountPrice === undefined) {
@@ -389,6 +434,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
 
       if (!productData.supplierName) delete productData.supplierName;
       if (!productData.supplierUrl) delete productData.supplierUrl;
+      if (!productData.videoUrl) delete productData.videoUrl;
       if (!productData.colorImages || Object.keys(productData.colorImages).length === 0) delete productData.colorImages;
 
       if (editingProduct) {
@@ -397,6 +443,26 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
       } else {
         await addToProducts(productData);
         setSuccessMsg(isArabic ? 'تم إضافة المنتج بنجاح!' : 'Product added successfully!');
+        
+        // AUTO-GENERATE HERO CAMPAIGN FOR 5 DAYS
+        try {
+          const endDate = new Date();
+          endDate.setDate(endDate.getDate() + 5);
+          
+          await addCampaign({
+            title: productData.name,
+            subtitle: isArabic ? 'وصل حديثاً' : 'Newly Arrived',
+            description: productData.description.substring(0, 100),
+            image: productData.image,
+            link: `/product/${productData.id}`,
+            isActive: true,
+            type: 'hero',
+            endDate: endDate.toISOString()
+          });
+          console.log('Auto-campaign created for 5 days');
+        } catch (campaignErr) {
+          console.warn('Silent fail for auto-campaign:', campaignErr);
+        }
       }
       
       console.log('Firestore save successful');
@@ -665,6 +731,21 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                       placeholder="https://..."
                     />
                   </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-[10px] font-bold uppercase text-brand-charcoal/40">
+                      {isArabic ? 'رابط الفيديو الإعلاني (اختياري)' : 'Video Ad URL (Optional)'}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="url"
+                        value={formData.videoUrl}
+                        onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
+                        className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold outline-none text-brand-charcoal"
+                        placeholder="https://.../video.mp4"
+                      />
+                      <Globe className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-charcoal/20" size={16} />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -766,53 +847,102 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
               {formData.colors.length > 0 && (
                 <div className="space-y-4 p-6 bg-brand-charcoal/5 rounded-3xl">
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold uppercase tracking-widest text-brand-charcoal/50">Color-Specific Images (Optional)</label>
-                    <p className="text-[10px] text-brand-charcoal/40 uppercase tracking-wider">Upload images for selected colors to show variations when clicked.</p>
+                    <label className="text-xs font-bold uppercase tracking-widest text-brand-charcoal/50">
+                      {isArabic ? 'تخصيص الألوان (صور وأسعار)' : 'Color Customization (Photos & Prices)'}
+                    </label>
+                    <p className="text-[10px] text-brand-charcoal/40 uppercase tracking-wider">
+                      {isArabic ? 'أضف صوراً أو أسعاراً خاصة لكل لون (اختياري)' : 'Add specific photos or prices for each color (optional)'}
+                    </p>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-4">
                     {formData.colors.map(color => (
-                      <div key={color} className="space-y-3 p-4 bg-white rounded-2xl shadow-sm border border-brand-charcoal/5">
-                        <div className="flex items-center justify-between">
+                      <div key={color} className="space-y-4 p-5 bg-white rounded-2xl shadow-sm border border-brand-charcoal/5">
+                        <div className="flex items-center justify-between border-b border-brand-charcoal/5 pb-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded-full border border-brand-charcoal/10" style={{ backgroundColor: color }} />
-                            <label className="text-[10px] font-bold uppercase text-brand-charcoal/60 truncate max-w-[80px]">{t(`colors.${color}`, color)}</label>
+                            <div className="w-5 h-5 rounded-full border border-brand-charcoal/10" style={{ backgroundColor: color }} />
+                            <label className="text-[11px] font-black uppercase text-brand-charcoal truncate">{t(`colors.${color}`, color)}</label>
                           </div>
-                          {formData.colorImages[color] && (
+                          {(formData.colorImages[color] || formData.colorPrices[color] || formData.colorDiscountPrices[color]) && (
                             <button 
                               type="button"
-                              onClick={() => handleColorImageChange(color, '')}
+                              onClick={() => {
+                                const newColorImages = { ...formData.colorImages };
+                                const newColorPrices = { ...formData.colorPrices };
+                                const newColorDiscountPrices = { ...formData.colorDiscountPrices };
+                                delete newColorImages[color];
+                                delete newColorPrices[color];
+                                delete newColorDiscountPrices[color];
+                                setFormData({ 
+                                  ...formData, 
+                                  colorImages: newColorImages,
+                                  colorPrices: newColorPrices,
+                                  colorDiscountPrices: newColorDiscountPrices
+                                });
+                              }}
                               className="text-[10px] text-red-600 font-black uppercase hover:underline hover:text-red-700 transition-colors"
                             >
-                              Clear
+                              {isArabic ? 'مسح التعديلات' : 'Clear Settings'}
                             </button>
                           )}
                         </div>
                         
-                        <label className="relative flex flex-col items-center justify-center aspect-square w-full rounded-xl border-2 border-dashed border-brand-charcoal/10 hover:border-brand-gold transition-all cursor-pointer overflow-hidden bg-brand-cream/30 group">
-                          {formData.colorImages[color] ? (
-                            <img 
-                              src={formData.colorImages[color]} 
-                              className="w-full h-full object-cover" 
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600';
-                              }}
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <div className="flex flex-col items-center gap-2 text-brand-charcoal/30 group-hover:text-brand-gold transition-colors">
-                              <Plus size={20} />
-                              <span className="text-[9px] font-bold uppercase tracking-tighter">Add Photo</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          {/* Image Column */}
+                          <div className="space-y-2">
+                            <label className="text-[9px] font-bold uppercase text-brand-charcoal/40">{isArabic ? 'صور اللون' : 'Color Photo'}</label>
+                            <label className="relative flex flex-col items-center justify-center aspect-square w-full rounded-xl border-2 border-dashed border-brand-charcoal/10 hover:border-brand-gold transition-all cursor-pointer overflow-hidden bg-brand-cream/30 group">
+                              {formData.colorImages[color] ? (
+                                <img 
+                                  src={formData.colorImages[color]} 
+                                  className="w-full h-full object-cover" 
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600';
+                                  }}
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : (
+                                <div className="flex flex-col items-center gap-2 text-brand-charcoal/30 group-hover:text-brand-gold transition-colors text-center p-2">
+                                  <Plus size={16} />
+                                  <span className="text-[8px] font-bold uppercase tracking-tighter leading-none">{isArabic ? 'إضافة صورة' : 'Add Photo'}</span>
+                                </div>
+                              )}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleColorFileChange(color, e)}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
+
+                          {/* Prices Column */}
+                          <div className="sm:col-span-2 space-y-3 pt-2">
+                            <div className="space-y-1.5">
+                              <label className="text-[9px] font-bold uppercase text-brand-charcoal/40">{isArabic ? 'سعر اللون ($)' : 'Color Price ($)'}</label>
+                              <input 
+                                type="number"
+                                step="0.01"
+                                value={formData.colorPrices[color] || ''}
+                                onChange={(e) => handleColorPriceChange(color, e.target.value)}
+                                className="w-full px-3 py-2 bg-brand-cream/30 rounded-lg border border-brand-charcoal/10 focus:ring-1 focus:ring-brand-gold outline-none text-xs text-brand-charcoal"
+                                placeholder={formData.price || '99.99'}
+                              />
                             </div>
-                          )}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleColorFileChange(color, e)}
-                            className="hidden"
-                          />
-                        </label>
+                            <div className="space-y-1.5">
+                              <label className="text-[9px] font-bold uppercase text-brand-charcoal/40">{isArabic ? 'سعر الخصم للون ($)' : 'Color Discount Price ($)'}</label>
+                              <input 
+                                type="number"
+                                step="0.01"
+                                value={formData.colorDiscountPrices[color] || ''}
+                                onChange={(e) => handleColorPriceChange(color, e.target.value, true)}
+                                className="w-full px-3 py-2 bg-brand-cream/30 rounded-lg border border-brand-charcoal/10 focus:ring-1 focus:ring-brand-gold outline-none text-xs text-brand-charcoal"
+                                placeholder={formData.discountPrice || '79.99'}
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>

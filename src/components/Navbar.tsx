@@ -60,13 +60,13 @@ const Navbar: React.FC = () => {
   const isRtl = i18n.language.startsWith('ar');
 
   const navLinks = [
-    { name: t('nav.home'), path: '/' },
-    { name: t('nav.shop'), path: '/shop' },
-    { name: t('nav.supplierPortal'), path: '/drop-shipping' },
-    { name: t('nav.trackOrder'), path: '/track' },
-    { name: t('nav.about'), path: '/about' },
-    { name: t('nav.contact'), path: '/contact' },
-    { name: i18n.language === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy', path: '/policies' },
+    { name: i18n.language === 'ar' ? 'الرئيسية' : 'HOME', path: '/' },
+    { name: i18n.language === 'ar' ? 'المتجر' : 'SHOP', path: '/shop' },
+    { name: i18n.language === 'ar' ? 'بوابة الموردين' : 'SUPPLIER PORTAL', path: '/drop-shipping' },
+    { name: i18n.language === 'ar' ? 'تتبع الطلب' : 'TRACK ORDER', path: '/track' },
+    { name: i18n.language === 'ar' ? 'من نحن' : 'ABOUT US', path: '/about' },
+    { name: i18n.language === 'ar' ? 'اتصل بنا' : 'CONTACT', path: '/contact' },
+    { name: i18n.language === 'ar' ? 'سياسة الخصوصية' : 'PRIVACY POLICY', path: '/policies' },
   ];
 
   const categories = [
@@ -86,73 +86,69 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className={`w-full transition-all duration-300 ${
-      scrolled 
-        ? 'bg-white/95 backdrop-blur-xl shadow-lg shadow-black/5' 
-        : 'bg-white/90 backdrop-blur-md'
-    } border-b border-brand-charcoal/5 sticky top-0 z-[100]`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20 gap-4">
+    <>
+      <nav className={`w-full transition-all duration-300 ${
+        scrolled 
+          ? 'bg-white/95 backdrop-blur-xl shadow-lg shadow-black/5' 
+          : 'bg-white/90 backdrop-blur-md'
+      } border-b border-brand-charcoal/5 sticky top-0 z-[100]`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20 sm:h-24 gap-2 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            {/* Mobile Menu Toggle */}
+            {/* Mobile Menu Button - Circular Dark Style as per image */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="sm:hidden text-white bg-brand-charcoal hover:bg-brand-charcoal/90 transition-all p-2 rounded-2xl shadow-xl shadow-brand-charcoal/20 group flex-shrink-0 z-[160]"
+              className="lg:hidden w-8 h-8 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all flex-shrink-0"
               title={t('common.menu')}
             >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={isOpen ? 'close' : 'menu'}
-                  initial={{ opacity: 0, rotate: -90 }}
-                  animate={{ opacity: 1, rotate: 0 }}
-                  exit={{ opacity: 0, rotate: 90 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {isOpen ? <X size={20} /> : <Menu size={20} className="group-hover:scale-110 transition-transform" />}
-                </motion.div>
-              </AnimatePresence>
+              {isOpen ? <X size={16} /> : <Menu size={14} />}
             </button>
 
-            {/* Logo */}
-            <div className="flex flex-col min-w-fit">
-              <Link to="/" className="flex items-center gap-2 sm:gap-4 group flex-shrink-0" onClick={() => setIsOpen(false)}>
-                <span className="text-2xl sm:text-4xl lg:text-5xl font-black italic tracking-tighter text-brand-charcoal whitespace-nowrap">
-                  Trendi<span className="text-[#6366F1]">fi</span>
-                </span>
-                <Logo className="w-8 h-8 sm:w-12 sm:h-12 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 flex-shrink-0" variant="gradient" />
+            {/* Logo Group */}
+            <div className="flex flex-col min-w-0">
+              <Link to="/" className="flex items-center gap-1.5 sm:gap-2 group flex-shrink-0" onClick={() => setIsOpen(false)}>
+                <div className="flex items-baseline">
+                  <span className="text-2xl sm:text-3xl lg:text-5xl font-black italic tracking-tighter text-brand-charcoal leading-none">
+                    Trendi<span className="text-[#4F46E5]">fi</span>
+                  </span>
+                </div>
+                <Logo className="w-10 h-10 sm:w-14 sm:h-14 lg:w-20 lg:h-20 transition-all duration-500 flex-shrink-0 rotate-6" variant="gradient" />
               </Link>
+            </div>
+
+            {/* Desktop Nav Links */}
+            <div className="hidden lg:flex items-center gap-6">
+              {navLinks.map((link) => (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    className={`text-[11px] font-black uppercase tracking-widest transition-all hover:text-[#C5A05B] ${
+                      activeLink(link.path) ? 'text-[#C5A05B] scale-110' : 'text-brand-charcoal/80'
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+              ))}
             </div>
           </div>
 
-          {/* Desktop Nav Links */}
-          <div className="hidden sm:flex items-center gap-1 lg:gap-3">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`px-1.5 lg:px-4 py-2 text-[11px] lg:text-base font-bold tracking-tight transition-all rounded-xl hover:bg-brand-charcoal/5 ${
-                  activeLink(link.path) 
-                    ? 'text-brand-gold bg-brand-charcoal/5' 
-                    : 'text-brand-charcoal/70 hover:text-brand-charcoal'
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
+          <div className="hidden">
+            {/* Placeholder to maintain spacing consistency if needed, but flex-between handles it */}
           </div>
 
           {/* Icons (Right) */}
-          <div className="flex items-center gap-1 sm:gap-4">
-            <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-0.5 sm:gap-4">
+            
+            <div className="flex items-center gap-0 sm:gap-2">
               <button 
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
-                className="text-brand-charcoal/70 hover:text-brand-charcoal transition-colors flex-shrink-0 p-2 hover:bg-white rounded-xl"
+                className="text-brand-charcoal/70 hover:text-brand-charcoal transition-colors flex-shrink-0 p-1 sm:p-2 hover:bg-white rounded-xl"
               >
-                <Search size={20} />
+                <Search size={18} />
               </button>
 
-              <Link to="/wishlist" className="relative text-brand-charcoal/70 hover:text-red-500 transition-colors flex-shrink-0 p-2 hover:bg-white rounded-xl" title={t('common.wishlist')}>
-                <Heart size={20} />
+              <Link to="/wishlist" className="relative text-brand-charcoal/70 hover:text-red-500 transition-colors flex-shrink-0 p-1 sm:p-2 hover:bg-white rounded-xl" title={t('common.wishlist')}>
+                <Heart size={18} />
                 <AnimatePresence>
                   {wishlist.length > 0 && (
                     <motion.span 
@@ -160,7 +156,7 @@ const Navbar: React.FC = () => {
                       initial={{ scale: 0.5, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0.5, opacity: 0 }}
-                      className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] w-4 h-4 flex items-center justify-center rounded-full font-black"
+                      className="absolute top-0 right-0 bg-red-500 text-white text-[7px] w-3.5 h-3.5 flex items-center justify-center rounded-full font-black"
                     >
                       {wishlist.length}
                     </motion.span>
@@ -168,8 +164,8 @@ const Navbar: React.FC = () => {
                 </AnimatePresence>
               </Link>
 
-              <Link to="/cart" className="relative text-brand-charcoal/70 hover:text-brand-charcoal transition-colors flex-shrink-0 p-2 hover:bg-white rounded-xl" title={t('common.cart')}>
-                <ShoppingBag size={20} />
+              <Link to="/cart" className="relative text-brand-charcoal/70 hover:text-brand-charcoal transition-colors flex-shrink-0 p-1 sm:p-2 hover:bg-white rounded-xl" title={t('common.cart')}>
+                <ShoppingBag size={18} />
                 <AnimatePresence>
                   {totalItems > 0 && (
                     <motion.span 
@@ -178,7 +174,7 @@ const Navbar: React.FC = () => {
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0.5, opacity: 0 }}
                       transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                      className="absolute -top-1 -right-1 bg-[#4F46E5] text-white text-[8px] w-4 h-4 flex items-center justify-center rounded-full font-black"
+                      className="absolute top-0 right-0 bg-[#4F46E5] text-white text-[7px] w-3.5 h-3.5 flex items-center justify-center rounded-full font-black"
                     >
                       {totalItems}
                     </motion.span>
@@ -186,7 +182,6 @@ const Navbar: React.FC = () => {
                 </AnimatePresence>
               </Link>
             </div>
-
 
             {/* Auth Dropdown */}
             <div className="relative">
@@ -207,210 +202,246 @@ const Navbar: React.FC = () => {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full mt-2 right-0 rtl:left-0 rtl:right-auto w-48 bg-white rounded-xl shadow-2xl border border-brand-charcoal/5 overflow-hidden z-50 text-brand-charcoal"
+                      className="absolute top-full mt-2 right-0 rtl:left-0 rtl:right-auto w-56 bg-white rounded-xl shadow-2xl border border-brand-charcoal/5 overflow-hidden z-50 text-brand-charcoal"
                     >
                       {user ? (
                         <div className="p-2">
-                          <div className="px-3 py-2 mb-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <p className="text-xs font-bold text-brand-charcoal truncate">{user.displayName || user.email}</p>
-                              <div className="flex items-center gap-1 bg-brand-gold/10 px-1.5 py-0.5 rounded-full border border-brand-gold/20">
-                                <Sparkles size={8} className="text-brand-gold" />
-                                <span className="text-[8px] font-black text-brand-gold">540 PTS</span>
-                              </div>
+                          <div className="px-3 py-3 mb-1 bg-brand-charcoal/[0.02] rounded-lg">
+                            <div className="flex items-center gap-3 mb-2">
+                               {user.photoURL ? (
+                                 <img src={user.photoURL} alt="p" className="w-8 h-8 rounded-full border-2 border-brand-gold/20" />
+                               ) : (
+                                 <div className="w-8 h-8 rounded-full bg-brand-charcoal/10 flex items-center justify-center">
+                                   <UserIcon size={16} />
+                                 </div>
+                               )}
+                               <div className="min-w-0">
+                                 <p className="text-xs font-black text-brand-charcoal truncate">{user.displayName || user.email?.split('@')[0]}</p>
+                                 <p className="text-[10px] text-brand-charcoal/40 truncate">{user.email}</p>
+                               </div>
                             </div>
-                            {isAdmin && <p className="text-[10px] text-brand-gold font-bold uppercase tracking-widest">{t('common.admin')}</p>}
+                            <div className="flex items-center gap-1.5 bg-[#4F46E5]/10 px-2 py-1 rounded-full border border-[#4F46E5]/20 w-fit">
+                              <Sparkles size={10} className="text-[#4F46E5]" />
+                              <span className="text-[9px] font-black text-[#4F46E5]">540 POINTS</span>
+                            </div>
                           </div>
-                          <div className="h-px bg-brand-charcoal/5 my-1" />
-                          {(isAdmin || (user?.email && ['kmerro25@gmail.com', 'merro4h@gmail.com'].includes(user.email.toLowerCase()))) && (
+                          
+                          <div className="space-y-1">
+                            {(isAdmin || (user?.email && ['kmerro25@gmail.com', 'merro4h@gmail.com'].includes(user.email.toLowerCase()))) && (
+                              <Link
+                                to="/admin"
+                                onClick={() => setIsProfileOpen(false)}
+                                className="w-full text-left rtl:text-right px-3 py-2.5 text-sm text-[#4F46E5] bg-[#4F46E5]/5 hover:bg-[#4F46E5]/10 rounded-lg flex items-center gap-3 transition-colors font-black border border-[#4F46E5]/20"
+                              >
+                                <ShieldCheck size={16} className="animate-pulse" />
+                                <div className="flex-1">
+                                  <p className="leading-none">{isRtl ? 'لوحة التحكم' : 'Admin Dashboard'}</p>
+                                  <p className="text-[8px] opacity-60 font-bold uppercase mt-0.5">{isRtl ? 'إدارة المتجر' : 'Manage Store'}</p>
+                                </div>
+                              </Link>
+                            )}
+                            
                             <Link
-                              to="/admin"
-                              onClick={() => setIsProfileOpen(false)}
-                              className="w-full text-left rtl:text-right px-3 py-2 text-sm text-brand-gold hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors font-bold mb-1 border border-brand-gold/10"
-                            >
-                              <LayoutDashboard size={14} />
-                              <div className="flex-1 flex items-center justify-between">
-                                {t('admin.dashboard')}
-                                <span className="text-[8px] bg-red-500 text-white px-1.5 py-0.5 rounded-full animate-pulse uppercase">New</span>
-                              </div>
-                            </Link>
-                          )}
-                          <Link
                               to="/orders"
                               onClick={() => setIsProfileOpen(false)}
-                              className="w-full text-left rtl:text-right px-3 py-2 text-sm text-brand-charcoal hover:bg-brand-cream rounded-lg flex items-center gap-2 transition-colors font-medium"
+                              className="w-full text-left rtl:text-right px-3 py-2.5 text-sm text-brand-charcoal hover:bg-brand-cream rounded-lg flex items-center gap-3 transition-colors font-medium"
                             >
-                              <Package size={14} />
+                              <Package size={16} className="text-brand-charcoal/40" />
                               {t('common.orderHistory')}
                             </Link>
-                          <button
-                            onClick={() => {
-                              signout();
-                              setIsProfileOpen(false);
-                            }}
-                            className="w-full text-left rtl:text-right px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg flex items-center gap-2 transition-colors"
-                          >
-                            <LogOut size={14} />
-                            {t('admin.logout')}
-                          </button>
+
+                            <button
+                              onClick={() => {
+                                signout();
+                                setIsProfileOpen(false);
+                              }}
+                              className="w-full text-left rtl:text-right px-3 py-2.5 text-sm text-red-500 hover:bg-red-50 rounded-lg flex items-center gap-3 transition-colors mt-2"
+                            >
+                              <LogOut size={16} />
+                              {t('admin.logout')}
+                            </button>
+
+                            {/* Language in Profile Dropdown */}
+                            <div className="mt-2 pt-2 border-t border-brand-charcoal/5">
+                              <div className="flex gap-1 p-1 bg-brand-charcoal/5 rounded-lg">
+                                 <button 
+                                   onClick={() => { i18n.changeLanguage('ar'); setIsProfileOpen(false); }}
+                                   className={`flex-1 py-1.5 text-[9px] font-black uppercase rounded-md transition-all ${i18n.language === 'ar' ? 'bg-white text-[#4F46E5] shadow-sm' : 'text-brand-charcoal/40 hover:text-brand-charcoal'}`}
+                                 >
+                                   AR
+                                 </button>
+                                 <button 
+                                   onClick={() => { i18n.changeLanguage('en'); setIsProfileOpen(false); }}
+                                   className={`flex-1 py-1.5 text-[9px] font-black uppercase rounded-md transition-all ${i18n.language === 'en' ? 'bg-white text-[#4F46E5] shadow-sm' : 'text-brand-charcoal/40 hover:text-brand-charcoal'}`}
+                                  >
+                                   EN
+                                 </button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       ) : (
-                        <div className="p-2">
+                        <div className="p-3">
                           <button
                             onClick={handleLoginClick}
                             disabled={isLoginLoading}
-                            className="w-full text-left rtl:text-right px-3 py-2 text-sm text-brand-charcoal hover:bg-brand-cream rounded-lg flex items-center gap-2 transition-colors font-bold disabled:opacity-50"
+                            className="w-full py-3 bg-brand-charcoal text-white rounded-xl flex items-center justify-center gap-2 transition-all font-black text-sm shadow-lg shadow-brand-charcoal/20 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                           >
                             {isLoginLoading ? (
                               <motion.div
                                 animate={{ rotate: 360 }}
                                 transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                                className="w-3.5 h-3.5 border-2 border-brand-gold border-t-transparent rounded-full"
+                                className="w-4 h-4 border-2 border-brand-gold border-t-transparent rounded-full"
                               />
                             ) : (
-                              <UserIcon size={14} />
+                              <UserIcon size={18} />
                             )}
                             {isLoginLoading ? t('common.loading') : t('common.login')}
                           </button>
+
+                          {/* Language in Profile Dropdown for Guests */}
+                          <div className="mt-3 flex gap-1 p-1 bg-brand-charcoal/5 rounded-lg">
+                             <button 
+                               onClick={() => { i18n.changeLanguage('ar'); setIsProfileOpen(false); }}
+                               className={`flex-1 py-1.5 text-[9px] font-black uppercase rounded-md transition-all ${i18n.language === 'ar' ? 'bg-white text-[#4F46E5] shadow-sm' : 'text-brand-charcoal/40 hover:text-brand-charcoal'}`}
+                             >
+                               AR
+                             </button>
+                             <button 
+                               onClick={() => { i18n.changeLanguage('en'); setIsProfileOpen(false); }}
+                               className={`flex-1 py-1.5 text-[9px] font-black uppercase rounded-md transition-all ${i18n.language === 'en' ? 'bg-white text-[#4F46E5] shadow-sm' : 'text-brand-charcoal/40 hover:text-brand-charcoal'}`}
+                             >
+                               EN
+                             </button>
+                          </div>
                         </div>
                       )}
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+            </div>
 
-            {/* Language Toggle */}
+            {/* Language Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setIsLangOpen(!isLangOpen)}
-                onBlur={() => setTimeout(() => setIsLangOpen(false), 200)}
-                className="flex items-center gap-1 text-brand-charcoal/70 hover:text-brand-gold transition-colors text-[10px] font-bold uppercase tracking-wider group bg-brand-charcoal/5 px-2 py-1.5 sm:px-3 sm:py-2 rounded-full"
+                className="text-brand-charcoal/70 hover:text-[#C5A05B] transition-colors flex items-center gap-1 p-2 hover:bg-white rounded-xl"
+                title={i18n.language === 'ar' ? 'تغيير اللغة' : 'Change Language'}
               >
-                  <Globe size={16} className="sm:w-[18px] sm:h-[18px]" />
-                  <span className="hidden min-[600px]:inline">{i18n.language === 'en' ? 'EN' : 'AR'}</span>
-                  <ChevronDown size={10} className={`hidden sm:block transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''}`} />
-                </button>
+                <Globe size={20} />
+                <span className="text-[10px] font-black">{i18n.language === 'ar' ? 'AR' : 'EN'}</span>
+              </button>
 
-                <AnimatePresence>
-                  {isLangOpen && (
+              <AnimatePresence>
+                {isLangOpen && (
+                  <>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setIsLangOpen(false)}
+                      className="fixed inset-0 z-40"
+                    />
                     <motion.div
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       className="absolute top-full mt-2 right-0 rtl:left-0 rtl:right-auto w-32 bg-white rounded-xl shadow-2xl border border-brand-charcoal/5 overflow-hidden z-50 text-brand-charcoal"
                     >
-                      <button
-                        onClick={() => {
-                          i18n.changeLanguage('en');
-                          setIsLangOpen(false);
-                        }}
-                        className={`w-full text-left rtl:text-right px-4 py-3 text-sm transition-colors hover:bg-brand-cream flex items-center justify-between ${i18n.language === 'en' ? 'text-brand-gold font-bold' : 'text-brand-charcoal/70'}`}
-                      >
-                        English
-                        {i18n.language === 'en' && <div className="w-1.5 h-1.5 rounded-full bg-brand-gold" />}
-                      </button>
-                      <button
-                        onClick={() => {
-                          i18n.changeLanguage('ar');
-                          setIsLangOpen(false);
-                        }}
-                        className={`w-full text-left rtl:text-right px-4 py-3 text-sm transition-colors hover:bg-brand-cream flex items-center justify-between font-arabic ${i18n.language === 'ar' ? 'text-brand-gold font-bold' : 'text-brand-charcoal/70'}`}
-                      >
-                        العربية
-                        {i18n.language === 'ar' && <div className="w-1.5 h-1.5 rounded-full bg-brand-gold" />}
-                      </button>
+                      <div className="p-1">
+                        <button
+                          onClick={() => {
+                            i18n.changeLanguage('ar');
+                            setIsLangOpen(false);
+                          }}
+                          className={`w-full text-left rtl:text-right px-3 py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-between ${
+                            i18n.language === 'ar' ? 'bg-[#C5A05B]/10 text-[#C5A05B]' : 'hover:bg-brand-charcoal/5'
+                          }`}
+                        >
+                          <span>العربية</span>
+                          {i18n.language === 'ar' && <div className="w-1.5 h-1.5 rounded-full bg-[#C5A05B]" />}
+                        </button>
+                        <button
+                          onClick={() => {
+                            i18n.changeLanguage('en');
+                            setIsLangOpen(false);
+                          }}
+                          className={`w-full text-left rtl:text-right px-3 py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-between ${
+                            i18n.language === 'en' ? 'bg-[#C5A05B]/10 text-[#C5A05B]' : 'hover:bg-brand-charcoal/5'
+                          }`}
+                        >
+                          <span>English</span>
+                          {i18n.language === 'en' && <div className="w-1.5 h-1.5 rounded-full bg-[#C5A05B]" />}
+                        </button>
+                      </div>
                     </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>
-      {/* Mobile Dropdown Menu */}
+    </nav>
+      {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {isOpen && (
-          <>
+          <div className="fixed inset-0 z-[1000] flex items-start justify-center pt-24 px-6 sm:px-12 pointer-events-none">
             <motion.div
-              key="mobile-backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="sm:hidden fixed inset-0 bg-transparent z-[140]"
+              className="absolute inset-0 bg-black/20 backdrop-blur-sm pointer-events-auto"
             />
             <motion.div
-              key="mobile-dropdown"
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="sm:hidden absolute top-full left-4 right-4 mt-2 bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl z-[150] overflow-hidden border border-brand-charcoal/5"
+              initial={{ opacity: 0, scale: 0.9, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-[280px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-brand-charcoal/5 overflow-hidden flex flex-col p-4 pointer-events-auto"
             >
-              <div className="p-3 flex flex-col gap-1">
-                {navLinks.map((link, idx) => (
-                  <motion.div
-                    key={link.path || idx}
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.03 }}
-                  >
-                    <Link
-                      to={link.path}
-                      onClick={() => setIsOpen(false)}
-                      className={`flex items-center justify-between p-3.5 rounded-2xl transition-all ${
-                        activeLink(link.path) 
-                          ? 'bg-brand-charcoal text-white lg:shadow-xl lg:shadow-brand-charcoal/20' 
-                          : 'hover:bg-brand-charcoal/5 text-brand-charcoal font-medium'
-                      }`}
+              <div className="flex flex-col">
+                {navLinks.map((link, index) => {
+                  const isActive = activeLink(link.path);
+                  return (
+                    <motion.div
+                      key={link.path}
+                      initial={{ opacity: 0, x: isRtl ? 15 : -15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.04 }}
                     >
-                      <span className="text-xs font-bold uppercase tracking-wide">{link.name}</span>
-                      <ArrowRight size={14} className={`${isRtl ? 'rotate-180' : ''} opacity-40`} />
-                    </Link>
-                  </motion.div>
-                ))}
-
-                {(isAdmin || (user?.email && ['kmerro25@gmail.com', 'merro4h@gmail.com'].includes(user.email.toLowerCase()))) && (
-                  <div className="mt-2 pt-2 border-t border-brand-charcoal/5">
-                    <Link
-                      to="/admin"
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center justify-between p-3.5 bg-brand-gold/10 text-brand-gold rounded-2xl font-bold uppercase tracking-widest text-[9px] border border-brand-gold/10"
-                    >
-                      <div className="flex items-center gap-2">
-                        <LayoutDashboard size={14} />
-                        {t('admin.dashboard')}
-                      </div>
-                      <ArrowRight size={14} className={isRtl ? 'rotate-180' : ''} />
-                    </Link>
-                  </div>
-                )}
-                
-                <div className="mt-2 pt-2 border-t border-brand-charcoal/5 flex gap-2">
-                  <button
-                    onClick={() => {
-                      i18n.changeLanguage('en');
-                      setIsOpen(false);
-                    }}
-                    className={`flex-1 py-2.5 rounded-xl text-[9px] font-black tracking-widest transition-all ${i18n.language === 'en' ? 'bg-brand-gold text-white shadow-lg shadow-brand-gold/10' : 'bg-brand-charcoal/5 text-brand-charcoal/40'}`}
-                  >
-                    EN
-                  </button>
-                  <button
-                    onClick={() => {
-                      i18n.changeLanguage('ar');
-                      setIsOpen(false);
-                    }}
-                    className={`flex-1 py-2.5 rounded-xl text-[9px] font-black font-arabic tracking-widest transition-all ${isRtl ? 'bg-brand-gold text-white shadow-lg shadow-brand-gold/10' : 'bg-brand-charcoal/5 text-brand-charcoal/40'}`}
-                  >
-                    AR
-                  </button>
-                </div>
+                      <Link
+                        to={link.path}
+                        onClick={() => setIsOpen(false)}
+                        className={`flex items-center justify-between px-5 py-4 rounded-[1.8rem] transition-all duration-500 group mb-1.5 ${
+                          isActive 
+                            ? 'bg-white shadow-[0_15px_30px_-5px_rgba(197,160,91,0.15)] border border-[#C5A05B]/20 scale-[1.02] z-10' 
+                            : 'bg-brand-charcoal/[0.02] hover:bg-white hover:shadow-lg hover:shadow-brand-charcoal/5 text-brand-charcoal border border-transparent hover:border-brand-charcoal/10'
+                        }`}
+                      >
+                        <span className={`text-[12px] font-black uppercase tracking-widest transition-all duration-500 ${
+                          isActive ? 'text-[#C5A05B]' : 'text-brand-charcoal/60 group-hover:text-[#C5A05B]'
+                        }`}>
+                          {link.name}
+                        </span>
+                        <div className={`p-1.5 rounded-full transition-all duration-500 ${
+                          isActive ? 'bg-[#C5A05B]/10 rotate-0' : 'bg-brand-charcoal/5 group-hover:bg-[#C5A05B]/10 -rotate-45 group-hover:rotate-0'
+                        }`}>
+                          <ArrowRight 
+                            size={isActive ? 16 : 14} 
+                            className={`${isRtl ? 'rotate-180' : ''} ${isActive ? 'text-[#C5A05B]' : 'text-brand-charcoal/20 group-hover:text-[#C5A05B]'} transition-all duration-500`} 
+                          />
+                        </div>
+                      </Link>
+                    </motion.div>
+                  );
+                })}
               </div>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
-
 
       <AnimatePresence>
         {isSearchOpen && (
@@ -418,7 +449,7 @@ const Navbar: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-start justify-center pt-32 px-4 bg-brand-charcoal/40 backdrop-blur-xl"
+            className="fixed inset-0 z-[1000] flex items-start justify-center pt-32 px-4 bg-brand-charcoal/40 backdrop-blur-xl"
           >
             <div 
               className="absolute inset-0"
@@ -482,7 +513,7 @@ const Navbar: React.FC = () => {
                                <h4 className="text-sm font-bold text-brand-charcoal">{product.name}</h4>
                                <p className="text-[10px] text-brand-charcoal/40 uppercase tracking-widest">{product.category}</p>
                              </div>
-                             <div className="text-brand-gold font-black text-xs">
+                             <div className="text-[#4F46E5] font-black text-xs">
                                {formatPrice(product.discountPrice || product.price)}
                              </div>
                            </button>
@@ -522,7 +553,7 @@ const Navbar: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </nav>
+    </>
   );
 };
 

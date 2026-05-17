@@ -5,7 +5,7 @@ import { useAuth } from '../AuthContext';
 import { useAlert } from '../contexts/AlertContext';
 import { db, auth } from '../lib/firebase';
 import { collection, query, orderBy, onSnapshot, limit, getDocs } from 'firebase/firestore';
-import { Order, Product } from '../types';
+import { Order, Product, Campaign, BankDetails } from '../types';
 import { useStore } from '../StoreContext';
 import { extractProductFromUrl } from '../services/geminiService';
 import { 
@@ -16,18 +16,23 @@ import {
   TrendingUp, Users, ShoppingBag, DollarSign, Package, 
   Clock, CheckCircle, Truck, AlertCircle, ArrowUpRight,
   Plus, Edit, Trash2, Search as SearchIcon, Filter, ExternalLink,
-  ChevronRight, ChevronDown, Wand2, Loader2, Sparkles, Save, Clipboard
+  ChevronRight, ChevronDown, Wand2, Loader2, Sparkles, Save, Clipboard, Settings,
+  Image as ImageIcon
 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { products, deleteProduct, setIsAddModalOpen, setEditingProduct, addToProducts, updateProduct } = useStore();
+  const { 
+    products, deleteProduct, setIsAddModalOpen, setEditingProduct, 
+    addToProducts, updateProduct, settings, updateSettings,
+    campaigns, updateCampaign, deleteCampaign 
+  } = useStore();
   const { showAlert } = useAlert();
   const { user, isAdmin, login, signout } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'products' | 'winning' | 'marketing' | 'inventory'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'products' | 'winning' | 'marketing' | 'inventory' | 'settings' | 'imported'>('analytics');
   const [importUrl, setImportUrl] = useState('');
   const [isAiGeneratingAd, setIsAiGeneratingAd] = useState(false);
   const [marketingProduct, setMarketingProduct] = useState<Product | null>(null);
@@ -36,6 +41,10 @@ const AdminDashboard: React.FC = () => {
   const [extractionStatus, setExtractionStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [newTrackingNumber, setNewTrackingNumber] = useState('');
+  
+  // Campaign form state
+  const [editingCampaign, setEditingCampaign] = useState<Partial<Campaign> | null>(null);
+  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
   
   // Winning products data with better links
   const [winningProducts] = useState([
@@ -171,88 +180,8 @@ const AdminDashboard: React.FC = () => {
                 >
                 {t('admin.logout')}
                 </button>
-                <div className="bg-red-500/5 p-4 rounded-xl border border-red-500/10 text-left">
-                    <p className="text-xs font-bold text-red-400 mb-2 uppercase tracking-widest">Debug Info:</p>
-                    <div className="space-y-1 text-[10px] font-mono text-white/40">
-                        <p>Logged Email: <span className="text-white">{user.email || 'NO EMAIL'}</span></p>
-                        <p>Expected: <span className="text-brand-gold">merro4h@gmail.com, kmerro25@gmail.com</span></p>
-                        <p>Admin Name: <span className="text-brand-gold">AMEER ALI</span></p>
-                        <p>Project ID: <span className="text-brand-gold">{auth.app.options.projectId}</span></p>
-                        <p>Current Domain: <span className="text-white">{window.location.hostname}</span></p>
-                        <p>Auth Ready: <span className={user ? "text-green-400" : "text-red-400"}>{user ? "YES" : "NO"}</span></p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={async () => {
-                          const { checkIfAdmin } = await import('../lib/firebase');
-                          const status = await checkIfAdmin(user);
-                          showAlert(`${t('admin.adminStatus')}: ${status}`, 'info');
-                          window.location.reload();
-                        }}
-                        className="mt-4 flex-1 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all"
-                      >
-                        {t('admin.adminStatus')}
-                      </button>
-                      <button 
-                        onClick={async () => {
-                          try {
-                            const { db } = await import('../lib/firebase');
-                            const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
-                            const docRef = await addDoc(collection(db, 'test_writes'), {
-                              userId: user?.uid || 'anonymous',
-                              timestamp: serverTimestamp(),
-                              test: true
-                            });
-                            showAlert(`${t('common.save')} Success! ID: ${docRef.id}`, 'success');
-                          } catch (e: any) {
-                            showAlert(`${t('common.error')}: ${e.message}`, 'error');
-                            console.warn(e);
-                          }
-                        }}
-                        className="mt-4 flex-1 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border border-green-500/20"
-                      >
-                        Test Write
-                      </button>
-                    </div>
-                </div>
             </div>
           )}
-          
-          <div className="flex flex-col gap-2 pt-4">
-               <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">{t('admin.stepsToFixAccess')}:</p>
-               
-               <div className="flex flex-col gap-2">
-                   <p className="text-[10px] text-white/60">1. {i18n.language === 'ar' ? 'افتح المشروع الصحيح في Firebase Console' : 'Open the CORRECT project in Firebase Console'}:</p>
-                   <a 
-                    href={`https://console.firebase.google.com/project/${auth.app.options.projectId}/authentication/settings`}
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="bg-brand-gold/20 text-brand-gold p-2 rounded text-[10px] font-bold text-center border border-brand-gold/30 hover:bg-brand-gold/30"
-                   >
-                       {i18n.language === 'ar' ? 'إعدادات تسجيل الدخول' : 'Firebase Settings'}
-                   </a>
-                   <p className="text-[10px] text-white/60 mt-2">2. {t('admin.authorizedDomains')}:</p>
-                   <div className="grid grid-cols-1 gap-1">
-                       <code className="bg-black/40 p-2 rounded text-[10px] text-brand-gold break-all">ais-dev-6ft3dpnmbas5ey35iluk4k-816940702897.europe-west2.run.app</code>
-                       <code className="bg-black/40 p-2 rounded text-[10px] text-brand-gold break-all">ais-pre-6ft3dpnmbas5ey35iluk4k-816940702897.europe-west2.run.app</code>
-                       <code className="bg-black/40 p-2 rounded text-[10px] text-brand-gold break-all">game-hub-merro4h-alts-projects.vercel.app</code>
-                       <code className="bg-black/40 p-2 rounded text-[10px] text-brand-gold break-all">ahstore.shop</code>
-                   </div>
-                   <div className="mt-4 p-4 bg-brand-gold/10 border border-brand-gold/20 rounded-xl">
-                       <p className="text-xs font-bold text-brand-gold mb-2">
-                           {t('admin.howToFixLogin')}:
-                       </p>
-                       <p className="text-[10px] text-white/60 leading-relaxed">
-                           {t('admin.howToFixLoginDesc')}
-                       </p>
-                   </div>
-               </div>
-          </div>
-        </div>
-        
-        <div className="pt-8 text-[10px] text-white/20 font-mono flex items-center justify-center gap-4">
-            <span>UID: {user?.uid || 'NONE'}</span>
-            <span>ROLE: {isAdmin ? 'ADMIN' : 'USER'}</span>
         </div>
       </div>
     );
@@ -372,10 +301,12 @@ const AdminDashboard: React.FC = () => {
             {[
                 { id: 'analytics', label: t('admin.analytics'), icon: TrendingUp },
                 { id: 'products', label: t('admin.products'), icon: Package },
+                { id: 'imported', label: i18n.language === 'ar' ? 'المستوردة' : 'Imported', icon: Wand2 },
                 { id: 'inventory', label: i18n.language === 'ar' ? 'المخزون' : 'Inventory', icon: Clipboard },
                 { id: 'orders', label: t('admin.orders'), icon: ShoppingBag },
                 { id: 'winning', label: t('admin.winning'), icon: ArrowUpRight },
                 { id: 'marketing', label: i18n.language === 'ar' ? 'التسويق' : 'Marketing', icon: Sparkles },
+                { id: 'settings', label: i18n.language === 'ar' ? 'الإعدادات' : 'Settings', icon: Settings },
             ].map(tab => (
                 <button
                     key={tab.id}
@@ -402,6 +333,89 @@ const AdminDashboard: React.FC = () => {
                  exit={{ opacity: 0, y: -20 }}
                  className="space-y-8"
                >
+                 {/* Ads Campaigns Management */}
+                 <div className="bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-white/5 space-y-6">
+                   <div className="flex justify-between items-center">
+                     <div>
+                       <h3 className="text-xl font-black uppercase tracking-tighter mb-2 flex items-center gap-2">
+                         <Sparkles className="text-brand-gold" />
+                         {i18n.language === 'ar' ? 'إدارة الحملات الإعلانية' : 'Ads Campaigns Management'}
+                       </h3>
+                       <p className="text-white/40 text-sm">
+                         {i18n.language === 'ar' ? 'أضف وبدل لافتات العروض (Banners) في الصفحة الرئيسية.' : 'Add and manage promotional banners on the homepage.'}
+                       </p>
+                     </div>
+                     <button 
+                       onClick={() => {
+                         setEditingCampaign({
+                           id: 'c_' + Date.now(),
+                           title: '',
+                           image: '',
+                           link: '/shop',
+                           isActive: true,
+                           type: 'hero'
+                         });
+                         setIsCampaignModalOpen(true);
+                       }}
+                       className="bg-brand-gold text-brand-charcoal px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2"
+                     >
+                       <Plus size={16} />
+                       {i18n.language === 'ar' ? 'حملة جديدة' : 'New Campaign'}
+                     </button>
+                   </div>
+
+                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                     {campaigns.map(camp => (
+                       <div key={camp.id} className="bg-black/40 rounded-[2rem] border border-white/5 overflow-hidden group">
+                         <div className="aspect-video relative">
+                           <img src={camp.image} className="w-full h-full object-cover" alt="" />
+                           <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <button 
+                               onClick={() => {
+                                 setEditingCampaign(camp);
+                                 setIsCampaignModalOpen(true);
+                               }}
+                               className="p-2 bg-white text-black rounded-lg hover:bg-brand-gold transition-colors"
+                             >
+                               <Edit size={14} />
+                             </button>
+                             <button 
+                               onClick={() => {
+                                 if(confirm(t('shop.deleteConfirm'))) deleteCampaign(camp.id);
+                               }}
+                               className="p-2 bg-red-500 text-white rounded-lg hover:bg-black transition-colors"
+                             >
+                               <Trash2 size={14} />
+                             </button>
+                           </div>
+                           {!camp.isActive && (
+                             <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                               <span className="text-[10px] font-black uppercase tracking-widest text-white/40">{i18n.language === 'ar' ? 'غير نشط' : 'Inactive'}</span>
+                             </div>
+                           )}
+                         </div>
+                         <div className="p-4 flex justify-between items-center">
+                           <div>
+                             <h4 className="font-bold text-sm truncate max-w-[150px]">{camp.title}</h4>
+                             <p className="text-[10px] text-white/30 uppercase tracking-widest">{camp.type}</p>
+                           </div>
+                           <div className="flex items-center gap-2">
+                             <span className={`w-2 h-2 rounded-full ${camp.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
+                             <span className="text-[9px] font-black uppercase text-white/40 tracking-widest">{camp.isActive ? 'Live' : 'Off'}</span>
+                           </div>
+                         </div>
+                       </div>
+                     ))}
+                     {campaigns.length === 0 && (
+                       <div className="col-span-full py-12 text-center border-2 border-dashed border-white/5 rounded-[2rem]">
+                         <p className="text-white/20 text-xs font-black uppercase tracking-[0.2em]">
+                           {i18n.language === 'ar' ? 'لا توجد حملات مضافة حالياً' : 'No campaigns added yet'}
+                         </p>
+                       </div>
+                     )}
+                   </div>
+                 </div>
+
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                    {/* Ad Copy Generator */}
                    <div className="bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-white/5 space-y-6">
@@ -522,6 +536,182 @@ const AdminDashboard: React.FC = () => {
                </motion.div>
           )}
 
+          {activeTab === 'settings' && (
+            <motion.div 
+              key="settings"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-8"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* General Store Settings */}
+                <div className="bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-white/5 space-y-6">
+                  <div>
+                    <h3 className="text-xl font-black uppercase tracking-tighter mb-2 flex items-center gap-2">
+                      <ShoppingBag className="text-brand-gold" />
+                      {i18n.language === 'ar' ? 'معلومات المتجر' : 'Store Information'}
+                    </h3>
+                    <p className="text-white/40 text-sm">
+                      {i18n.language === 'ar' ? 'تعديل التفاصيل الأساسية لهوية متجرك.' : 'Edit the basic details of your store identity.'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'اسم المتجر' : 'Store Name'}</label>
+                      <input 
+                        type="text"
+                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-brand-gold transition-all text-sm font-bold"
+                        value={settings.storeName}
+                        onChange={(e) => updateSettings({ storeName: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'رقم الواتساب' : 'WhatsApp Number'}</label>
+                      <input 
+                        type="text"
+                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-brand-gold transition-all text-sm font-bold"
+                        value={settings.whatsappNumber}
+                        onChange={(e) => updateSettings({ whatsappNumber: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Gateway Settings */}
+                <div className="bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-white/5 space-y-6">
+                  <div>
+                    <h3 className="text-xl font-black uppercase tracking-tighter mb-2 flex items-center gap-2">
+                      <DollarSign className="text-brand-gold" />
+                      {i18n.language === 'ar' ? 'بوابات الدفع' : 'Payment Gateways'}
+                    </h3>
+                    <p className="text-white/40 text-sm">
+                      {i18n.language === 'ar' ? 'إعدادات معرفات التاجر لبوابات الدفع الإلكتروني.' : 'Merchant ID settings for electronic payment gateways.'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Google Pay Merchant ID</label>
+                      <input 
+                        type="text"
+                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-brand-gold transition-all text-brand-gold font-mono text-sm font-bold"
+                        value={settings.googlePayMerchantId}
+                        placeholder="BCR2DN5TROGI7Q2U"
+                        onChange={(e) => updateSettings({ googlePayMerchantId: e.target.value })}
+                      />
+                      <p className="text-[9px] text-white/20 italic">
+                        {i18n.language === 'ar' ? 'يستخدم لمعالج مدفوعات Google Pay.' : 'Used for processing Google Pay payments.'}
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Stripe Public Key (VITE_STRIPE_PUBLISHABLE_KEY)</label>
+                      <input 
+                        type="text"
+                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-brand-gold transition-all text-sm font-bold font-mono"
+                        value={settings.stripePublicKey}
+                        onChange={(e) => updateSettings({ stripePublicKey: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+               {/* Advanced Settings */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-white/5 space-y-6">
+                    <div>
+                      <h3 className="text-xl font-black uppercase tracking-tighter mb-2 flex items-center gap-2">
+                        <Truck className="text-brand-gold" />
+                        {i18n.language === 'ar' ? 'إعدادات الشحن' : 'Shipping Settings'}
+                      </h3>
+                    </div>
+                    <div className="max-w-md space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'سعر الشحن الأساسي' : 'Base Shipping Rate'}</label>
+                        <div className="relative">
+                          <input 
+                            type="number"
+                            className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-brand-gold transition-all text-sm font-bold pr-12"
+                            value={settings.baseShippingRate}
+                            onChange={(e) => updateSettings({ baseShippingRate: parseFloat(e.target.value) })}
+                          />
+                          <span className="absolute right-6 top-1/2 -translate-y-1/2 text-white/20 font-black">$</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bank Account Settings */}
+                <div className="bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-white/5 space-y-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-xl font-black uppercase tracking-tighter mb-2 flex items-center gap-2">
+                          <DollarSign className="text-brand-gold" />
+                          {i18n.language === 'ar' ? 'الحساب المصرفي (للتحويل)' : 'Bank Account (for Transfer)'}
+                        </h3>
+                        <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">
+                          {i18n.language === 'ar' ? 'بيانات التحويل البنكي اليدوي' : 'Manual bank transfer details'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className={`w-10 h-6 rounded-full transition-colors relative cursor-pointer ${settings.bankDetails.isAvailable ? 'bg-green-500' : 'bg-white/10'}`}
+                          onClick={() => updateSettings({ bankDetails: { ...settings.bankDetails, isAvailable: !settings.bankDetails.isAvailable } })}
+                        >
+                          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.bankDetails.isAvailable ? (i18n.language === 'ar' ? 'right-5' : 'left-5') : (i18n.language === 'ar' ? 'right-1' : 'left-1')}`} />
+                        </div>
+                        <span className="text-[9px] font-black uppercase text-white/40">{settings.bankDetails.isAvailable ? 'On' : 'Off'}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'اسم البنك' : 'Bank Name'}</label>
+                        <input 
+                          type="text"
+                          placeholder="e.g. Bank of Iraq"
+                          className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3 outline-none focus:border-brand-gold transition-all text-xs font-bold"
+                          value={settings.bankDetails.bankName}
+                          onChange={(e) => updateSettings({ bankDetails: { ...settings.bankDetails, bankName: e.target.value } })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'اسم صاحب الحساب' : 'Account Holder'}</label>
+                        <input 
+                          type="text"
+                          placeholder="Full Name"
+                          className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3 outline-none focus:border-brand-gold transition-all text-xs font-bold"
+                          value={settings.bankDetails.accountHolder}
+                          onChange={(e) => updateSettings({ bankDetails: { ...settings.bankDetails, accountHolder: e.target.value } })}
+                        />
+                      </div>
+                      <div className="space-y-2 sm:col-span-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-white/30">IBAN</label>
+                        <input 
+                          type="text"
+                          placeholder="IQ00 0000 0000 ..."
+                          className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3 outline-none focus:border-brand-gold transition-all text-xs font-bold font-mono"
+                          value={settings.bankDetails.iban}
+                          onChange={(e) => updateSettings({ bankDetails: { ...settings.bankDetails, iban: e.target.value } })}
+                        />
+                      </div>
+                      <div className="space-y-2 sm:col-span-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-white/30">SWIFT / BIC (Optional)</label>
+                        <input 
+                          type="text"
+                          placeholder="Optional"
+                          className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3 outline-none focus:border-brand-gold transition-all text-xs font-bold font-mono"
+                          value={settings.bankDetails.swiftCode}
+                          onChange={(e) => updateSettings({ bankDetails: { ...settings.bankDetails, swiftCode: e.target.value } })}
+                        />
+                      </div>
+                    </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {activeTab === 'inventory' && (
             <motion.div 
               key="inventory"
@@ -558,6 +748,7 @@ const AdminDashboard: React.FC = () => {
                                 <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'الكمية الحالية' : 'Current Stock'}</th>
                                 <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'الحالة' : 'Status'}</th>
                                 <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'تحديث سريع' : 'Quick Update'}</th>
+                                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30 text-right">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -605,9 +796,13 @@ const AdminDashboard: React.FC = () => {
                                     <td className="px-8 py-6">
                                         <div className="flex items-center gap-2">
                                             <button 
-                                                onClick={() => {
+                                                onClick={async () => {
                                                   const newStock = Math.max(0, (product.stock || 0) - 1);
-                                                  updateProduct({ ...product, stock: newStock });
+                                                  try {
+                                                    await updateProduct({ ...product, stock: newStock });
+                                                  } catch (err) {
+                                                    showAlert(i18n.language === 'ar' ? 'فشل التحديث' : 'Update failed', 'error');
+                                                  }
                                                 }}
                                                 className="p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-red-500/20 hover:text-red-500 transition-all"
                                                 title="-1"
@@ -618,22 +813,66 @@ const AdminDashboard: React.FC = () => {
                                               type="number"
                                               className="w-16 bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-center font-bold text-white outline-none focus:ring-1 focus:ring-brand-gold"
                                               value={product.stock || 0}
-                                              onChange={(e) => {
+                                              onChange={async (e) => {
                                                 const val = parseInt(e.target.value);
                                                 if (!isNaN(val) && val >= 0) {
-                                                  updateProduct({ ...product, stock: val });
+                                                  try {
+                                                    await updateProduct({ ...product, stock: val });
+                                                  } catch (err) {
+                                                    showAlert(i18n.language === 'ar' ? 'فشل التحديث' : 'Update failed', 'error');
+                                                  }
                                                 }
                                               }}
                                             />
                                             <button 
-                                                onClick={() => {
+                                                onClick={async () => {
                                                   const newStock = (product.stock || 0) + 1;
-                                                  updateProduct({ ...product, stock: newStock });
+                                                  try {
+                                                    await updateProduct({ ...product, stock: newStock });
+                                                  } catch (err) {
+                                                    showAlert(i18n.language === 'ar' ? 'فشل التحديث' : 'Update failed', 'error');
+                                                  }
                                                 }}
                                                 className="p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-green-500/20 hover:text-green-500 transition-all"
                                                 title="+1"
                                             >
                                                 <Plus size={14} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button 
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  console.log('Inventory Edit clicked for:', product.id);
+                                                  setEditingProduct(product);
+                                                  setIsAddModalOpen(true);
+                                                }}
+                                                className="p-2.5 bg-brand-gold text-brand-charcoal rounded-xl hover:bg-white transition-all shadow-lg shadow-brand-gold/10"
+                                                title={t('admin.edit')}
+                                            >
+                                                <Edit size={14} />
+                                            </button>
+                                            <button 
+                                                onClick={async (e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  if (confirm(t('shop.deleteConfirm'))) {
+                                                    try {
+                                                      await deleteProduct(product.id);
+                                                      showAlert(i18n.language === 'ar' ? 'تم حذف المنتج!' : 'Product deleted!', 'success');
+                                                    } catch (err) {
+                                                      showAlert(i18n.language === 'ar' ? 'فشل الحذف' : 'Delete failed', 'error');
+                                                    }
+                                                  }
+                                                }}
+                                                className="p-2.5 bg-red-600 text-white rounded-xl hover:bg-black transition-all border border-red-500/20"
+                                                title={t('common.delete')}
+                                            >
+                                                <Trash2 size={14} />
                                             </button>
                                         </div>
                                     </td>
@@ -797,6 +1036,7 @@ const AdminDashboard: React.FC = () => {
                                 <option value="Offers">{t('categories.offers')}</option>
                           </select>
                           <button 
+                            type="button"
                             onClick={() => {
                                 console.log('Add New Product button clicked in Dashboard');
                                 setEditingProduct(null);
@@ -815,25 +1055,35 @@ const AdminDashboard: React.FC = () => {
                           <div key={product.id} className="bg-[#1A1A1A] p-4 rounded-[2rem] border border-white/5 group hover:border-brand-gold/40 transition-all">
                               <div className="aspect-square rounded-2xl overflow-hidden mb-4 relative bg-black/40">
                                   <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={product.name} />
-                                  <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                                  <div className="absolute top-2 right-2 flex flex-col gap-2 transition-all">
                                       <button 
-                                        onClick={() => {
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            console.log('Grid Edit clicked for:', product.id);
                                             setEditingProduct(product);
                                             setIsAddModalOpen(true);
                                         }}
-                                        className="p-2 bg-white text-black rounded-lg shadow-xl hover:bg-brand-gold hover:text-brand-charcoal transition-colors"
+                                        className="p-2 bg-white text-black rounded-lg shadow-xl hover:bg-brand-gold hover:text-brand-charcoal transition-colors border border-black/5"
+                                        title={t('admin.edit')}
                                       >
                                           <Edit size={14} />
                                       </button>
                                       <button 
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
                                             if (confirm(t('shop.deleteConfirm'))) {
-                                                deleteProduct(product.id);
+                                                try {
+                                                  await deleteProduct(product.id);
+                                                  showAlert(i18n.language === 'ar' ? 'تم حذف المنتج!' : 'Product deleted!', 'success');
+                                                } catch (err: any) {
+                                                  showAlert(i18n.language === 'ar' ? 'فشل الحذف' : 'Delete failed', 'error');
+                                                }
                                             }
                                         }}
-                                        className="p-2.5 bg-red-600 text-white rounded-xl shadow-xl hover:bg-black transition-all hover:scale-110 active:scale-95"
+                                        className="p-2.5 bg-red-600 text-white rounded-xl shadow-xl hover:bg-black transition-all hover:scale-110 active:scale-95 border border-red-700"
                                       >
                                           <Trash2 size={16} />
                                       </button>
@@ -859,6 +1109,100 @@ const AdminDashboard: React.FC = () => {
               </motion.div>
           )}
 
+          {activeTab === 'imported' && (
+            <motion.div 
+              key="imported"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-8"
+            >
+                <div className="flex flex-col md:flex-row justify-between items-end gap-6">
+                    <div className="max-w-2xl">
+                        <h2 className="text-3xl font-black uppercase tracking-tighter mb-2">{i18n.language === 'ar' ? 'الاستيراد الذكي' : 'SMART IMPORT'}</h2>
+                        <p className="text-white/40 text-sm">{i18n.language === 'ar' ? 'استيراد المنتجات من علي إكسبريس وأمازون بلمح البصر باستخدام الذكاء الاصطناعي.' : 'Import products from AliExpress and Amazon instantly using AI power.'}</p>
+                    </div>
+                </div>
+
+                {/* Magic Import Tool */}
+                 <div className="bg-brand-gold/5 border border-brand-gold/20 p-8 rounded-[2.5rem] space-y-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-brand-gold rounded-xl flex items-center justify-center text-brand-charcoal">
+                            <Wand2 size={20} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black uppercase tracking-tighter">{i18n.language === 'ar' ? 'الاستيراد السحري (AliExpress / Amazon)' : 'MAGIC IMPORT (ALIEXPRESS / AMAZON)'}</h3>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-brand-gold">{i18n.language === 'ar' ? 'أدخل رابط المنتج وسيتم استخراج جميع البيانات تلقائياً' : 'Enter product URL to extract all details automatically'}</p>
+                        </div>
+                    </div>
+                    
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <input 
+                            type="url"
+                            placeholder="https://www.aliexpress.com/item/..."
+                            className="flex-grow bg-black/40 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-brand-gold transition-all text-sm font-bold"
+                            value={importUrl}
+                            onChange={(e) => setImportUrl(e.target.value)}
+                        />
+                        <button 
+                            onClick={handleMagicImport}
+                            disabled={isExtracting || !importUrl}
+                            className="bg-brand-gold text-brand-charcoal px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 min-w-[200px]"
+                        >
+                            {isExtracting ? (
+                                <>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    {i18n.language === 'ar' ? 'جاري الاستخراج...' : 'EXTRACTING...'}
+                                </>
+                            ) : (
+                                <>
+                                    <Wand2 size={16} />
+                                    {i18n.language === 'ar' ? 'استيراد الآن' : 'IMPORT NOW'}
+                                </>
+                            )}
+                        </button>
+                    </div>
+
+                    {extractionStatus && (
+                        <div className={`p-4 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${extractionStatus.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                            {extractionStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
+                            {extractionStatus.message}
+                        </div>
+                    )}
+                 </div>
+
+                 {/* Imported List */}
+                 <div className="bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-white/5">
+                    <h3 className="text-xl font-black mb-6 uppercase tracking-tighter">{i18n.language === 'ar' ? 'المنتجات المستوردة مؤخراً' : 'RECENTLY IMPORTED PRODUCTS'}</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {products.filter(p => (p as any).supplierUrl).slice(0, 8).map(product => (
+                            <div key={product.id} className="bg-black/40 rounded-3xl overflow-hidden border border-white/5 hover:border-brand-gold transition-all group">
+                                <div className="aspect-square relative">
+                                    <img src={product.image} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt="" />
+                                    <div className="absolute top-4 right-4 px-3 py-1 bg-brand-gold text-brand-charcoal text-[8px] font-black uppercase tracking-widest rounded-full">
+                                        Imported
+                                    </div>
+                                </div>
+                                <div className="p-4 space-y-2">
+                                    <p className="font-bold text-xs line-clamp-1">{product.name}</p>
+                                    <p className="text-brand-gold font-mono text-sm">${product.price}</p>
+                                    <button 
+                                        onClick={() => {
+                                            setEditingProduct(product);
+                                            setIsAddModalOpen(true);
+                                        }}
+                                        className="w-full py-2 bg-white/5 hover:bg-brand-gold hover:text-brand-charcoal rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                                    >
+                                        {i18n.language === 'ar' ? 'تعديل' : 'Edit'}
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                 </div>
+            </motion.div>
+          )}
+
           {activeTab === 'winning' && (
                <motion.div 
                  key="winning"
@@ -871,12 +1215,6 @@ const AdminDashboard: React.FC = () => {
                     <div className="max-w-2xl">
                         <h2 className="text-3xl font-black uppercase tracking-tighter mb-2">{i18n.language === 'ar' ? 'مستكشف المنتجات الرابحة' : 'WINNING PRODUCTS EXPLORER'}</h2>
                         <p className="text-white/40 text-sm">{i18n.language === 'ar' ? 'منتجات مختارة بعناية بناءً على ترندات السوق العالمي ومعدلات التحويل العالية.' : 'Curated products based on global market trends and high conversion rates.'}</p>
-                    </div>
-                    <div className="flex items-center gap-4 px-6 py-4 bg-brand-gold/10 rounded-2xl border border-brand-gold/20">
-                        <div className="text-right">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-brand-gold">{i18n.language === 'ar' ? 'آخر تحديث' : 'LAST SYNC'}</p>
-                            <p className="text-xs font-bold">Today, 2:45 PM</p>
-                        </div>
                     </div>
                  </div>
 
@@ -971,6 +1309,7 @@ const AdminDashboard: React.FC = () => {
                                     <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.orders')} ID</th>
                                     <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.clientDetails')}</th>
                                     <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.items')}</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'طريقة الدفع' : 'Payment Type'}</th>
                                     <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.value')}</th>
                                     <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('nav.trackOrder')}</th>
                                     <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/30">{t('admin.supplierActions')}</th>
@@ -1029,6 +1368,28 @@ const AdminDashboard: React.FC = () => {
                                                         +{order.items.length - 3}
                                                     </div>
                                                 )}
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <div className="flex flex-col gap-1.5">
+                                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md w-fit border ${
+                                                order.paymentMethod === 'cod' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                                order.paymentMethod === 'crypto' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
+                                                order.paymentMethod === 'bank' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                                'bg-brand-gold/10 text-brand-gold border-brand-gold/20'
+                                              }`}>
+                                                {order.paymentMethod?.toUpperCase() || 'CARD'}
+                                              </span>
+                                              
+                                              {(order.paymentMethod === 'crypto' || order.paymentMethod === 'bank') && (order as any).receiptUrl && (
+                                                <button 
+                                                  onClick={() => window.open((order as any).receiptUrl, '_blank')}
+                                                  className="flex items-center gap-1.5 text-[8px] font-black text-brand-gold hover:text-white transition-colors"
+                                                >
+                                                  <ImageIcon size={10} />
+                                                  {i18n.language === 'ar' ? 'عرض الإيصال' : 'VIEW RECEIPT'}
+                                                </button>
+                                              )}
                                             </div>
                                         </td>
                                         <td className="px-8 py-6 font-mono font-black text-brand-gold">${order.total.toFixed(2)}</td>
@@ -1153,6 +1514,105 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </motion.div>
           )}
+      </AnimatePresence>
+
+      {/* Campaign Modal */}
+      <AnimatePresence>
+        {isCampaignModalOpen && editingCampaign && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCampaignModalOpen(false)}
+              className="absolute inset-0 bg-black/90 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative bg-[#111] border border-white/10 rounded-[3rem] w-full max-w-lg p-8 space-y-6 max-h-[90vh] overflow-y-auto"
+            >
+              <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
+                <Sparkles className="text-brand-gold" />
+                {i18n.language === 'ar' ? 'تعديل الحملة' : 'Manage Campaign'}
+              </h2>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'عنوان الحملة' : 'Campaign Title'}</label>
+                  <input 
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-brand-gold transition-all font-bold"
+                    value={editingCampaign.title || ''}
+                    onChange={(e) => setEditingCampaign({ ...editingCampaign, title: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'رابط الصورة' : 'Image URL'}</label>
+                  <input 
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-brand-gold transition-all font-mono text-xs"
+                    value={editingCampaign.image || ''}
+                    onChange={(e) => setEditingCampaign({ ...editingCampaign, image: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'الرابط الموجه إليه' : 'Target Link'}</label>
+                  <input 
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-brand-gold transition-all font-mono text-xs"
+                    value={editingCampaign.link || ''}
+                    onChange={(e) => setEditingCampaign({ ...editingCampaign, link: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'النوع' : 'Type'}</label>
+                    <select 
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-brand-gold transition-all font-bold"
+                      value={editingCampaign.type || 'hero'}
+                      onChange={(e) => setEditingCampaign({ ...editingCampaign, type: e.target.value as any })}
+                    >
+                      <option value="hero">Hero Slider</option>
+                      <option value="banner">Inline Banner</option>
+                      <option value="popup">Popup</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'نشط؟' : 'Active?'}</label>
+                    <div 
+                      className={`h-[52px] rounded-2xl border flex items-center justify-center cursor-pointer transition-all ${editingCampaign.isActive ? 'bg-brand-gold/10 border-brand-gold text-brand-gold' : 'bg-white/5 border-white/10 text-white/30'}`}
+                      onClick={() => setEditingCampaign({ ...editingCampaign, isActive: !editingCampaign.isActive })}
+                    >
+                      <span className="font-black text-xs uppercase tracking-widest">{editingCampaign.isActive ? 'Yes' : 'No'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button 
+                  onClick={() => setIsCampaignModalOpen(false)}
+                  className="flex-1 py-4 bg-white/5 text-white/40 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-white/10 transition-all"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button 
+                  onClick={async () => {
+                    if (editingCampaign.id) {
+                      await updateCampaign(editingCampaign as Campaign);
+                      setIsCampaignModalOpen(false);
+                    }
+                  }}
+                  className="flex-1 py-4 bg-brand-gold text-brand-charcoal rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  {i18n.language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
     </div>
   );

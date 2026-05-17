@@ -15,7 +15,9 @@ import {
   Check,
   Plus,
   Minus,
-  Maximize2
+  Maximize2,
+  Play,
+  X
 } from 'lucide-react';
 import { useStore } from '../StoreContext';
 import { useTranslation } from 'react-i18next';
@@ -35,6 +37,7 @@ const ProductDetailPage: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isShowingVideo, setIsShowingVideo] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -117,43 +120,60 @@ const ProductDetailPage: React.FC = () => {
         {/* Advanced Gallery Section */}
         <div className="space-y-6">
           <div className="relative group rounded-[2.5rem] overflow-hidden bg-white/5 border border-white/5 aspect-square">
-            <motion.div 
-              className="w-full h-full cursor-zoom-in relative"
-              onMouseEnter={() => setIsZoomed(true)}
-              onMouseLeave={() => setIsZoomed(false)}
-              onMouseMove={handleMouseMove}
-            >
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={activeImageIndex}
-                  src={allImages[activeImageIndex] || 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600'}
-                  alt={product.name}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4 }}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600';
-                  }}
-                  className={`w-full h-full object-cover ${isZoomed ? 'opacity-0' : 'opacity-100'}`}
-                  referrerPolicy="no-referrer"
+            {isShowingVideo && product.videoUrl ? (
+              <div className="w-full h-full relative bg-black">
+                <video 
+                  src={product.videoUrl} 
+                  controls 
+                  autoPlay 
+                  className="w-full h-full object-contain"
                 />
-              </AnimatePresence>
+                <button 
+                  onClick={() => setIsShowingVideo(false)}
+                  className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black transition-colors z-30"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            ) : (
+              <motion.div 
+                className="w-full h-full cursor-zoom-in relative"
+                onMouseEnter={() => setIsZoomed(true)}
+                onMouseLeave={() => setIsZoomed(false)}
+                onMouseMove={handleMouseMove}
+              >
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={activeImageIndex}
+                    src={allImages[activeImageIndex] || 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600'}
+                    alt={product.name}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4 }}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600';
+                    }}
+                    className={`w-full h-full object-cover ${isZoomed ? 'opacity-0' : 'opacity-100'}`}
+                    referrerPolicy="no-referrer"
+                  />
+                </AnimatePresence>
 
-              {/* Enhanced Zoom Feature */}
-              {isZoomed && (
-                <div 
-                  className="absolute inset-0 z-10 pointer-events-none"
-                  style={{
-                    backgroundImage: `url(${allImages[activeImageIndex]})`,
-                    backgroundPosition: `${mousePos.x}% ${mousePos.y}%`,
-                    backgroundSize: '200%',
-                    backgroundRepeat: 'no-repeat'
-                  }}
-                />
-              )}
-            </motion.div>
+                {/* Enhanced Zoom Feature */}
+                {isZoomed && (
+                  <div 
+                    className="absolute inset-0 z-10 pointer-events-none"
+                    style={{
+                      backgroundImage: `url(${allImages[activeImageIndex]})`,
+                      backgroundPosition: `${mousePos.x}% ${mousePos.y}%`,
+                      backgroundSize: '200%',
+                      backgroundRepeat: 'no-repeat'
+                    }}
+                  />
+                )}
+              </motion.div>
+            )}
 
             {/* Gallery Navigation Arrows */}
             {allImages.length > 1 && (
@@ -185,12 +205,32 @@ const ProductDetailPage: React.FC = () => {
 
           {/* Thumbnails */}
           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+            {product.videoUrl && (
+              <button
+                onClick={() => setIsShowingVideo(true)}
+                className={`relative w-20 h-24 rounded-2xl overflow-hidden border-2 transition-all flex-shrink-0 bg-brand-gold/10 flex items-center justify-center group ${
+                  isShowingVideo ? 'border-brand-gold scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
+                }`}
+              >
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
+                <Play size={24} className="text-brand-gold relative z-10" fill="currentColor" />
+                <img 
+                  src={product.image} 
+                  alt="Video Thumbnail" 
+                  className="w-full h-full object-cover opacity-50"
+                  referrerPolicy="no-referrer"
+                />
+              </button>
+            )}
             {allImages.map((img, idx) => (
               <button
                 key={idx}
-                onClick={() => setActiveImageIndex(idx)}
+                onClick={() => {
+                  setActiveImageIndex(idx);
+                  setIsShowingVideo(false);
+                }}
                 className={`relative w-20 h-24 rounded-2xl overflow-hidden border-2 transition-all flex-shrink-0 ${
-                  activeImageIndex === idx ? 'border-brand-gold scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
+                  activeImageIndex === idx && !isShowingVideo ? 'border-brand-gold scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
                 }`}
               >
                 <img 
@@ -217,28 +257,36 @@ const ProductDetailPage: React.FC = () => {
                   <Star key={i} size={16} fill={i < Math.floor(product.rating) ? "currentColor" : "none"} />
                 ))}
               </div>
-              <span className="text-sm font-bold text-brand-charcoal/60 dark:text-white/60">({product.rating} / 5)</span>
-              <span className="mx-2 text-brand-charcoal/20 dark:text-white/20">|</span>
+              <span className="text-sm font-bold text-white/60">({product.rating} / 5)</span>
+              <span className="mx-2 text-white/20">|</span>
               <span className="text-xs font-black uppercase tracking-widest text-brand-gold">{product.category}</span>
             </div>
             
-            <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 leading-tight text-brand-charcoal dark:text-white uppercase">{product.name}</h1>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 leading-tight text-white uppercase">{product.name}</h1>
             
             <div className="flex items-center gap-4 mb-6">
-              {product.discountPrice ? (
-                <>
-                  <span className="text-3xl font-mono font-black text-brand-gold">{formatPrice(product.discountPrice)}</span>
-                  <span className="text-xl font-mono text-brand-charcoal/30 dark:text-white/30 line-through">{formatPrice(product.price)}</span>
-                  <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-red-200 dark:border-red-800">
-                    {Math.round((1 - product.discountPrice / product.price) * 100)}% {t('shop.sale')}
-                  </span>
-                </>
-              ) : (
-                <span className="text-3xl font-mono font-black text-brand-charcoal dark:text-white">{formatPrice(product.price)}</span>
-              )}
+              {(() => {
+                const activeDiscountPrice = product.colorDiscountPrices?.[selectedColor] ?? product.discountPrice;
+                const activePrice = product.colorPrices?.[selectedColor] ?? product.price;
+
+                if (activeDiscountPrice) {
+                  return (
+                    <>
+                      <span className="text-3xl font-mono font-black text-brand-gold">{formatPrice(activeDiscountPrice)}</span>
+                      <span className="text-xl font-mono text-white/30 line-through">{formatPrice(activePrice)}</span>
+                      <span className="bg-red-900/30 text-red-400 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-red-800">
+                        {Math.round((1 - activeDiscountPrice / activePrice) * 100)}% {t('shop.sale')}
+                      </span>
+                    </>
+                  );
+                }
+                return (
+                  <span className="text-3xl font-mono font-black text-white">{formatPrice(activePrice)}</span>
+                );
+              })()}
             </div>
 
-            <p className="text-brand-charcoal/70 dark:text-white/70 leading-relaxed text-lg mb-8">
+            <p className="text-white/80 leading-relaxed text-lg mb-8">
               {product.description}
             </p>
           </div>
@@ -247,8 +295,8 @@ const ProductDetailPage: React.FC = () => {
           {product.colors.length > 0 && product.colors[0] !== 'Default' && (
             <div className="mb-8">
               <div className="flex justify-between items-center mb-4">
-                <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-charcoal/40 dark:text-white/40">{t('shop.color')}</span>
-                <span className="text-xs font-bold text-brand-charcoal dark:text-white">{t(`colors.${selectedColor}`, selectedColor)}</span>
+                <span className="text-sm font-black uppercase tracking-[0.2em] text-white/40">{t('shop.color')}</span>
+                <span className="text-xs font-bold text-white">{t(`colors.${selectedColor}`, selectedColor)}</span>
               </div>
               <div className="flex flex-wrap gap-4">
                 {product.colors.map((color) => (
@@ -256,12 +304,12 @@ const ProductDetailPage: React.FC = () => {
                     key={color}
                     onClick={() => setSelectedColor(color)}
                     className={`group relative p-1 rounded-2xl transition-all ${
-                      selectedColor === color ? 'bg-brand-gold/10 dark:bg-brand-gold/20' : 'hover:bg-brand-charcoal/5 dark:hover:bg-white/5'
+                      selectedColor === color ? 'bg-brand-gold/20' : 'hover:bg-white/5'
                     }`}
                     title={t(`colors.${color}`, color)}
                   >
                     <div 
-                      className={`w-10 h-10 rounded-xl border border-brand-charcoal/10 dark:border-white/10 transition-transform ${
+                      className={`w-10 h-10 rounded-xl border border-white/10 transition-transform ${
                         selectedColor === color ? 'scale-90' : 'group-hover:scale-105'
                       }`}
                       style={{ backgroundColor: color }}
@@ -281,7 +329,7 @@ const ProductDetailPage: React.FC = () => {
           {product.sizes.length > 0 && (
             <div className="mb-10">
               <div className="flex justify-between items-center mb-4">
-                <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-charcoal/40 dark:text-white/40">{t('shop.size')}</span>
+                <span className="text-sm font-black uppercase tracking-[0.2em] text-white/40">{t('shop.size')}</span>
                 <button 
                   onClick={() => setIsSizeGuideOpen(true)}
                   className="flex items-center gap-1.5 text-xs font-black text-brand-gold hover:underline"
@@ -297,8 +345,8 @@ const ProductDetailPage: React.FC = () => {
                     onClick={() => setSelectedSize(size)}
                     className={`py-3 rounded-xl text-xs font-bold transition-all border ${
                       selectedSize === size 
-                        ? 'bg-brand-charcoal dark:bg-brand-gold text-white dark:text-[#0A0A0B] border-brand-charcoal dark:border-brand-gold' 
-                        : 'bg-white dark:bg-white/5 text-brand-charcoal dark:text-white border-brand-charcoal/10 dark:border-white/10 hover:border-brand-charcoal dark:hover:border-white/30'
+                        ? 'bg-brand-gold text-[#0A0A0B] border-brand-gold' 
+                        : 'bg-white/5 text-white border-white/10 hover:border-white/30'
                     }`}
                   >
                     {size}
@@ -310,17 +358,17 @@ const ProductDetailPage: React.FC = () => {
 
           {/* Quantity and CTA */}
           <div className="flex flex-col gap-6 mb-12">
-            <div className={`flex items-center justify-between bg-brand-cream/20 dark:bg-white/5 rounded-[2rem] p-2 border border-brand-charcoal/5 dark:border-white/10 w-full ${product.stock === 0 ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div className={`flex items-center justify-between bg-white/5 rounded-[2rem] p-2 border border-white/10 w-full ${product.stock === 0 ? 'opacity-50 pointer-events-none' : ''}`}>
               <button 
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="p-4 hover:bg-white dark:hover:bg-white/10 rounded-full transition-all text-brand-charcoal/40 dark:text-white/40 hover:text-brand-charcoal dark:hover:text-white active:scale-95"
+                className="p-4 hover:bg-white/10 rounded-full transition-all text-white/40 hover:text-white active:scale-95"
               >
                 <Minus size={20} />
               </button>
-              <span className="text-xl font-black text-brand-charcoal dark:text-white">{quantity}</span>
+              <span className="text-xl font-black text-white">{quantity}</span>
               <button 
                 onClick={() => setQuantity(q => Math.min(product.stock, q + 1))}
-                className="p-4 hover:bg-white dark:hover:bg-white/10 rounded-full transition-all text-brand-charcoal/40 dark:text-white/40 hover:text-brand-charcoal dark:hover:text-white active:scale-95"
+                className="p-4 hover:bg-white/10 rounded-full transition-all text-white/40 hover:text-white active:scale-95"
               >
                 <Plus size={20} />
               </button>
@@ -342,11 +390,11 @@ const ProductDetailPage: React.FC = () => {
 
           {/* Social Proof & Urgency */}
           <div className="mb-10 p-6 rounded-3xl bg-brand-gold/5 border border-brand-gold/10 flex items-start gap-4">
-            <div className="w-10 h-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-brand-gold shadow-sm flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-brand-gold shadow-sm flex-shrink-0">
               <Star size={18} fill="currentColor" />
             </div>
             <div>
-              <p className="text-sm font-bold text-brand-charcoal dark:text-white mb-1">
+              <p className="text-sm font-bold text-white mb-1">
                 {Math.floor(Math.random() * 10) + 5} people are looking at this item right now
               </p>
               <p className={`text-xs font-black uppercase tracking-widest ${product.stock <= 5 ? 'text-red-500' : 'text-brand-gold'}`}>
@@ -362,14 +410,26 @@ const ProductDetailPage: React.FC = () => {
           </div>
 
           {/* Trust Badges Section - Improved */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-10 border-t border-brand-charcoal/5 dark:border-white/10 mt-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-10 border-t border-white/10 mt-auto">
             <div className="flex items-center gap-4 group">
-              <div className="w-12 h-12 rounded-2xl bg-brand-gold/10 flex items-center justify-center text-brand-gold group-hover:bg-brand-gold group-hover:text-white transition-all duration-500 border border-transparent dark:border-white/5">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500 border border-indigo-500/20">
                 <Truck size={22} />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-widest text-brand-charcoal dark:text-white">Free Shipping</span>
-                <span className="text-[10px] text-brand-charcoal/40 dark:text-white/40 uppercase tracking-tighter">On orders over $150</span>
+                <span className="text-[11px] font-black uppercase tracking-widest text-indigo-500 mb-0.5">
+                  {i18n.language === 'ar' ? 'الشحن مجاناً' : 'Free Shipping'}
+                </span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[9px] text-white/40 uppercase tracking-tighter font-bold">
+                    {i18n.language === 'ar' ? 'ضمان استرجاع المنتج خلال 14 يوم' : '14-day money back guarantee'}
+                  </span>
+                  <span className="text-[9px] text-white/40 uppercase tracking-tighter font-bold">
+                    {i18n.language === 'ar' ? 'حق الخصوصية التامة لبياناتك' : 'Total data privacy'}
+                  </span>
+                  <span className="text-[9px] text-brand-gold uppercase tracking-widest font-black">
+                    {i18n.language === 'ar' ? 'تسوق بثقة وأمان' : 'Shop with confidence'}
+                  </span>
+                </div>
               </div>
             </div>
             
@@ -378,8 +438,8 @@ const ProductDetailPage: React.FC = () => {
                 <ShieldCheck size={22} />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-widest text-brand-charcoal dark:text-white">Secure Checkout</span>
-                <span className="text-[10px] text-brand-charcoal/40 dark:text-white/40 uppercase tracking-tighter">100% Protected</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-white">Secure Checkout</span>
+                <span className="text-[10px] text-white/40 uppercase tracking-tighter">100% Protected</span>
               </div>
             </div>
 
@@ -388,8 +448,8 @@ const ProductDetailPage: React.FC = () => {
                 <RotateCcw size={22} />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-widest text-brand-charcoal dark:text-white">{i18n.language === 'ar' ? 'ضمان الاسترجاع' : 'Easy Returns'}</span>
-                <span className="text-[10px] text-brand-charcoal/40 dark:text-white/40 uppercase tracking-tighter">{i18n.language === 'ar' ? 'استرجاع مجاني في حال اختلاف المواصفات' : 'Money back if specs don\'t match'}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-white">{i18n.language === 'ar' ? 'ضمان الاسترجاع' : 'Easy Returns'}</span>
+                <span className="text-[10px] text-white/40 uppercase tracking-tighter">{i18n.language === 'ar' ? 'استرجاع مجاني في حال اختلاف المواصفات' : 'Money back if specs don\'t match'}</span>
               </div>
             </div>
           </div>

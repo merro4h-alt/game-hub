@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Instagram, Twitter, Facebook, ArrowUpRight, MessageCircle, ShieldCheck, Banknote, Coins } from 'lucide-react';
+import { Instagram, Twitter, Facebook, ArrowUpRight, MessageCircle, ShieldCheck, Banknote, Coins, Bitcoin } from 'lucide-react';
 import Logo from './Logo';
 
 const Footer: React.FC = () => {
@@ -10,11 +10,10 @@ const Footer: React.FC = () => {
     <footer className="bg-black text-brand-cream pt-24 pb-12 border-t border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-          {/* Logo & Info */}
           <div className="col-span-1 md:col-span-2">
             <Link to="/" className="flex items-center gap-4 mb-6 group">
               <span className="text-4xl font-black italic tracking-tighter text-white">
-                Trendi<span className="text-[#A78BFA]">fi</span>
+                Trendi<span className="text-[#4F46E5]">fi</span>
               </span>
               <Logo className="w-12 h-12 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500" variant="gradient" />
             </Link>
@@ -22,13 +21,13 @@ const Footer: React.FC = () => {
               {t('footer.description')}
             </p>
             <div className="flex space-x-4">
-              <a href="https://instagram.com/trendi_ah" target="_blank" rel="noopener noreferrer" className="p-3 rounded-full border border-brand-cream/10 hover:border-brand-gold hover:text-brand-gold transition-all" title="Instagram">
+              <a href="https://instagram.com/trendi_ah" target="_blank" rel="noopener noreferrer" className="p-3 rounded-full border border-brand-cream/10 hover:border-[#4F46E5] hover:text-[#4F46E5] transition-all" title="Instagram">
                 <Instagram size={20} />
               </a>
-              <a href="#" className="p-3 rounded-full border border-brand-cream/10 hover:border-brand-gold hover:text-brand-gold transition-all" title="Twitter">
+              <a href="#" className="p-3 rounded-full border border-brand-cream/10 hover:border-[#4F46E5] hover:text-[#4F46E5] transition-all" title="Twitter">
                 <Twitter size={20} />
               </a>
-              <a href="#" className="p-3 rounded-full border border-brand-cream/10 hover:border-brand-gold hover:text-brand-gold transition-all" title="Facebook">
+              <a href="#" className="p-3 rounded-full border border-brand-cream/10 hover:border-[#4F46E5] hover:text-[#4F46E5] transition-all" title="Facebook">
                 <Facebook size={20} />
               </a>
               <a href="https://wa.me/+9647837814009" target="_blank" rel="noopener noreferrer" className="p-3 rounded-full border border-brand-cream/10 hover:border-[#25D366] hover:text-[#25D366] transition-all" title="WhatsApp">
@@ -46,18 +45,26 @@ const Footer: React.FC = () => {
           <div>
             <h4 className="font-bold text-lg mb-6 tracking-tight">{t('footer.quickLinks')}</h4>
             <ul className="space-y-4 text-brand-cream/60 font-light">
-              <li><Link to="/" className="hover:text-brand-gold transition-colors">{t('nav.home')}</Link></li>
-              <li><Link to="/shop" className="hover:text-brand-gold transition-colors">{t('nav.shop')}</Link></li>
-              <li><Link to="/about" className="hover:text-brand-gold transition-colors">{t('nav.about')}</Link></li>
-              <li><Link to="/contact" className="hover:text-brand-gold transition-colors">{t('nav.contact')}</Link></li>
-              <li><Link to="/track" className="hover:text-brand-gold transition-colors">{t('nav.trackOrder')}</Link></li>
-              <li><Link to="/policies" className="hover:text-brand-gold transition-colors">{i18n.language === 'ar' ? 'سياسات المتجر' : 'Store Policies'}</Link></li>
-              <li><Link to="/admin" className="hover:text-brand-gold transition-colors text-white/30 text-xs italic">{t('admin.dashboard')}</Link></li>
+              <li><Link to="/" className="hover:text-[#4F46E5] transition-colors">{t('nav.home')}</Link></li>
+              <li><Link to="/shop" className="hover:text-[#4F46E5] transition-colors">{t('nav.shop')}</Link></li>
+              <li><Link to="/about" className="hover:text-[#4F46E5] transition-colors">{t('nav.about')}</Link></li>
+              <li><Link to="/contact" className="hover:text-[#4F46E5] transition-colors">{t('nav.contact')}</Link></li>
+              <li><Link to="/track" className="hover:text-[#4F46E5] transition-colors">{t('nav.trackOrder')}</Link></li>
+              <li><Link to="/policies" className="hover:text-[#4F46E5] transition-colors">{i18n.language === 'ar' ? 'سياسات المتجر' : 'Store Policies'}</Link></li>
+              <li className="pt-2">
+                <Link 
+                  to="/admin" 
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-[#4F46E5] transition-all text-[10px] font-black uppercase tracking-widest rounded-lg border border-white/5 hover:border-[#4F46E5]/30"
+                >
+                  <ShieldCheck size={10} />
+                  {t('admin.dashboard')}
+                </Link>
+              </li>
               <li className="pt-4 mt-4 border-t border-white/5">
                 <span className="block text-xs uppercase tracking-widest text-white/30 mb-1">{t('footer.emailLabel')}</span>
                 <div className="flex flex-col gap-1">
-                  <a href="mailto:merro4h@gmail.com" className="text-brand-gold hover:underline font-medium text-sm transition-all">merro4h@gmail.com</a>
-                  <a href="mailto:kmerro25@gmail.com" className="text-brand-gold hover:underline font-medium text-sm transition-all">kmerro25@gmail.com</a>
+                  <a href="mailto:merro4h@gmail.com" className="text-[#4F46E5] hover:underline font-medium text-sm transition-all">merro4h@gmail.com</a>
+                  <a href="mailto:kmerro25@gmail.com" className="text-[#4F46E5] hover:underline font-medium text-sm transition-all">kmerro25@gmail.com</a>
                 </div>
               </li>
             </ul>
@@ -71,9 +78,9 @@ const Footer: React.FC = () => {
               <input 
                 type="email" 
                 placeholder="email@example.com"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-brand-gold transition-colors font-light text-white"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#4F46E5] transition-colors font-light text-white"
               />
-              <button className="w-full bg-brand-gold hover:bg-white text-brand-charcoal font-black uppercase tracking-widest py-3 rounded-xl transition-all duration-300 shadow-lg shadow-brand-gold/10 hover:-translate-y-1">
+              <button className="w-full bg-[#4F46E5] hover:bg-white text-white hover:text-brand-charcoal font-black uppercase tracking-widest py-3 rounded-xl transition-all duration-300 shadow-lg shadow-[#4F46E5]/10 hover:-translate-y-1">
                 {t('common.send')}
               </button>
             </div>
@@ -82,7 +89,7 @@ const Footer: React.FC = () => {
 
         <div className="border-t border-brand-cream/10 pt-12 mt-12 grid grid-cols-1 md:grid-cols-2 gap-12">
           <div className="max-w-2xl">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-brand-gold mb-4">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-[#4F46E5] mb-4">
               {t('order.cancellationPolicy.title')}
             </h4>
             <p className="text-sm font-light text-brand-cream/60 leading-relaxed">
@@ -105,9 +112,9 @@ const Footer: React.FC = () => {
             {t('footer.copyright')}
           </p>
           <div className="flex gap-8 text-brand-cream/40 text-xs uppercase tracking-widest">
-            <Link to="/policies" className="hover:text-brand-gold">{i18n.language === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'}</Link>
-            <Link to="/policies" className="hover:text-brand-gold">{i18n.language === 'ar' ? 'شروط الخدمة' : 'Terms of Service'}</Link>
-            <Link to="/contact" className="hover:text-brand-gold">{i18n.language === 'ar' ? 'اتصل بنا' : 'Contact Us'}</Link>
+            <Link to="/policies" className="hover:text-[#4F46E5]">{i18n.language === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'}</Link>
+            <Link to="/policies" className="hover:text-[#4F46E5]">{i18n.language === 'ar' ? 'شروط الخدمة' : 'Terms of Service'}</Link>
+            <Link to="/contact" className="hover:text-[#4F46E5]">{i18n.language === 'ar' ? 'اتصل بنا' : 'Contact Us'}</Link>
           </div>
           {/* Payment Badges */}
           <div className="flex flex-wrap items-center justify-center md:justify-end gap-3">
@@ -117,9 +124,13 @@ const Footer: React.FC = () => {
              </div>
              <div className="bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 transition-all group">
                <div className="w-4 h-4 rounded-full bg-[#f7931a] flex items-center justify-center text-white">
-                 <Coins size={10} />
+                 <Bitcoin size={10} />
                </div>
-               <span className="text-[9px] font-black tracking-widest text-white/40 group-hover:text-white uppercase">Crypto</span>
+               <span className="text-[9px] font-black tracking-widest text-white/40 group-hover:text-white uppercase transition-colors">Crypto</span>
+             </div>
+             <div className="bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 transition-all group">
+               <img src="https://upload.wikimedia.org/wikipedia/commons/b/b0/Apple_Pay_logo.svg" alt="Apple Pay" className="h-4 w-auto invert brightness-0" />
+               <span className="text-[9px] font-black tracking-widest text-white/40 group-hover:text-white uppercase transition-colors">Apple Pay</span>
              </div>
              <div className="bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 transition-all group">
                <div className="w-4 h-4 rounded-full bg-[#4285F4] flex items-center justify-center text-white">

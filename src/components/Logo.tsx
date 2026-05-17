@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 
 interface LogoProps {
   className?: string;
@@ -6,24 +7,22 @@ interface LogoProps {
 }
 
 const Logo: React.FC<LogoProps> = ({ className = "w-10 h-10", variant = 'gradient' }) => {
-  if (variant === 'gradient') {
-    return (
-      <div className={`${className} bg-gradient-to-br from-[#4F46E5] to-[#7C3AED] rounded-[30%] flex items-center justify-center text-white shadow-xl shadow-indigo-500/20 transform rotate-6`}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="w-1/2 h-1/2 transform -rotate-6">
-           <path d="M12 19V5M5 12l7-7 7 7" />
-        </svg>
-      </div>
-    );
-  }
-
-  const color = variant === 'black' ? '#000000' : variant === 'gold' ? '#D4AF37' : '#FFFFFF';
+  // Simple, elegant arrow in a square logo (The "Basic" logo)
+  const color = variant === 'black' ? '#1A1A1A' : variant === 'white' ? '#FFFFFF' : '#4F46E5';
 
   return (
-    <div className={`${className} rounded-[30%] flex items-center justify-center transform rotate-6 shadow-sm`} style={{ backgroundColor: variant === 'white' ? '#000000' : 'transparent', border: `2px solid ${color}` }}>
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="w-1/2 h-1/2 transform -rotate-6">
-         <path d="M12 19V5M5 12l7-7 7 7" />
+    <motion.div 
+      className={`${className} flex items-center justify-center`}
+      whileHover={{ scale: 1.15, z: 50 }}
+      transition={{ type: "spring", stiffness: 400, damping: 10 }}
+    >
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+        {/* Rounded Square */}
+        <rect x="10" y="10" width="80" height="80" rx="20" className={variant === 'gradient' ? "fill-[#4F46E5]" : ""} fill={variant === 'gradient' ? undefined : "currentColor"} style={{ color: variant === 'gradient' ? undefined : color }} />
+        {/* Upward Arrow */}
+        <path d="M50 65V35M35 50L50 35L65 50" stroke="white" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-    </div>
+    </motion.div>
   );
 };
 

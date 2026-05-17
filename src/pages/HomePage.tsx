@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import HeroSlider from '../components/HeroSlider';
 import ProductCard from '../components/ProductCard';
 import { LoyaltyBanner } from '../components/LoyaltyBanner';
 import { useStore } from '../StoreContext';
+import { INITIAL_PRODUCTS } from '../constants';
 import { ListingSkeleton } from '../components/ProductSkeleton';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Quote, Sparkles, Flame, Tag, Clock, Copy, Check } from 'lucide-react';
+import { ArrowRight, Quote, Sparkles, Flame, Tag, Clock, Copy, Check, Globe, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ReviewModal } from '../components/ReviewModal';
 
@@ -72,7 +73,7 @@ const DiscountSection = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl md:text-6xl font-black text-white mb-10 tracking-tighter"
+            className="text-3xl md:text-6xl font-black text-white mb-10 tracking-tighter"
           >
             خصم 15% على أول طلب لك
           </motion.h2>
@@ -118,6 +119,8 @@ const DiscountSection = () => {
                   {copied ? <Check size={16} /> : <Copy size={16} />}
                   {copied ? 'تم النسخ!' : 'نسخ الكود'}
                 </span>
+                {/* Shine Animation */}
+                <div className="absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg] group-hover:left-[200%] transition-all duration-1000 ease-in-out" />
               </button>
             </motion.div>
 
@@ -136,15 +139,25 @@ const DiscountSection = () => {
 };
 
 const HomePage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { products, isLoading } = useStore();
   const [isReviewOpen, setIsReviewOpen] = useState(false);
-  const featuredProducts = products.slice(0, 4);
+  const featuredProducts = useMemo(() => {
+    // Show a mix of categories including the newest ones
+    return [...products].reverse().slice(0, 4);
+  }, [products]);
+
+  const promoProduct = useMemo(() => {
+    return products.find(p => p.videoUrl) || INITIAL_PRODUCTS.find(p => p.videoUrl);
+  }, [products]);
+
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
   const categories = [
     { key: 'new', label: t('categories.new'), icon: <Sparkles size={14} />, category: 'New' },
     { key: 'bestSeller', label: t('categories.bestSeller'), icon: <Flame size={14} />, category: 'Best Seller' },
     { key: 'offers', label: t('categories.offers'), icon: <Tag size={14} />, category: 'Offers' },
+    { key: 'imported', label: i18n.language === 'ar' ? 'مستوردة' : 'Imported', icon: <Globe size={14} />, category: 'Imported' },
   ];
 
   return (
@@ -162,12 +175,12 @@ const HomePage: React.FC = () => {
           >
             <Link
               to={`/shop?category=${encodeURIComponent(cat.category)}`}
-              className="group px-6 py-3 bg-white dark:bg-white/5 border border-brand-charcoal/5 dark:border-white/10 rounded-2xl hover:shadow-2xl hover:shadow-brand-gold/10 hover:-translate-y-1 transition-all duration-300 flex items-center gap-3 whitespace-nowrap"
+              className="group px-6 py-3 bg-white dark:bg-white/5 border border-brand-charcoal/5 dark:border-white/10 rounded-2xl hover:shadow-2xl hover:shadow-[#4F46E5]/10 hover:-translate-y-1 transition-all duration-300 flex items-center gap-3 whitespace-nowrap"
             >
-              <div className="text-brand-gold group-hover:scale-110 group-hover:rotate-6 transition-transform">
+              <div className="text-[#4F46E5] group-hover:scale-110 group-hover:rotate-6 transition-transform">
                 {cat.icon}
               </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-charcoal dark:text-white transition-colors group-hover:text-brand-gold">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-charcoal dark:text-white transition-colors group-hover:text-[#4F46E5]">
                 {cat.label}
               </span>
             </Link>
@@ -177,21 +190,21 @@ const HomePage: React.FC = () => {
 
       {/* Shiny Storefront Welcome badge */}
       <div id="storefront-welcome" className="relative z-20 mb-12 flex justify-center px-4">
-        <motion.div
+          <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.8 }}
           className="relative group cursor-pointer"
         >
           <div className="absolute inset-0 bg-brand-gold blur-2xl opacity-20 group-hover:opacity-40 transition-opacity" />
-          <div className="relative px-8 py-3 bg-[#0A0A0B] border border-brand-gold/30 rounded-full overflow-hidden shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-brand-gold/10 to-transparent animate-shimmer" />
+          <div className="relative px-8 py-3 bg-brand-gold border border-white/20 rounded-full overflow-hidden shadow-[0_10px_30px_-10px_rgba(197,160,91,0.5)]">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
             <div className="flex items-center gap-3">
-              <Sparkles size={16} className="text-brand-gold" />
-              <span className="text-brand-gold text-[11px] font-black uppercase tracking-[0.4em] whitespace-nowrap">
+              <Sparkles size={16} className="text-brand-charcoal" />
+              <span className="text-brand-charcoal text-[11px] font-black uppercase tracking-[0.4em] whitespace-nowrap">
                 {t('home.firstChoice')}
               </span>
-              <Sparkles size={16} className="text-brand-gold" />
+              <Sparkles size={16} className="text-brand-charcoal" />
             </div>
           </div>
         </motion.div>
@@ -249,6 +262,100 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
+      {/* Video Promo Section */}
+      {promoProduct && (
+        <section id="promo-video-section" className="py-20 px-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="relative min-h-[550px] md:min-h-0 md:aspect-[21/9] rounded-[3rem] overflow-hidden group border border-white/10 shadow-2xl">
+              <video 
+                src={promoProduct.videoUrl} 
+                className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-700"
+                muted
+                loop
+                autoPlay
+                playsInline
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+              
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="space-y-6"
+                >
+                  <span className="inline-block px-4 py-1.5 rounded-full bg-brand-gold text-black text-[10px] font-black uppercase tracking-[0.2em]">
+                    {i18n.language === 'ar' ? 'عرض خاص' : 'Featured Ad'}
+                  </span>
+                  <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white tracking-tighter">
+                    {promoProduct.name}
+                  </h2>
+                  <p className="text-sm sm:text-base md:text-lg text-white/70 max-w-2xl mx-auto font-medium">
+                    {promoProduct.description}
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+                    <button
+                      onClick={() => setIsVideoModalOpen(true)}
+                      className="group flex items-center gap-3 bg-brand-gold py-4 px-10 rounded-full text-brand-charcoal font-black uppercase tracking-widest text-xs hover:bg-white transition-all hover:scale-105 active:scale-95 shadow-xl shadow-brand-gold/20"
+                    >
+                      {i18n.language === 'ar' ? 'شاهد الإعلان الآن' : 'Watch Official Ad'}
+                    </button>
+                    <Link
+                      to="/shop"
+                      className="group flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 py-4 px-10 rounded-full text-white font-black uppercase tracking-widest text-xs hover:bg-white hover:text-brand-charcoal transition-all hover:scale-105 active:scale-95"
+                    >
+                      {i18n.language === 'ar' ? 'تسوق الآن' : 'Shop Now'}
+                      <ArrowRight size={18} />
+                    </Link>
+                  </div>
+                </motion.div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+      )}
+
+
+      {/* Full Screen Video Modal */}
+      <AnimatePresence>
+        {isVideoModalOpen && promoProduct && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-10">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsVideoModalOpen(false)}
+              className="absolute inset-0 bg-black/95 backdrop-blur-2xl"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-6xl aspect-video bg-black rounded-none md:rounded-3xl overflow-hidden shadow-2xl border border-white/10"
+            >
+              <video
+                key={promoProduct.videoUrl}
+                controls
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-contain"
+              >
+                <source src={promoProduct.videoUrl} type="video/mp4" />
+                <p className="text-white text-center">Your browser does not support the video tag. <a href={promoProduct.videoUrl} className="underline">Download</a></p>
+              </video>
+              <button
+                onClick={() => setIsVideoModalOpen(false)}
+                className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-20 backdrop-blur-md border border-white/20"
+              >
+                <ArrowRight className="rotate-45" size={20} />
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Modern Philosophy Section */}
       <section className="py-40 bg-[#0A0A0B] overflow-hidden relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#4F46E5]/10 rounded-full blur-[120px]" />
@@ -302,7 +409,7 @@ const HomePage: React.FC = () => {
                   {Array.from({ length: 5 }).map((_, i) => (
                     <span 
                       key={i} 
-                      className={`text-sm ${i < Number(t(`reviews.items.${num}.stars`)) ? 'text-brand-gold' : 'text-white/10'}`}
+                      className={`text-sm ${i < Number(t(`reviews.items.${num}.stars`)) ? 'text-[#4F46E5]' : 'text-white/10'}`}
                     >
                       ★
                     </span>
@@ -312,7 +419,7 @@ const HomePage: React.FC = () => {
                    "{t(`reviews.items.${num}.comment`)}"
                 </p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-brand-gold/10 text-brand-gold flex items-center justify-center text-xs font-bold border border-brand-gold/20">
+                  <div className="w-10 h-10 rounded-full bg-[#4F46E5]/10 text-[#4F46E5] flex items-center justify-center text-xs font-bold border border-[#4F46E5]/20">
                     {t(`reviews.items.${num}.name`)[0]}
                   </div>
                   <div>

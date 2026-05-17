@@ -112,21 +112,29 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
                   <span className="text-[10px] font-bold text-white">{product.rating}</span>
                 </div>
               </div>
-              <h2 className="text-2xl font-black text-white mb-2 leading-tight">{product.name}</h2>
+              <h2 className="text-2xl font-black text-white mb-2 leading-tight uppercase">{product.name}</h2>
               <div className="flex items-center gap-3">
-                {product.discountPrice ? (
-                  <>
-                    <span className="text-xl font-mono font-black text-indigo-400">{formatPrice(product.discountPrice)}</span>
-                    <span className="text-sm font-mono text-white/30 line-through">{formatPrice(product.price)}</span>
-                  </>
-                ) : (
-                  <span className="text-xl font-mono font-black text-white">{formatPrice(product.price)}</span>
-                )}
+                {(() => {
+                  const activeDiscountPrice = product.colorDiscountPrices?.[selectedColor] ?? product.discountPrice;
+                  const activePrice = product.colorPrices?.[selectedColor] ?? product.price;
+
+                  if (activeDiscountPrice) {
+                    return (
+                      <>
+                        <span className="text-xl font-mono font-black text-indigo-400">{formatPrice(activeDiscountPrice)}</span>
+                        <span className="text-sm font-mono text-white/30 line-through">{formatPrice(activePrice)}</span>
+                      </>
+                    );
+                  }
+                  return (
+                    <span className="text-xl font-mono font-black text-white">{formatPrice(activePrice)}</span>
+                  );
+                })()}
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-6 mb-8">
-              <p className="text-white/60 text-sm leading-relaxed line-clamp-3">
+              <p className="text-white/90 text-sm leading-relaxed line-clamp-3">
                 {product.description}
               </p>
 

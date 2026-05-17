@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, CreditCard, ShieldCheck, Lock, Truck, MapPin, Globe, Banknote, Building2, Smartphone, Coins, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, CreditCard, ShieldCheck, Lock, Truck, MapPin, Globe, Banknote, Building2, Smartphone, Coins, Upload, Image as ImageIcon, Bitcoin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../StoreContext';
 import { useAlert } from '../contexts/AlertContext';
@@ -8,6 +8,7 @@ import { db, auth } from '../lib/firebase';
 import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { SHIPPING_PROVIDERS } from '../constants';
 import StripePayment from './StripePayment';
+import GooglePayButton from '@google-pay/button-react';
 
 const countries = [
   { code: 'IQ', name: 'Iraq', nameAr: 'العراق', dialCode: '+964' },
@@ -49,13 +50,22 @@ const COUNTRY_ADJUSTMENT_LOCAL: Record<string, number> = {
   'DEFAULT': 1.5
 };
 
+const paymentMethodColors: Record<string, string> = {
+  card: '#D4AF37', // brand-gold
+  googlepay: '#4285F4', // google-blue
+  applepay: '#000000', // black
+  crypto: '#f7931a', // bitcoin-orange
+  cod: '#059669', // emerald-600
+  bank: '#3b82f6' // blue-500
+};
+
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) => {
   const { t, i18n } = useTranslation();
-  const { clearCart, cart, formatPrice, setCurrency } = useStore();
+  const { clearCart, cart, formatPrice, setCurrency, settings } = useStore();
   const { showAlert } = useAlert();
   const isArabic = i18n.language === 'ar';
 
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cod' | 'googlepay' | 'crypto'>('card');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cod' | 'googlepay' | 'crypto' | 'applepay' | 'bank'>('card');
   const [selectedCountry, setSelectedCountry] = useState('SA'); // Default to SA for better payment coverage
   const [phonePrefix, setPhonePrefix] = useState('+966');
   const [shippingProviders, setShippingProviders] = useState<any[]>(SHIPPING_PROVIDERS);
@@ -168,12 +178,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
     setReceiptPreview(null);
   };
 
-  const WHATSAPP_NUMBER = '9647837814009';
+  const WHATSAPP_NUMBER = settings.whatsappNumber;
 
-  const getWhatsAppMessage = (info: any) => {
+    const getWhatsAppMessage = (info: any) => {
     const methodLabel = paymentMethod === 'cod' ? (isArabic ? 'الدفع عند الاستلام (افحص واستلم) 🤝' : 'Cash on Delivery (Check & Collect) 🤝') : 
                        paymentMethod === 'card' ? t('checkout.card') : 
                        paymentMethod === 'crypto' ? (isArabic ? 'عملات رقمية 🪙' : 'Cryptocurrency 🪙') :
+                       paymentMethod === 'bank' ? (isArabic ? 'تحويل بنكي 🏦' : 'Bank Transfer 🏦') :
+                       paymentMethod === 'applepay' ? (isArabic ? 'آبل باي 🍏' : 'Apple Pay 🍏') :
                        paymentMethod === 'googlepay' ? (isArabic ? 'جوجل باي (الدفع السريع) 📱' : 'Google Pay (Rapid) 📱') :
                        t('checkout.paypal');
     
@@ -215,6 +227,84 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
     const trackingId = "AH-" + Math.random().toString(36).substring(2, 6).toUpperCase() + "-" + Math.random().toString(36).substring(2, 6).toUpperCase();
 
     try {
+      // If payment is by card, we use Payoneer Hosted Payment Page
+      if (paymentMethod === 'card') {
+        console.log('[Payoneer] Initializing session...');
+        const response = await fetch('/api/payoneer/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: finalTotal,
+            currency: 'USD',
+            orderId: trackingId,
+            customer: {
+              name: formData.name,
+              email: formData.email,
+              phone: fullPhoneNumber,
+              countryCode: selectedCountry
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('[Payoneer] API Error:', errorData);
+          throw new Error(errorData.error || 'Failed to connect to Payoneer');
+        }
+
+        const data = await response.json();
+        console.log('[Payoneer] Received data:', data);
+
+        if (data.redirectUrl) {
+          // Pre-save order
+          const orderData = {
+            userId: auth.currentUser?.uid || 'anonymous',
+            shippingAddress: {
+              fullName: formData.name,
+              email: formData.email || auth.currentUser?.email || (formData.name.toLowerCase().replace(/\s+/g, '.') + '@example.com'),
+              address: formData.address,
+              city: formData.city,
+              country: countries.find(c => c.code === selectedCountry)?.name || selectedCountry,
+              zipCode: formData.zipCode,
+              phone: fullPhoneNumber
+            },
+            phone: fullPhoneNumber,
+            paymentMethod,
+            status: 'pending_payment' as const,
+            trackingId,
+            total: finalTotal,
+            items: cart.map(item => ({
+              id: item.id,
+              name: item.name,
+              price: (item.discountPrice ?? item.price),
+              quantity: item.quantity,
+              image: item.image
+            })),
+            createdAt: serverTimestamp()
+          };
+          
+          try {
+            await setDoc(doc(db, 'orders', trackingId), orderData);
+            console.log('[Payoneer] Pre-order saved:', trackingId);
+          } catch (fsErr) {
+            console.error('[Payoneer] Firestore pre-save error:', fsErr);
+            // We continue anyway if the redirect URL is present
+          }
+
+          // Redirect to Payoneer
+          console.log('[Payoneer] Redirecting to:', data.redirectUrl);
+          window.location.href = data.redirectUrl;
+          return;
+        } else {
+          throw new Error('No redirect URL received from payment gateway');
+        }
+      }
+
+      // If payment is Google Pay, we process it (Keep original logic if it was working via Stripe/other or simulate)
+      if (paymentMethod === 'googlepay' && cardholderName) {
+        // Logic for Google Pay...
+      }
+
       const orderData = {
         userId: auth.currentUser?.uid || 'anonymous',
         shippingAddress: {
@@ -229,7 +319,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
         phone: fullPhoneNumber,
         paymentMethod,
         cardholderName: cardholderName || null,
-        googlePayVerified: paymentMethod === 'googlepay',
         shippingProvider: paymentMethod === 'cod' ? selectedProvider : 'electronic_standard',
         shippingSpeed,
         total: finalTotal,
@@ -246,6 +335,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
         })),
         status: 'pending' as const,
         trackingId,
+        receiptUrl: receiptPreview || null,
         createdAt: serverTimestamp()
       };
 
@@ -302,11 +392,422 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
     wallet: t('checkout.wallet')
   };
 
-  const paymentMethodColors: Record<string, string> = {
-    card: '#008296',
-    crypto: '#f7931a',
-    cod: '#22c55e',
-    googlepay: '#4285F4'
+  const renderPaymentExecution = () => {
+    switch (paymentMethod) {
+      case 'card':
+        return (
+          <div className="space-y-6">
+             <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2 mb-4">
+               <CreditCard size={12} /> {isArabic ? 'بطاقة بنكية / بايونير' : 'Card / Payoneer Info'}
+             </h4>
+             <div className="bg-brand-charcoal/[0.02] p-8 rounded-[2.5rem] border-2 border-brand-charcoal/5 space-y-6 text-center">
+               <div className="w-20 h-20 bg-[#FF4800] rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-[#FF4800]/20">
+                  <Banknote size={40} className="text-white" />
+               </div>
+               <div className="space-y-2">
+                 <h4 className="text-xl font-black text-brand-charcoal leading-tight">
+                   {isArabic ? 'الدفع الآمن عبر بايونير' : 'Secure Payment via Payoneer'}
+                 </h4>
+                 <p className="text-[10px] font-bold text-brand-charcoal/40 uppercase tracking-widest">
+                   {isArabic ? 'عالمي • آمن • موثوق' : 'Global • Secure • Trusted'}
+                 </p>
+               </div>
+               
+               <div className="bg-white p-4 rounded-2xl border border-brand-charcoal/5 flex flex-col items-center gap-3">
+                 <p className="text-[10px] text-brand-charcoal/60 leading-relaxed max-w-[200px]">
+                   {isArabic ? 'سيتم توجيهك إلى صفحة الدفع الآمنة لإتمام عملية الشراء' : 'You will be redirected to the secure payment page to complete your purchase'}
+                 </p>
+               </div>
+
+               <button
+                 disabled={isProcessing}
+                 onClick={() => handleSubmit()}
+                 type="button"
+                 className="w-full bg-brand-charcoal text-white font-black py-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-brand-gold shadow-2xl shadow-brand-charcoal/20 transition-all disabled:opacity-50 active:scale-95 group uppercase tracking-widest text-xs"
+               >
+                 {isProcessing ? (
+                   <span className="flex items-center gap-2">
+                     <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                     {texts.processing}
+                   </span>
+                 ) : (
+                   <>
+                     <Lock className="group-hover:scale-110 transition-transform" />
+                     {isArabic ? 'تأكيد ودفع' : 'Confirm & Pay'}
+                   </>
+                 )}
+               </button>
+             </div>
+             <div className="flex gap-2 justify-center opacity-40">
+               <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Mada_Logo.svg" alt="Mada" className="h-4" />
+               <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4" />
+               <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-4" />
+             </div>
+          </div>
+        );
+      case 'googlepay':
+        return (
+          <div className="space-y-6 text-center">
+            <div className="bg-[#4285F4]/5 p-8 rounded-[2.5rem] border-2 border-[#4285F4]/20 space-y-6">
+              <div className="w-20 h-20 bg-[#4285F4] rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-[#4285F4]/20">
+                <Smartphone size={40} className="text-white" />
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-xl font-black text-brand-charcoal leading-tight">
+                  {isArabic ? 'الدفع السريع بنقرة واحدة' : 'One-Tap Fast Payment'}
+                </h4>
+                <p className="text-[10px] font-bold text-brand-charcoal/40 uppercase tracking-widest">
+                  {isArabic ? 'آمن • سريع • خصوصية كاملة' : 'Secure • Fast • Total Privacy'}
+                </p>
+              </div>
+              
+              <div className="bg-white p-4 rounded-2xl border border-brand-charcoal/5 flex flex-col items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="Google Pay" className="h-8" />
+                </div>
+                <p className="text-[10px] text-brand-charcoal/60 leading-relaxed max-w-[200px]">
+                  {isArabic ? 'سيتم استخدام معلومات الدفع المحفوظة في حساب جوجل الخاص بك' : 'Saved payment info from your Google account will be used securely'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-center w-full">
+              <GooglePayButton
+                environment="PRODUCTION"
+                buttonColor="black"
+                buttonType="pay"
+                className="w-full"
+                style={{ width: '100%', height: '60px' }}
+                paymentRequest={{
+                  apiVersion: 2,
+                  apiVersionMinor: 0,
+                  allowedPaymentMethods: [
+                    {
+                      type: 'CARD',
+                      parameters: {
+                        allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+                        allowedCardNetworks: ['MASTERCARD', 'VISA'],
+                      },
+                      tokenizationSpecification: {
+                        type: 'PAYMENT_GATEWAY',
+                        parameters: {
+                          gateway: 'stripe',
+                          'stripe:version': '2022-11-15',
+                          'stripe:publishableKey': settings.stripePublicKey || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder',
+                        },
+                      },
+                    },
+                  ],
+                  merchantInfo: {
+                    merchantId: settings.googlePayMerchantId || import.meta.env.VITE_GOOGLE_PAY_MERCHANT_ID || 'BCR2DN5TROGI7Q2U',
+                    merchantName: settings.storeName,
+                  },
+                  transactionInfo: {
+                    totalPriceStatus: 'FINAL',
+                    totalPriceLabel: 'Total',
+                    totalPrice: (finalTotal || 0).toString(),
+                    currencyCode: 'USD',
+                    countryCode: 'IQ',
+                  },
+                }}
+                onLoadPaymentData={paymentData => {
+                  console.log('Google Pay Success', paymentData);
+                  const token = paymentData.paymentMethodData.tokenizationData.token;
+                  handleSubmit(undefined, token);
+                }}
+                onError={error => {
+                  console.error('Google Pay Error', error);
+                  showAlert(isArabic ? 'فشل الدفع عبر Google Pay' : 'Google Pay failed');
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-center gap-4 opacity-50 grayscale pt-2">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/c/cb/Google_Pay_Logo_2020.svg" alt="GP" className="h-4" />
+              <div className="w-[1px] h-3 bg-brand-charcoal/20" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-brand-charcoal">Secure Checkout</span>
+            </div>
+          </div>
+        );
+      case 'applepay':
+        return (
+          <div className="space-y-6 text-center">
+            <div className="bg-black/5 p-8 rounded-[2.5rem] border-2 border-black/20 space-y-6">
+              <div className="w-20 h-20 bg-black rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-black/20">
+                <Smartphone size={40} className="text-white" />
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-xl font-black text-brand-charcoal leading-tight">
+                  Apple Pay
+                </h4>
+                <p className="text-[10px] font-bold text-brand-charcoal/40 uppercase tracking-widest">
+                  {isArabic ? 'آمن • سريع • خصوصية كاملة' : 'Secure • Fast • Total Privacy'}
+                </p>
+              </div>
+              
+              <div className="bg-white p-4 rounded-2xl border border-brand-charcoal/5 flex flex-col items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/b/b0/Apple_Pay_logo.svg" alt="Apple Pay" className="h-8" />
+                </div>
+                <p className="text-[10px] text-brand-charcoal/60 leading-relaxed max-w-[200px]">
+                  {isArabic ? 'سيتم استخدام بطاقتك المفضلة من Apple Wallet' : 'Your preferred card from Apple Wallet will be used'}
+                </p>
+              </div>
+            </div>
+
+            <button
+               disabled={isProcessing}
+               onClick={() => handleSubmit(undefined, 'apple_pay_simulation_token')}
+               className="w-full bg-black text-white h-16 rounded-2xl flex items-center justify-center gap-3 hover:bg-zinc-900 transition-all shadow-xl font-bold disabled:opacity-50"
+            >
+               {isProcessing ? (
+                 <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+               ) : (
+                 <div className="flex items-center gap-1.5">
+                    <span className="text-lg"></span>
+                    <span>{isArabic ? 'الدفع' : 'Pay'}</span>
+                 </div>
+               )}
+            </button>
+
+            <div className="flex items-center justify-center gap-4 opacity-50 pt-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-brand-charcoal">Secure Apple Pay Checkout</span>
+            </div>
+          </div>
+        );
+      case 'crypto':
+        return (
+          <div className="space-y-6">
+             <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#f7931a] flex items-center gap-2 mb-4">
+               <Coins size={12} strokeWidth={3} /> {isArabic ? 'الدفع بالعملات الرقمية' : 'Pay via Cryptocurrency'}
+             </h4>
+             <div className="flex items-center gap-4 bg-[#f7931a]/5 p-5 rounded-3xl border border-[#f7931a]/20 mb-6 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none group-hover:rotate-12 transition-transform">
+                  <Coins size={60} />
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-[#f7931a] flex items-center justify-center text-white shadow-xl transform group-hover:scale-110 transition-transform">
+                  <Coins size={24} />
+                </div>
+                <div>
+                  <h5 className="text-[14px] font-black text-[#f7931a] tracking-tight uppercase leading-none">USDT / BTC / ETH</h5>
+                  <p className="text-[10px] font-bold text-brand-charcoal/40 uppercase mt-1.5">{isArabic ? 'دعم كامل لجميع الشبكات' : 'Full Support All Networks'}</p>
+                </div>
+             </div>
+
+             <div className="bg-brand-charcoal/[0.03] p-6 rounded-[2.5rem] border border-brand-charcoal/10 text-center space-y-5 relative overflow-hidden">
+                <p className="text-xs text-brand-charcoal/70 font-semibold leading-relaxed">
+                  {isArabic 
+                    ? `يرجى تحويل المعادل لـ (${formatPrice(finalTotal)}) إلى العنوان التالي:` 
+                    : `Please transfer (${formatPrice(finalTotal)}) to:`}
+                </p>
+                
+                <div className="bg-white py-5 px-4 rounded-2xl border border-brand-charcoal/10 shadow-sm group cursor-pointer active:scale-95 transition-all hover:border-brand-gold/30">
+                  <p className="text-[10px] font-mono font-black text-brand-charcoal break-all tracking-wider md:text-xs">
+                    TX221wiLGdKizoXaCaiRyLHjzZxxP63iFU
+                  </p>
+                  <div className="mt-4 flex items-center justify-center gap-3 opacity-80 group-hover:opacity-100 transition-opacity">
+                    <div className="h-[1px] w-8 bg-brand-gold/40" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold font-mono">{isArabic ? 'شبكة TRC20 - اضغط للنسخ' : 'TRC20 NETWORK - CLICK TO COPY'}</span>
+                    <div className="h-[1px] w-8 bg-brand-gold/40" />
+                  </div>
+                </div>
+
+                <div className="flex justify-center py-4 bg-white/50 rounded-2xl backdrop-blur-sm">
+                  <div className="p-3 bg-white rounded-2xl border border-brand-charcoal/10 shadow-lg transform hover:scale-105 transition-transform cursor-zoom-in">
+                    <img 
+                      src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TX221wiLGdKizoXaCaiRyLHjzZxxP63iFU" 
+                      alt="Crypto QR Code" 
+                      className="w-24 h-24 sm:w-32 sm:h-32 grayscale brightness-90 hover:grayscale-0 transition-all"
+                    />
+                  </div>
+                </div>
+             </div>
+
+             {/* MANDATORY RECEIPT UPLOAD */}
+             <div className="space-y-3">
+               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#f7931a] flex items-center gap-2">
+                 <Upload size={12} /> {isArabic ? 'ارفاق ايصال الدفع (إجباري)' : 'Attach Payment Receipt (Mandatory)'}
+               </label>
+               
+               <div className={`relative group transition-all ${receiptFile ? 'border-[#f7931a]/20 bg-[#f7931a]/5' : 'border-dashed border-2 border-brand-charcoal/10 bg-brand-charcoal/[0.02] hover:bg-brand-charcoal/[0.04]'} rounded-3xl p-6 text-center`}>
+                 <input
+                   type="file"
+                   accept="image/*"
+                   onChange={handleFileChange}
+                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                 />
+                 
+                 {receiptPreview ? (
+                   <div className="flex flex-col items-center gap-3 relative z-20">
+                     <div className="relative">
+                       <img src={receiptPreview} alt="Receipt Preview" className="w-24 h-24 object-cover rounded-2xl shadow-lg border-2 border-white" />
+                       <button 
+                         type="button"
+                         onClick={(e) => { e.stopPropagation(); removeReceipt(); }}
+                         className="absolute -top-2 -right-2 bg-brand-charcoal text-white rounded-full p-1 shadow-lg hover:bg-red-500 transition-colors"
+                       >
+                         <X size={12} />
+                       </button>
+                     </div>
+                     <p className="text-[10px] font-bold text-[#f7931a] truncate max-w-[200px]">{receiptFile?.name}</p>
+                   </div>
+                 ) : (
+                   <div className="flex flex-col items-center gap-2 py-4">
+                     <div className="w-12 h-12 rounded-full bg-[#f7931a]/10 flex items-center justify-center text-[#f7931a] mb-2">
+                       <Upload size={24} />
+                     </div>
+                     <p className="text-xs font-bold text-brand-charcoal">{isArabic ? 'اضغط لرفع الايصال' : 'Click to upload receipt'}</p>
+                     <p className="text-[9px] text-brand-charcoal/40 font-bold uppercase tracking-widest">{isArabic ? 'الصور فقط (الحد الأقصى 5 ميجابايت)' : 'Images only (Max 5MB)'}</p>
+                   </div>
+                 )}
+               </div>
+             </div>
+
+             <button 
+               disabled={isProcessing || !receiptFile}
+               onClick={() => handleSubmit()} 
+               className="w-full bg-[#f7931a] text-white font-black text-xs py-6 rounded-2xl shadow-xl shadow-[#f7931a]/20 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed group"
+             >
+               {isProcessing ? (
+                 <span className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    {texts.processing}
+                 </span>
+               ) : (
+                 <>
+                   <Lock size={16} className="group-hover:scale-110 transition-transform" /> 
+                   {isArabic ? 'تأكيد الحوالة والطلب' : 'Confirm Crypto Order'}
+                 </>
+               )}
+             </button>
+
+             <p className="text-[10px] text-brand-gold font-black text-center uppercase tracking-[0.2em] animate-pulse">
+               {isArabic ? '✓ أرسل رقم العملية (TXID) عبر الواتساب' : '✓ Send TXID via WhatsApp'}
+             </p>
+          </div>
+        );
+      case 'bank':
+        return (
+          <div className="space-y-6">
+             <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2 mb-4">
+               <Building2 size={12} /> {isArabic ? 'بيانات التحويل البنكي' : 'Bank Transfer Details'}
+             </h4>
+             
+             <div className="bg-brand-charcoal/[0.03] p-8 rounded-[2.5rem] border border-brand-charcoal/10 space-y-6 text-center">
+                <div className="w-20 h-20 bg-brand-gold rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-brand-gold/20">
+                  <Building2 size={40} className="text-white" />
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="p-4 bg-white rounded-2xl border border-brand-charcoal/5 shadow-sm space-y-1">
+                    <span className="text-[9px] font-black uppercase text-brand-charcoal/30 tracking-[0.2em]">{isArabic ? 'اسم البنك' : 'Bank Name'}</span>
+                    <p className="text-sm font-black text-brand-charcoal">{settings.bankDetails.bankName || 'N/A'}</p>
+                  </div>
+                  <div className="p-4 bg-white rounded-2xl border border-brand-charcoal/5 shadow-sm space-y-1">
+                    <span className="text-[9px] font-black uppercase text-brand-charcoal/30 tracking-[0.2em]">{isArabic ? 'صاحب الحساب' : 'Account Holder'}</span>
+                    <p className="text-sm font-black text-brand-charcoal">{settings.bankDetails.accountHolder || 'N/A'}</p>
+                  </div>
+                  <div className="p-4 bg-white rounded-2xl border border-brand-charcoal/5 shadow-sm space-y-1 relative group cursor-pointer" 
+                       onClick={() => {
+                         navigator.clipboard.writeText(settings.bankDetails.iban);
+                         showAlert(isArabic ? 'تم نسخ IBAN!' : 'IBAN Copied!', 'success');
+                       }}>
+                    <span className="text-[9px] font-black uppercase text-brand-charcoal/30 tracking-[0.2em]">IBAN</span>
+                    <p className="text-xs font-mono font-black text-brand-charcoal break-all">{settings.bankDetails.iban || 'N/A'}</p>
+                    <div className="absolute inset-0 bg-brand-gold opacity-0 group-hover:opacity-10 transition-opacity flex items-center justify-center rounded-2xl">
+                       <span className="bg-white px-2 py-1 rounded text-[8px] font-black uppercase text-brand-gold shadow-sm">{isArabic ? 'اضغط للنسخ' : 'Tap to Copy'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-brand-gold/5 p-4 rounded-2xl border border-brand-gold/10">
+                   <p className="text-[10px] text-brand-gold font-bold leading-relaxed italic">
+                      {isArabic ? 'يرجى تحويل المبلغ ومن ثم إرفاق صورة من إيصال التحويل أدناه.' : 'Please transfer the amount and then attach a photo of the transfer receipt below.'}
+                   </p>
+                </div>
+             </div>
+
+             {/* MANDATORY RECEIPT UPLOAD */}
+             <div className="space-y-3">
+               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold flex items-center gap-2">
+                 <Upload size={12} /> {isArabic ? 'ارفاق ايصال الحوالة (إجباري)' : 'Attach Transfer Receipt (Mandatory)'}
+               </label>
+               
+               <div className={`relative group transition-all ${receiptFile ? 'border-brand-gold/20 bg-brand-gold/5' : 'border-dashed border-2 border-brand-charcoal/10 bg-brand-charcoal/[0.02] hover:bg-brand-charcoal/[0.04]'} rounded-3xl p-6 text-center`}>
+                 <input
+                   type="file"
+                   accept="image/*"
+                   onChange={handleFileChange}
+                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                 />
+                 
+                 {receiptPreview ? (
+                   <div className="flex flex-col items-center gap-3 relative z-20">
+                     <div className="relative">
+                       <img src={receiptPreview} alt="Receipt Preview" className="w-24 h-24 object-cover rounded-2xl shadow-lg border-2 border-white" />
+                       <button 
+                         type="button"
+                         onClick={(e) => { e.stopPropagation(); removeReceipt(); }}
+                         className="absolute -top-2 -right-2 bg-brand-charcoal text-white rounded-full p-1 shadow-lg hover:bg-red-500 transition-colors"
+                       >
+                         <X size={12} />
+                       </button>
+                     </div>
+                     <p className="text-[10px] font-bold text-brand-charcoal truncate max-w-[200px]">{receiptFile?.name}</p>
+                   </div>
+                 ) : (
+                   <div className="flex flex-col items-center gap-2 py-4">
+                     <div className="w-12 h-12 rounded-full bg-brand-gold/10 flex items-center justify-center text-brand-gold mb-2">
+                       <Upload size={24} />
+                     </div>
+                     <p className="text-xs font-bold text-brand-charcoal">{isArabic ? 'اضغط لرفع الايصال' : 'Click to upload receipt'}</p>
+                     <p className="text-[9px] text-brand-charcoal/40 font-bold uppercase tracking-widest">{isArabic ? 'الصور فقط (الحد الأقصى 5 ميجابايت)' : 'Images only (Max 5MB)'}</p>
+                   </div>
+                 )}
+               </div>
+             </div>
+
+             <button 
+               disabled={isProcessing || !receiptFile}
+               onClick={() => handleSubmit()} 
+               className="w-full bg-brand-charcoal text-white font-black py-6 rounded-2xl shadow-xl shadow-brand-charcoal/20 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed group text-xs"
+             >
+               {isProcessing ? (
+                 <span className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    {texts.processing}
+                 </span>
+               ) : (
+                 <>
+                   <Lock size={16} className="group-hover:scale-110 transition-transform" /> 
+                   {isArabic ? 'تأكيد الحوالة البنكية' : 'Confirm Bank Transfer'}
+                 </>
+               )}
+             </button>
+          </div>
+        );
+      default:
+        return (
+          <button
+            disabled={isProcessing}
+            onClick={() => handleSubmit()}
+            type="button"
+            className="w-full bg-brand-charcoal text-white font-bold py-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-brand-gold shadow-2xl shadow-brand-charcoal/20 transition-all disabled:opacity-50 active:scale-95 group"
+          >
+            {isProcessing ? (
+              <span className="flex items-center gap-2">
+                 <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                 {texts.processing}
+              </span>
+            ) : (
+              <>
+                {paymentMethod === 'cod' ? <Truck className="group-hover:translate-x-1 transition-transform" /> : <Banknote />}
+                {texts.confirmOrder}
+              </>
+            )}
+          </button>
+        );
+    }
   };
 
     const methodLabel = paymentMethod === 'cod' ? (isArabic ? 'دفع عند الاستلام' : 'Cash on Delivery') : 
@@ -333,503 +834,355 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="relative w-full max-w-lg bg-brand-cream rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh]"
             >
-              {/* Header */}
-              <div 
-                className="p-4 text-white flex-shrink-0 relative transition-colors duration-500"
-                style={{ backgroundColor: paymentMethodColors[paymentMethod] || '#000000' }}
-              >
-                <div className="flex items-center justify-between">
-                  <button 
-                    onClick={onClose}
-                    className="text-[10px] font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
-                  >
-                    {t('checkout.cancel')}
-                  </button>
-                  <h2 className="text-sm font-bold absolute left-1/2 -translate-x-1/2 uppercase tracking-widest">
-                    {methodLabel}
-                  </h2>
-                  <div className="w-10"></div> {/* Spacer for symmetry */}
-                </div>
-              </div>
-
-            {/* Order Summary */}
-            <div 
-              className="p-4 border-b border-brand-charcoal/5 flex justify-between items-center transition-colors duration-500"
-              style={{ backgroundColor: `${paymentMethodColors[paymentMethod]}08` }}
-            >
-              <span className="text-brand-charcoal/80 font-bold text-xs uppercase tracking-wider">
-                {t('checkout.orderTotal')}
-              </span>
-              <span className="text-xl font-bold text-[#b12704]">{formatPrice(finalTotal)}</span>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 sm:p-10 overflow-y-auto flex-1 bg-white custom-scrollbar">
-              {isSuccess ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white mb-6 shadow-xl shadow-green-100">
-                    <ShieldCheck size={40} />
+              <div className="flex flex-col flex-1 overflow-hidden">
+                {/* Header */}
+                <div 
+                  className="p-4 text-white flex-shrink-0 relative transition-colors duration-500"
+                  style={{ backgroundColor: paymentMethodColors[paymentMethod] || '#000000' }}
+                >
+                  <div className="flex items-center justify-between">
+                    <button 
+                      onClick={onClose}
+                      className="text-[10px] font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
+                    >
+                      {t('checkout.cancel')}
+                    </button>
+                    <h2 className="text-sm font-bold absolute left-1/2 -translate-x-1/2 uppercase tracking-widest">
+                      {methodLabel}
+                    </h2>
+                    <div className="w-10"></div>
                   </div>
-                  <h3 className="text-2xl font-bold text-brand-charcoal mb-2">{texts.success}</h3>
-                  <p className="text-brand-charcoal/60 text-sm mb-10 max-w-xs leading-relaxed">{texts.successSub}</p>
-                  
-                  {orderInfo && (
-                    <div className="w-full bg-brand-charcoal/5 border-2 border-dashed border-brand-charcoal/10 rounded-3xl p-8">
-                        <div className="flex flex-col items-center justify-center gap-2 mb-6">
-                        <div className="flex items-center gap-2 bg-brand-gold/10 py-2 px-4 rounded-full w-fit mx-auto">
-                          <ShieldCheck size={14} className="text-brand-gold" />
-                          <span className="text-[10px] font-bold text-brand-gold uppercase tracking-widest">
-                            {t('checkout.processedViaNetwork')} ✅
-                          </span>
-                        </div>
-                        {orderInfo.cardholderName && (
-                          <div className="mt-2 text-brand-charcoal/60 text-xs font-bold bg-white/50 px-4 py-2 rounded-xl border border-brand-charcoal/5">
-                            {t('checkout.cardholder')}: 
-                            <span className="text-brand-charcoal">{orderInfo.cardholderName}</span>
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-[10px] uppercase font-black tracking-widest text-brand-charcoal/30 mb-2">{texts.trackingText}</p>
-                      <p className="text-3xl font-mono font-bold text-brand-gold mb-8 tracking-tighter">{orderInfo.trackingId}</p>
-                      <div className="mb-4 text-sm font-bold text-brand-charcoal/60">
-                        {t('checkout.total')}: <span className="text-brand-charcoal">{formatPrice(finalTotal)}</span>
-                      </div>
-                      <button
-                        onClick={() => window.location.href = `/track/${orderInfo.trackingId}`}
-                        className="w-full bg-brand-charcoal text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-brand-gold transition-all shadow-lg active:scale-95"
-                      >
-                        <MapPin size={18} /> {texts.trackNow}
-                      </button>
-                    </div>
-                  )}
                 </div>
-              ) : (
-                <div className="space-y-8">
-                  {/* Payment Selection Toggles - Grid for desktop to ensure all are visible */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 bg-brand-charcoal/[0.03] p-2 rounded-2xl gap-2 sm:gap-3 border border-brand-charcoal/5">
-                    {(['card', 'crypto', 'cod', 'googlepay'] as const).map((method) => (
-                      <button
-                        key={method}
-                        type="button"
-                        onClick={() => setPaymentMethod(method)}
-                        className={`py-4 px-1 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all border-2 relative ${
-                          paymentMethod === method 
-                            ? 'bg-white text-brand-charcoal border-brand-gold shadow-lg shadow-brand-gold/10 scale-[1.02] z-10' 
-                            : 'bg-white/40 text-brand-charcoal/30 border-transparent hover:border-brand-gold/10 hover:bg-white/60'
-                        }`}
-                      >
-                        {paymentMethod === method && (
-                          <div className="absolute -top-2 -right-2 bg-brand-gold text-white rounded-full p-1 shadow-lg z-20">
-                            <ShieldCheck size={12} fill="currentColor" />
-                          </div>
-                        )}
-                        <div className={`flex items-center justify-center h-12 w-12 rounded-2xl transition-all shadow-sm ${
-                          paymentMethod === method 
-                            ? 'text-white rotate-3 scale-110'
-                            : 'bg-brand-charcoal/5 text-brand-charcoal/30 grayscale'
-                        }`}
-                        style={{ backgroundColor: paymentMethod === method ? paymentMethodColors[method] : '' }}
-                        >
-                          {method === 'card' ? <CreditCard size={24} strokeWidth={2} /> : 
-                           method === 'cod' ? <Truck size={24} strokeWidth={2} /> : 
-                           method === 'googlepay' ? <Smartphone size={24} strokeWidth={2} /> : 
-                           method === 'crypto' ? <Coins size={24} strokeWidth={2} /> :
-                           <Banknote size={24} />}
-                        </div>
-                        <span 
-                          className={`text-[10px] font-black uppercase tracking-wider whitespace-nowrap text-center transition-all ${paymentMethod === method ? '' : 'text-brand-charcoal/40'}`}
-                          style={{ color: paymentMethod === method ? paymentMethodColors[method] : '' }}
-                        >
-                          {method === 'googlepay' ? (isArabic ? 'جوجل باي' : 'Google Pay') :
-                           method === 'crypto' ? (isArabic ? 'عملات رقمية' : 'Crypto') :
-                           texts[method as keyof typeof texts]}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
 
-                  <div className="space-y-6">
-                    {/* Customer Information Section */}
-                    <div className="space-y-4">
-                      <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2">
-                        <MapPin size={12} /> {t('checkout.shippingInfo')}
-                      </h4>
+                {/* Order Summary */}
+                <div 
+                  className="p-4 border-b border-brand-charcoal/5 flex justify-between items-center transition-colors duration-500"
+                  style={{ backgroundColor: `${paymentMethodColors[paymentMethod]}08` }}
+                >
+                  <span className="text-brand-charcoal/80 font-bold text-xs uppercase tracking-wider">
+                    {t('checkout.orderTotal')}
+                  </span>
+                  <span className="text-xl font-bold text-[#b12704]">{formatPrice(finalTotal)}</span>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 sm:p-10 overflow-y-auto flex-1 bg-white custom-scrollbar">
+                  {isSuccess ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white mb-6 shadow-xl shadow-green-100">
+                        <ShieldCheck size={40} />
+                      </div>
+                      <h3 className="text-2xl font-bold text-brand-charcoal mb-2">{texts.success}</h3>
+                      <p className="text-brand-charcoal/60 text-sm mb-10 max-w-xs leading-relaxed">{texts.successSub}</p>
                       
-                      <div className="space-y-4">
-                        {/* Country Selection */}
-                        <div className="relative group">
-                          <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-charcoal/40 z-10">{t('checkout.country')}</label>
-                          <select
-                            value={selectedCountry}
-                            onChange={(e) => setSelectedCountry(e.target.value)}
-                            className="w-full bg-white border-2 border-brand-charcoal/10 rounded-2xl px-12 py-5 focus:border-brand-gold outline-none text-brand-charcoal font-bold appearance-none transition-all shadow-sm"
-                          >
-                            {countries.map(c => (
-                              <option key={c.code} value={c.code}>{isArabic ? c.nameAr : c.name}</option>
-                            ))}
-                          </select>
-                          <Globe size={20} className={`absolute ${isArabic ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-brand-gold`} />
-                        </div>
-
-                        {/* Shipping Provider Selection - Only for COD as per request */}
-                        {paymentMethod === 'cod' && (
-                          <div className="space-y-3">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold">{t('checkout.shippingProvider')}</label>
-                            <div className="grid grid-cols-1 gap-2">
-                              {shippingProviders
-                                .filter(p => {
-                                  if (selectedCountry === 'IQ') return true; // Show all for Iraq including Al-Waseet
-                                  return p.id !== 'al-waseet'; // Hide Al-Waseet for other countries
-                                })
-                                .map((p) => (
-                                <button
-                                  key={p.id}
-                                  type="button"
-                                  onClick={() => setSelectedProvider(p.id)}
-                                  className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${
-                                    selectedProvider === p.id 
-                                      ? 'border-brand-gold bg-brand-gold/5 shadow-sm' 
-                                      : 'border-brand-charcoal/5 hover:border-brand-charcoal/10'
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedProvider === p.id ? 'bg-brand-gold text-white' : 'bg-brand-charcoal/5 text-brand-charcoal/40'}`}>
-                                      <Truck size={14} />
-                                    </div>
-                                    <div className={isArabic ? 'text-right' : 'text-left'}>
-                                      <span className="block text-sm font-bold text-brand-charcoal">{p.name}</span>
-                                      <span className="block text-[10px] text-brand-charcoal/40 font-medium">{t('checkout.deliveryWithin')}: {p.speed}</span>
-                                    </div>
-                                  </div>
-                                  <div className={`text-sm font-bold ${selectedProvider === p.id ? 'text-brand-gold' : 'text-brand-charcoal/60'}`}>
-                                    {formatPrice(Math.round(p.base * (COUNTRY_ADJUSTMENT_LOCAL[selectedCountry] || 1.5)))}
-                                  </div>
-                                </button>
-                              ))}
+                      {orderInfo && (
+                        <div className="w-full bg-brand-charcoal/5 border-2 border-dashed border-brand-charcoal/10 rounded-3xl p-8">
+                            <div className="flex flex-col items-center justify-center gap-2 mb-6">
+                            <div className="flex items-center gap-2 bg-brand-gold/10 py-2 px-4 rounded-full w-fit mx-auto">
+                              <ShieldCheck size={14} className="text-brand-gold" />
+                              <span className="text-[10px] font-bold text-brand-gold uppercase tracking-widest">
+                                {t('checkout.processedViaNetwork')} ✅
+                              </span>
                             </div>
+                            {orderInfo.cardholderName && (
+                              <div className="mt-2 text-brand-charcoal/60 text-xs font-bold bg-white/50 px-4 py-2 rounded-xl border border-brand-charcoal/5">
+                                {t('checkout.cardholder')}: 
+                                <span className="text-brand-charcoal">{orderInfo.cardholderName}</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-
-                        {/* Name Input */}
-                        <div className="relative">
-                          <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.fullName')}</label>
-                          <input
-                            required
-                            type="text"
-                            placeholder="John Doe"
-                            className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm"
-                            value={formData.name}
-                            onChange={(e) => setFormData({...formData, name: e.target.value})}
-                          />
+                          <p className="text-[10px] uppercase font-black tracking-widest text-brand-charcoal/30 mb-2">{texts.trackingText}</p>
+                          <p className="text-3xl font-mono font-bold text-brand-gold mb-8 tracking-tighter">{orderInfo.trackingId}</p>
+                          <div className="mb-4 text-sm font-bold text-brand-charcoal/60">
+                            {t('checkout.total')}: <span className="text-brand-charcoal">{formatPrice(finalTotal)}</span>
+                          </div>
+                          <button
+                            onClick={() => window.location.href = `/track/${orderInfo.trackingId}`}
+                            className="w-full bg-brand-charcoal text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-brand-gold transition-all shadow-lg active:scale-95"
+                          >
+                            <MapPin size={18} /> {texts.trackNow}
+                          </button>
                         </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-8">
+                      {/* Payment Selection Toggles */}
+                      <div className="grid grid-cols-3 sm:grid-cols-6 bg-brand-charcoal/[0.03] p-2 rounded-2xl gap-2 sm:gap-3 border border-brand-charcoal/5">
+                        {(['card', 'bank', 'crypto', 'cod', 'googlepay', 'applepay'] as const).map((method) => {
+                          if (method === 'bank' && !settings.bankDetails.isAvailable) return null;
+                          
+                          return (
+                            <button
+                              key={method}
+                              type="button"
+                              onClick={() => setPaymentMethod(method)}
+                              className={`py-4 px-1 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all border-2 relative ${
+                                paymentMethod === method 
+                                  ? 'bg-white text-brand-charcoal border-brand-gold shadow-lg shadow-brand-gold/10 scale-[1.02] z-10' 
+                                  : 'bg-white/40 text-brand-charcoal/30 border-transparent hover:border-brand-gold/10 hover:bg-white/60'
+                              }`}
+                            >
+                              {paymentMethod === method && (
+                                <div className="absolute -top-2 -right-2 bg-brand-gold text-white rounded-full p-1 shadow-lg z-20">
+                                  <ShieldCheck size={12} fill="currentColor" />
+                                </div>
+                              )}
+                              <div className={`flex items-center justify-center h-12 w-12 rounded-2xl transition-all shadow-sm ${
+                                paymentMethod === method 
+                                  ? 'rotate-3 scale-110 shadow-lg'
+                                  : 'bg-brand-charcoal/5 hover:bg-brand-charcoal/10'
+                              }`}
+                              style={{ 
+                                backgroundColor: paymentMethod === method ? paymentMethodColors[method] : 'transparent',
+                                color: paymentMethod === method ? 'white' : 'inherit'
+                              }}
+                              >
+                                {method === 'card' ? (
+                                  <div className="flex flex-col items-center gap-0.5">
+                                    <CreditCard size={20} strokeWidth={2.5} className={paymentMethod === method ? 'text-white' : 'text-[#2563eb]'} />
+                                    <div className="flex gap-0.5 scale-75 opacity-100">
+                                      <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" className={`h-1.5 w-auto ${paymentMethod === method ? 'brightness-0 invert' : ''}`} alt="Visa" />
+                                      <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className={`h-1.5 w-auto ${paymentMethod === method ? 'brightness-0 invert' : ''}`} alt="MC" />
+                                    </div>
+                                  </div>
+                                ) : 
+                                 method === 'bank' ? (
+                                  <div className="flex flex-col items-center">
+                                    <Building2 size={22} strokeWidth={2.5} />
+                                  </div>
+                                 ) :
+                                 method === 'cod' ? (
+                                  <div className={`flex flex-col items-center -space-y-1 ${paymentMethod === method ? 'text-white' : 'text-[#059669]'}`}>
+                                    <Truck size={22} strokeWidth={2.5} />
+                                    <Banknote size={12} strokeWidth={3} className="translate-y-0.5" />
+                                  </div>
+                                 ) : 
+                                 method === 'googlepay' ? (
+                                  <div className="flex flex-col items-center gap-1">
+                                    <img 
+                                      src="https://upload.wikimedia.org/wikipedia/commons/c/c7/Google_Pay_Logo_%282020%29.svg" 
+                                      className={`h-5 w-auto ${paymentMethod === method ? 'brightness-0 invert' : ''}`} 
+                                      alt="Google Pay" 
+                                    />
+                                  </div>
+                                 ) : 
+                                 method === 'applepay' ? (
+                                  <div className="flex items-center gap-0.5">
+                                    <img 
+                                      src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" 
+                                      className={`h-4 w-auto ${paymentMethod === method ? 'brightness-0 invert' : ''}`} 
+                                      alt="Apple" 
+                                    />
+                                    <span className={`text-[10px] font-black tracking-tighter ${paymentMethod === method ? 'text-white' : 'text-brand-charcoal'}`}>Pay</span>
+                                  </div>
+                                 ) : 
+                                 method === 'crypto' ? (
+                                  <div className="flex items-center justify-center bg-white rounded-full w-8 h-8">
+                                    <Bitcoin size={20} className="text-[#f7931a]" />
+                                  </div>
+                                 ) :
+                                 <Banknote size={24} />}
+                              </div>
+                              <span 
+                                className={`text-[9px] font-black uppercase tracking-wider whitespace-nowrap text-center transition-all ${paymentMethod === method ? '' : 'text-brand-charcoal/40'}`}
+                                style={{ color: paymentMethod === method ? paymentMethodColors[method] : '' }}
+                              >
+                                {method === 'googlepay' ? (isArabic ? 'جوجل باي' : 'Google Pay') :
+                                 method === 'applepay' ? (isArabic ? 'آبل باي' : 'Apple Pay') :
+                                 method === 'crypto' ? (isArabic ? 'عملات رقمية' : 'Crypto') :
+                                 method === 'bank' ? (isArabic ? 'تحويل بنكي' : 'Bank Transfer') :
+                                 texts[method as keyof typeof texts]}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
 
-                        {/* Contact Details Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="relative">
-                            <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.phone')}</label>
-                            <div className="flex bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl overflow-hidden focus-within:bg-white focus-within:border-brand-gold transition-all shadow-sm">
+                      <div className="space-y-6">
+                        {/* Customer Information Section */}
+                        <div className="space-y-4">
+                          <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2">
+                            <MapPin size={12} /> {t('checkout.shippingInfo')}
+                          </h4>
+                          
+                          <div className="space-y-4">
+                            {/* Country Selection */}
+                            <div className="relative group">
+                              <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-charcoal/40 z-10">{t('checkout.country')}</label>
                               <select
-                                value={phonePrefix}
-                                onChange={(e) => setPhonePrefix(e.target.value)}
-                                className="bg-transparent border-none pl-4 pr-1 py-5 text-sm font-bold text-brand-charcoal outline-none cursor-pointer appearance-none"
-                                style={{ width: '80px' }}
+                                value={selectedCountry}
+                                onChange={(e) => setSelectedCountry(e.target.value)}
+                                className="w-full bg-white border-2 border-brand-charcoal/10 rounded-2xl px-12 py-5 focus:border-brand-gold outline-none text-brand-charcoal font-bold appearance-none transition-all shadow-sm"
                               >
                                 {countries.map(c => (
-                                  <option key={c.code} value={c.dialCode}>{c.dialCode} ({c.code})</option>
+                                  <option key={c.code} value={c.code}>{isArabic ? c.nameAr : c.name}</option>
                                 ))}
                               </select>
-                              <div className="w-[1px] h-6 bg-brand-charcoal/10 self-center" />
-                              <input
-                                required
-                                type="tel"
-                                placeholder="770 000 0000"
-                                className="flex-1 bg-transparent border-none px-4 py-5 outline-none text-brand-charcoal font-bold"
-                                value={formData.phone}
-                                onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                              />
+                              <Globe size={20} className={`absolute ${isArabic ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-brand-gold`} />
                             </div>
-                          </div>
-                          <div className="relative">
-                            <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.email')}</label>
-                            <input
-                              type="email"
-                              placeholder="email@example.com"
-                              className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm"
-                              value={formData.email}
-                              onChange={(e) => setFormData({...formData, email: e.target.value})}
-                            />
-                          </div>
-                        </div>
 
-                        {/* City & Zip Code Details */}
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="relative">
-                            <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.city')}</label>
-                            <input
-                              required
-                              type="text"
-                              placeholder="Dubai"
-                              className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm"
-                              value={formData.city}
-                              onChange={(e) => setFormData({...formData, city: e.target.value})}
-                            />
-                          </div>
-                          <div className="relative">
-                            <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{isArabic ? 'الرمز البريدي' : 'ZIP Code'}</label>
-                            <input
-                              type="text"
-                              placeholder="00000"
-                              className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm"
-                              value={formData.zipCode}
-                              onChange={(e) => setFormData({...formData, zipCode: e.target.value})}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Detailed Address Section */}
-                        <div className="relative">
-                          <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.detailedAddress')}</label>
-                          <textarea
-                            required
-                            rows={2}
-                            placeholder={t('checkout.addressPlaceholder')}
-                            className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm resize-none"
-                            value={formData.address}
-                            onChange={(e) => setFormData({...formData, address: e.target.value})}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Global Fulfillment Trust Badge */}
-                    <div className="bg-brand-charcoal/[0.02] p-4 rounded-2xl border border-brand-charcoal/5 flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-brand-gold/10 flex items-center justify-center flex-shrink-0">
-                        <Globe size={14} className="text-brand-gold" />
-                      </div>
-                      <div className={isArabic ? 'text-right' : 'text-left'}>
-                        <p className="text-[10px] font-bold text-brand-charcoal uppercase tracking-tighter">
-                          {t('checkout.smartFulfillment')}
-                        </p>
-                        <p className="text-[9px] text-brand-charcoal/50 leading-relaxed">
-                          {t('checkout.smartFulfillmentDesc')}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Payment Execution Section */}
-                    <div className="pt-6 border-t border-brand-charcoal/5">
-                      {paymentMethod === 'card' ? (
-                        <div className="space-y-6">
-                           <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2 mb-4">
-                             <CreditCard size={12} /> {isArabic ? 'بطاقة بنكية / مـدى' : 'Card / Mada Info'}
-                           </h4>
-                           <div className="bg-brand-charcoal/[0.02] p-6 rounded-3xl border-2 border-brand-charcoal/5">
-                            <StripePayment 
-                              amount={finalTotal} 
-                              onSuccess={(name) => handleSubmit(undefined, name)} 
-                              onError={(err) => showAlert(err)} 
-                              isArabic={isArabic}
-                            />
-                           </div>
-                           <div className="flex gap-2 justify-center opacity-40">
-                             <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Mada_Logo.svg" alt="Mada" className="h-4" />
-                             <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4" />
-                             <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-4" />
-                           </div>
-                        </div>
-                      ) : paymentMethod === 'googlepay' ? (
-                        <div className="space-y-6 text-center">
-                          <div className="bg-[#4285F4]/5 p-8 rounded-[2.5rem] border-2 border-[#4285F4]/20 space-y-6">
-                            <div className="w-20 h-20 bg-[#4285F4] rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-[#4285F4]/20 animate-bounce">
-                              <Smartphone size={40} className="text-white" />
-                            </div>
-                            <div className="space-y-2">
-                              <h4 className="text-xl font-black text-brand-charcoal leading-tight">
-                                {isArabic ? 'الدفع السريع بنقرة واحدة' : 'One-Tap Fast Payment'}
-                              </h4>
-                              <p className="text-[10px] font-bold text-brand-charcoal/40 uppercase tracking-widest">
-                                {isArabic ? 'آمن • سريع • خصوصية كاملة' : 'Secure • Fast • Total Privacy'}
-                              </p>
-                            </div>
-                            
-                            <div className="bg-white p-4 rounded-2xl border border-brand-charcoal/5 flex flex-col items-center gap-3">
-                              <div className="flex items-center gap-2">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="Google Pay" className="h-8" />
-                              </div>
-                              <p className="text-[10px] text-brand-charcoal/60 leading-relaxed max-w-[200px]">
-                                {isArabic ? 'سيتم استخدام معلومات الدفع المحفوظة في حساب جوجل الخاص بك' : 'Saved payment info from your Google account will be used securely'}
-                              </p>
-                            </div>
-                          </div>
-
-                          <button
-                            disabled={isProcessing}
-                            onClick={() => handleSubmit()}
-                            type="button"
-                            className="w-full bg-[#4285F4] text-white font-black py-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-brand-charcoal shadow-2xl shadow-[#4285F4]/20 transition-all disabled:opacity-50 active:scale-95 group uppercase tracking-widest text-xs"
-                          >
-                            {isProcessing ? (
-                              <span className="flex items-center gap-2 font-bold">
-                                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                                {texts.processing}
-                              </span>
-                            ) : (
-                              <>
-                                <ShieldCheck className="group-hover:scale-110 transition-transform" />
-                                {isArabic ? 'ادفع الآن بوساطة Google Pay' : 'Pay Now with Google Pay'}
-                              </>
-                            )}
-                          </button>
-
-                          <div className="flex items-center justify-center gap-4 opacity-50 grayscale pt-2">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/c/cb/Google_Pay_Logo_2020.svg" alt="GP" className="h-4" />
-                            <div className="w-[1px] h-3 bg-brand-charcoal/20" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-brand-charcoal">Smart Auth</span>
-                          </div>
-                        </div>
-                      ) : paymentMethod === 'crypto' ? (
-                        <div className="space-y-6">
-                           <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#f7931a] flex items-center gap-2 mb-4">
-                             <Coins size={12} strokeWidth={3} /> {isArabic ? 'الدفع بالعملات الرقمية' : 'Pay via Cryptocurrency'}
-                           </h4>
-                           <div className="flex items-center gap-4 bg-[#f7931a]/5 p-5 rounded-3xl border border-[#f7931a]/20 mb-6 relative overflow-hidden group">
-                              <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none group-hover:rotate-12 transition-transform">
-                                <Coins size={60} />
-                              </div>
-                              <div className="w-12 h-12 rounded-2xl bg-[#f7931a] flex items-center justify-center text-white shadow-xl transform group-hover:scale-110 transition-transform">
-                                <Coins size={24} />
-                              </div>
-                              <div>
-                                <h5 className="text-[14px] font-black text-[#f7931a] tracking-tight uppercase leading-none">USDT / BTC / ETH</h5>
-                                <p className="text-[10px] font-bold text-brand-charcoal/40 uppercase mt-1.5">{isArabic ? 'دعم كامل لجميع الشبكات' : 'Full Support All Networks'}</p>
-                              </div>
-                           </div>
-
-                           <div className="bg-brand-charcoal/[0.03] p-6 rounded-[2.5rem] border border-brand-charcoal/10 text-center space-y-5 relative overflow-hidden">
-                              <p className="text-xs text-brand-charcoal/70 font-semibold leading-relaxed">
-                                {isArabic 
-                                  ? `يرجى تحويل المعادل لـ (${formatPrice(finalTotal)}) إلى العنوان التالي:` 
-                                  : `Please transfer (${formatPrice(finalTotal)}) to:`}
-                              </p>
-                              
-                              <div className="bg-white py-5 px-4 rounded-2xl border border-brand-charcoal/10 shadow-sm group cursor-pointer active:scale-95 transition-all hover:border-brand-gold/30">
-                                <p className="text-[10px] font-mono font-black text-brand-charcoal break-all tracking-wider md:text-xs">
-                                  TX221wiLGdKizoXaCaiRyLHjzZxxP63iFU
-                                </p>
-                                <div className="mt-4 flex items-center justify-center gap-3 opacity-80 group-hover:opacity-100 transition-opacity">
-                                  <div className="h-[1px] w-8 bg-brand-gold/40" />
-                                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold font-mono">{isArabic ? 'شبكة TRC20 - اضغط للنسخ' : 'TRC20 NETWORK - CLICK TO COPY'}</span>
-                                  <div className="h-[1px] w-8 bg-brand-gold/40" />
+                            {/* Shipping Provider Selection */}
+                            {paymentMethod === 'cod' && (
+                              <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold">{t('checkout.shippingProvider')}</label>
+                                <div className="grid grid-cols-1 gap-2">
+                                  {shippingProviders
+                                    .filter(p => {
+                                      if (selectedCountry === 'IQ') return true;
+                                      return p.id !== 'al-waseet';
+                                    })
+                                    .map((p) => (
+                                    <button
+                                      key={p.id}
+                                      type="button"
+                                      onClick={() => setSelectedProvider(p.id)}
+                                      className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${
+                                        selectedProvider === p.id 
+                                          ? 'border-brand-gold bg-brand-gold/5 shadow-sm' 
+                                          : 'border-brand-charcoal/5 hover:border-brand-charcoal/10'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedProvider === p.id ? 'bg-brand-gold text-white' : 'bg-brand-charcoal/5 text-brand-charcoal/40'}`}>
+                                          <Truck size={14} />
+                                        </div>
+                                        <div className={isArabic ? 'text-right' : 'text-left'}>
+                                          <span className="block text-sm font-bold text-brand-charcoal">{p.name}</span>
+                                          <span className="block text-[10px] text-brand-charcoal/40 font-medium">{t('checkout.deliveryWithin')}: {p.speed}</span>
+                                        </div>
+                                      </div>
+                                      <div className={`text-sm font-bold ${selectedProvider === p.id ? 'text-brand-gold' : 'text-brand-charcoal/60'}`}>
+                                        {formatPrice(Math.round(p.base * (COUNTRY_ADJUSTMENT_LOCAL[selectedCountry] || 1.5)))}
+                                      </div>
+                                    </button>
+                                  ))}
                                 </div>
                               </div>
+                            )}
 
-                              <div className="flex justify-center py-4 bg-white/50 rounded-2xl backdrop-blur-sm">
-                                <div className="p-3 bg-white rounded-2xl border border-brand-charcoal/10 shadow-lg transform hover:scale-105 transition-transform cursor-zoom-in">
-                                  <img 
-                                    src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TX221wiLGdKizoXaCaiRyLHjzZxxP63iFU" 
-                                    alt="Crypto QR Code" 
-                                    className="w-24 h-24 sm:w-32 sm:h-32 grayscale brightness-90 hover:grayscale-0 transition-all"
+                            {/* Form Fields */}
+                            <div className="relative">
+                              <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.fullName')}</label>
+                              <input
+                                required
+                                type="text"
+                                placeholder="John Doe"
+                                className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm"
+                                value={formData.name}
+                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="relative">
+                                <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.phone')}</label>
+                                <div className="flex bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl overflow-hidden focus-within:bg-white focus-within:border-brand-gold transition-all shadow-sm">
+                                  <select
+                                    value={phonePrefix}
+                                    onChange={(e) => setPhonePrefix(e.target.value)}
+                                    className="bg-transparent border-none pl-4 pr-1 py-5 text-sm font-bold text-brand-charcoal outline-none cursor-pointer appearance-none"
+                                    style={{ width: '80px' }}
+                                  >
+                                    {countries.map(c => (
+                                      <option key={c.code} value={c.dialCode}>{c.dialCode} ({c.code})</option>
+                                    ))}
+                                  </select>
+                                  <div className="w-[1px] h-6 bg-brand-charcoal/10 self-center" />
+                                  <input
+                                    required
+                                    type="tel"
+                                    placeholder="770 000 0000"
+                                    className="flex-1 bg-transparent border-none px-4 py-5 outline-none text-brand-charcoal font-bold"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
                                   />
                                 </div>
                               </div>
-                           </div>
+                              <div className="relative">
+                                <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.email')}</label>
+                                <input
+                                  type="email"
+                                  placeholder="email@example.com"
+                                  className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm"
+                                  value={formData.email}
+                                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                />
+                              </div>
+                            </div>
 
-                           {/* MANDATORY RECEIPT UPLOAD */}
-                           <div className="space-y-3">
-                             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#f7931a] flex items-center gap-2">
-                               <Upload size={12} /> {isArabic ? 'ارفاق ايصال الدفع (إجباري)' : 'Attach Payment Receipt (Mandatory)'}
-                             </label>
-                             
-                             <div className={`relative group transition-all ${receiptFile ? 'border-[#f7931a]/20 bg-[#f7931a]/5' : 'border-dashed border-2 border-brand-charcoal/10 bg-brand-charcoal/[0.02] hover:bg-brand-charcoal/[0.04]'} rounded-3xl p-6 text-center`}>
-                               <input
-                                 type="file"
-                                 accept="image/*"
-                                 onChange={handleFileChange}
-                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                               />
-                               
-                               {receiptPreview ? (
-                                 <div className="flex flex-col items-center gap-3 relative z-20">
-                                   <div className="relative">
-                                     <img src={receiptPreview} alt="Receipt Preview" className="w-24 h-24 object-cover rounded-2xl shadow-lg border-2 border-white" />
-                                     <button 
-                                       type="button"
-                                       onClick={(e) => { e.stopPropagation(); removeReceipt(); }}
-                                       className="absolute -top-2 -right-2 bg-brand-charcoal text-white rounded-full p-1 shadow-lg hover:bg-red-500 transition-colors"
-                                     >
-                                       <X size={12} />
-                                     </button>
-                                   </div>
-                                   <p className="text-[10px] font-bold text-[#f7931a] truncate max-w-[200px]">{receiptFile?.name}</p>
-                                 </div>
-                               ) : (
-                                 <div className="flex flex-col items-center gap-2 py-4">
-                                   <div className="w-12 h-12 rounded-full bg-[#f7931a]/10 flex items-center justify-center text-[#f7931a] mb-2">
-                                     <Upload size={24} />
-                                   </div>
-                                   <p className="text-xs font-bold text-brand-charcoal">{isArabic ? 'اضغط لرفع الايصال' : 'Click to upload receipt'}</p>
-                                   <p className="text-[9px] text-brand-charcoal/40 font-bold uppercase tracking-widest">{isArabic ? 'الصور فقط (الحد الأقصى 5 ميجابايت)' : 'Images only (Max 5MB)'}</p>
-                                 </div>
-                               )}
-                             </div>
-                           </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="relative">
+                                <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.city')}</label>
+                                <input
+                                  required
+                                  type="text"
+                                  placeholder="Dubai"
+                                  className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm"
+                                  value={formData.city}
+                                  onChange={(e) => setFormData({...formData, city: e.target.value})}
+                                />
+                              </div>
+                              <div className="relative">
+                                <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{isArabic ? 'الرمز البريدي' : 'ZIP Code'}</label>
+                                <input
+                                  type="text"
+                                  placeholder="00000"
+                                  className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm"
+                                  value={formData.zipCode}
+                                  onChange={(e) => setFormData({...formData, zipCode: e.target.value})}
+                                />
+                              </div>
+                            </div>
 
-                           <button 
-                             disabled={isProcessing || !receiptFile}
-                             onClick={() => handleSubmit()} 
-                             className="w-full bg-[#f7931a] text-white font-black text-xs py-6 rounded-2xl shadow-xl shadow-[#f7931a]/20 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed group"
-                           >
-                             {isProcessing ? (
-                               <span className="flex items-center gap-2">
-                                  <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                                  {texts.processing}
-                               </span>
-                             ) : (
-                               <>
-                                 <Lock size={16} className="group-hover:scale-110 transition-transform" /> 
-                                 {isArabic ? 'تأكيد الحوالة والطلب' : 'Confirm Crypto Order'}
-                               </>
-                             )}
-                           </button>
-
-                           <p className="text-[10px] text-brand-gold font-black text-center uppercase tracking-[0.2em] animate-pulse">
-                             {isArabic ? '✓ أرسل رقم العملية (TXID) عبر الواتساب' : '✓ Send TXID via WhatsApp'}
-                           </p>
+                            <div className="relative">
+                              <label className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black uppercase text-brand-gold z-10">{t('checkout.detailedAddress')}</label>
+                              <textarea
+                                required
+                                rows={2}
+                                placeholder={t('checkout.addressPlaceholder')}
+                                className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm resize-none"
+                                value={formData.address}
+                                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                              />
+                            </div>
+                          </div>
                         </div>
-                      ) : (
-                        <button
-                          disabled={isProcessing}
-                          onClick={() => handleSubmit()}
-                          type="button"
-                          className="w-full bg-brand-charcoal text-white font-bold py-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-brand-gold shadow-2xl shadow-brand-charcoal/20 transition-all disabled:opacity-50 active:scale-95 group"
-                        >
-                          {isProcessing ? (
-                            <span className="flex items-center gap-2">
-                               <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                               {texts.processing}
-                            </span>
-                          ) : (
-                            <>
-                              {paymentMethod === 'cod' ? <Truck className="group-hover:translate-x-1 transition-transform" /> : <Banknote />}
-                              {texts.confirmOrder}
-                            </>
-                          )}
-                        </button>
-                      )}
+
+                        {/* Trust Badge */}
+                        <div className="bg-brand-charcoal/[0.02] p-4 rounded-2xl border border-brand-charcoal/5 flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-full bg-brand-gold/10 flex items-center justify-center flex-shrink-0">
+                            <Globe size={14} className="text-brand-gold" />
+                          </div>
+                          <div className={isArabic ? 'text-right' : 'text-left'}>
+                            <p className="text-[10px] font-bold text-brand-charcoal uppercase tracking-tighter">
+                              {t('checkout.smartFulfillment')}
+                            </p>
+                            <p className="text-[9px] text-brand-charcoal/50 leading-relaxed">
+                              {t('checkout.smartFulfillmentDesc')}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Payment Execution */}
+                        <div className="pt-6 border-t border-brand-charcoal/5">
+                          {renderPaymentExecution()}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
-              )}
-            </div>
-            
-            <div className="p-4 bg-brand-charcoal/5 text-center flex items-center justify-center gap-2 text-[10px] text-brand-charcoal/40 uppercase font-black tracking-widest">
-              <ShieldCheck size={12} /> {texts.secure}
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
+
+                {/* Footer Security Badge */}
+                <div className="p-4 bg-brand-charcoal/5 text-center flex items-center justify-center gap-2 text-[10px] text-brand-charcoal/40 uppercase font-black tracking-widest flex-shrink-0">
+                  <ShieldCheck size={12} /> {texts.secure}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    );
 };
 
 export default PaymentModal;

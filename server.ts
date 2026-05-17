@@ -2,9 +2,18 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import Stripe from "stripe";
+import axios from "axios";
 
-// Initialize Stripe (lazy load it inside routes if needed, but here is fine for demonstration)
+// Initialize Stripe
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+
+// Payoneer Configuration
+const PAYONEER_CLIENT_ID = process.env.PAYONEER_CHECKOUT_CLIENT_ID;
+const PAYONEER_CLIENT_SECRET = process.env.PAYONEER_CHECKOUT_CLIENT_SECRET;
+const PAYONEER_ENV = process.env.NODE_ENV === 'production' ? 'live' : 'sandbox';
+const PAYONEER_BASE_URL = PAYONEER_ENV === 'live' 
+  ? 'https://checkout.payoneer.com/api/v1' 
+  : 'https://checkout.sandbox.payoneer.com/api/v1';
 
 async function startServer() {
   const app = express();
@@ -101,6 +110,105 @@ async function startServer() {
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
+  });
+
+  // Payoneer: Get Access Token
+  async function getPayoneerToken() {
+    if (!PAYONEER_CLIENT_ID || !PAYONEER_CLIENT_SECRET) return null;
+    try {
+      const authHeader = Buffer.from(`${PAYONEER_CLIENT_ID}:${PAYONEER_CLIENT_SECRET}`).toString('base64');
+      const response = await axios.post(
+        PAYONEER_ENV === 'live' 
+          ? 'https://login.payoneer.com/api/v1/token' 
+          : 'https://login.sandbox.payoneer.com/api/v1/token',
+        'grant_type=client_credentials&scope=checkout-payment',
+        {
+          headers: {
+            'Authorization': `Basic ${authHeader}`,
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        }
+      );
+      return response.data.access_token;
+    } catch (error: any) {
+      console.error("[Payoneer Auth Error]", error.response?.data || error.message);
+      return null;
+    }
+  }
+
+  // Payoneer: Create Payment Session
+  app.post("/api/payoneer/session", async (req, res) => {
+    const { amount, currency, orderId, customer } = req.body;
+    console.log(`[Payoneer] Creating session for order: ${orderId}, amount: ${amount}`);
+    
+    const token = await getPayoneerToken();
+
+    if (!token) {
+      console.log("[Payoneer] API Credentials missing or Auth failed. Returning simulation.");
+      const protocol = req.headers['x-forwarded-proto'] || 'http';
+      const host = req.headers.host;
+      const origin = `${protocol}://${host}`;
+      return res.json({ 
+        redirectUrl: `${origin}/track/${orderId}?status=success`,
+        simulated: true
+      });
+    }
+
+    try {
+      const payload = {
+        transaction: {
+          reference: orderId,
+          amount: amount,
+          currency: currency || "USD",
+          description: `Order ${orderId}`
+        },
+        customer: {
+          email: customer.email || 'customer@example.com',
+          firstName: customer.name?.split(' ')[0] || 'Customer',
+          lastName: customer.name?.split(' ').slice(1).join(' ') || 'User',
+          phone: customer.phone,
+          country: customer.countryCode || 'US'
+        },
+        urls: {
+          return: `${req.headers.origin || (req.headers['x-forwarded-proto'] + '://' + req.headers.host)}/track/${orderId}`,
+          cancel: `${req.headers.origin || (req.headers['x-forwarded-proto'] + '://' + req.headers.host)}/checkout`
+        },
+        payment_methods: ["CARD"]
+      };
+
+      console.log("[Payoneer] Sending request to:", `${PAYONEER_BASE_URL}/payment-sessions`);
+      
+      const response = await axios.post(
+        `${PAYONEER_BASE_URL}/payment-sessions`,
+        payload,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      const redirectUrl = response.data.redirect_url || response.data.links?.redirect?.href || response.data.redirectUrl;
+      console.log("[Payoneer] Session created. Redirect URL:", redirectUrl || "NOT FOUND");
+      
+      res.json({ 
+        redirectUrl: redirectUrl,
+        simulated: false 
+      });
+    } catch (error: any) {
+      console.error("[Payoneer Session Error]", error.response?.data || error.message);
+      res.status(500).json({ 
+        error: "Failed to initialize Payoneer session",
+        details: error.response?.data || error.message
+      });
+    }
+  });
+
+  // Payoneer: Webhook / Status Update
+  app.post("/api/payoneer/webhook", async (req, res) => {
+    console.log("[Payoneer Webhook] Received notification:", req.body);
+    res.status(200).send("OK");
   });
 
   app.get("/api/track/:id", (req, res) => {

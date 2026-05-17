@@ -8,6 +8,7 @@ export const PromotionBar = () => {
   const isArabic = i18n.language === 'ar';
 
   const messages = [
+    { text: isArabic ? 'تسوق بثقة – استرجاع كامل للمبلغ خلال 14 يوم' : 'Shop with confidence – 14-day full refund', icon: <ShieldCheck size={12} className="text-brand-gold" /> },
     { text: isArabic ? 'ضمان استرجاع 100% في حال عدم تطابق المواصفات' : '100% money back if specs don\'t match', icon: <ShieldCheck size={12} className="text-green-500" /> },
     { text: isArabic ? 'توصيل مجاني للطلبات أكثر من $100' : 'Free shipping on orders over $100', icon: <Truck size={12} /> },
     { text: isArabic ? 'اشترِ قطعتين واحصل على الثالثة مجاناً!' : 'Buy 2, Get the 3rd FREE!', icon: <Gift size={12} className="text-brand-gold" /> },

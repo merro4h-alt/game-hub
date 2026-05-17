@@ -53,6 +53,50 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
       viewport={{ once: true }}
       className="group relative"
     >
+      <AnimatePresence>
+        {isDeleting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-brand-charcoal/60 backdrop-blur-sm"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center space-y-6"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center text-red-600">
+                <AlertTriangle size={32} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-brand-charcoal uppercase tracking-widest">{t('shop.deleteConfirm')}</h3>
+                <p className="text-sm text-brand-charcoal/60">{product.name}</p>
+              </div>
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={confirmDelete}
+                  className="flex-1 bg-red-600 text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-colors shadow-lg shadow-red-500/20"
+                >
+                  {t('shop.yes')}
+                </button>
+                <button 
+                  onClick={cancelDelete}
+                  className="flex-1 bg-brand-charcoal/5 text-brand-charcoal py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-brand-charcoal/10 transition-colors border border-brand-charcoal/10"
+                >
+                  {t('shop.no')}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Link to={`/product/${product.id}`} className="block">
         <div className="relative aspect-square overflow-hidden rounded-[3rem] bg-[#F4F4F5] mb-4 border border-brand-charcoal/5 group-hover:border-brand-gold/20 group-hover:shadow-2xl group-hover:shadow-brand-gold/10 transition-all duration-700">
           <AnimatePresence mode="wait">
@@ -85,42 +129,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
                   <span className="text-[10px] font-bold uppercase tracking-widest text-brand-charcoal">
                     {selectedColor} Selected
                   </span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          
-          <AnimatePresence>
-            {isDeleting && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 z-30 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md rounded-2xl"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-              >
-                <div className="bg-white rounded-2xl p-4 w-full shadow-2xl flex flex-col items-center text-center space-y-4">
-                  <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
-                    <AlertTriangle size={24} />
-                  </div>
-                  <p className="text-xs font-bold text-brand-charcoal uppercase tracking-widest">{t('shop.deleteConfirm')}</p>
-                  <div className="flex gap-2 w-full">
-                    <button 
-                      onClick={confirmDelete}
-                      className="flex-1 bg-red-600 text-white py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-colors shadow-sm"
-                    >
-                      {t('shop.yes')}
-                    </button>
-                    <button 
-                      onClick={cancelDelete}
-                      className="flex-1 bg-brand-charcoal/5 text-brand-charcoal py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-brand-charcoal/10 transition-colors border border-brand-charcoal/10"
-                    >
-                      {t('shop.no')}
-                    </button>
-                  </div>
                 </div>
               </motion.div>
             )}
@@ -179,36 +187,40 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
             <Eye size={20} />
           </button>
 
-          {/* Admin Quick Actions */}
-          {isAdmin && (
-            <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
-              <button 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setEditingProduct(product);
-                  setIsAddModalOpen(true);
-                }}
-                className="p-2 bg-white rounded-full shadow-lg hover:bg-brand-gold hover:text-white transition-all text-brand-charcoal border border-brand-charcoal/10"
-                title={t('shop.edit')}
-              >
-                <Edit2 size={16} />
-              </button>
-              <button 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleDelete(e);
-                }}
-                className="p-2 bg-white rounded-full shadow-lg hover:bg-red-500 hover:text-white transition-all text-red-500 border border-brand-charcoal/10"
-                title={t('shop.delete')}
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          )}
         </div>
       </Link>
+
+      {/* Admin Quick Actions */}
+      {isAdmin && (
+        <div className="absolute top-4 right-4 z-[40] flex flex-col gap-2">
+          <button 
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Shop Card Edit clicked for:', product.id);
+              setEditingProduct(product);
+              setIsAddModalOpen(true);
+            }}
+            className="p-2 bg-white rounded-full shadow-lg hover:bg-brand-gold hover:text-brand-charcoal transition-all text-brand-charcoal border border-brand-charcoal/10"
+            title={t('shop.edit')}
+          >
+            <Edit2 size={16} />
+          </button>
+          <button 
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleDelete(e);
+            }}
+            className="p-2 bg-white rounded-full shadow-lg hover:bg-red-500 hover:text-white transition-all text-red-500 border border-brand-charcoal/10"
+            title={t('shop.delete')}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )}
       
       <div className="space-y-3 px-1">
         <div className="flex flex-col gap-1">
@@ -229,18 +241,26 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
                 {t('shop.onlyLeft', { count: product.stock })}
               </span>
             )}
-            {product.discountPrice ? (
-              <>
-                <span className="text-[10px] font-bold text-white/40 line-through decoration-red-500/30 uppercase tracking-tighter decoration-2">
-                   {t('shop.originalPrice')}: {formatPrice(product.price)}
-                </span>
-                <span className="font-mono font-black text-red-500 dark:text-red-400 text-2xl tracking-tighter">
-                  {formatPrice(product.discountPrice)}
-                </span>
-              </>
-            ) : (
-              <span className="font-mono font-bold text-brand-gold text-xl">{formatPrice(product.price)}</span>
-            )}
+            {(() => {
+              const activeDiscountPrice = product.colorDiscountPrices?.[selectedColor] ?? product.discountPrice;
+              const activePrice = product.colorPrices?.[selectedColor] ?? product.price;
+
+              if (activeDiscountPrice) {
+                return (
+                  <>
+                    <span className="text-[10px] font-bold text-white/40 line-through decoration-red-500/30 uppercase tracking-tighter decoration-2">
+                       {t('shop.originalPrice')}: {formatPrice(activePrice)}
+                    </span>
+                    <span className="font-mono font-black text-red-500 dark:text-red-400 text-2xl tracking-tighter">
+                      {formatPrice(activeDiscountPrice)}
+                    </span>
+                  </>
+                );
+              }
+              return (
+                <span className="font-mono font-bold text-brand-gold text-xl">{formatPrice(activePrice)}</span>
+              );
+            })()}
           </div>
           <div className="flex items-center gap-1 bg-white/5 px-2 py-1 rounded-lg self-center">
             <Star size={12} fill="#C5A059" className="text-brand-gold" />

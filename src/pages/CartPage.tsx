@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingBag, ArrowRight, Trash2, Plus, Minus, CreditCard, ArrowLeft, Truck, Banknote, ShieldCheck, Ticket, X, Coins, Smartphone } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Trash2, Plus, Minus, CreditCard, ArrowLeft, Truck, Banknote, ShieldCheck, Ticket, X, Coins, Smartphone, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../StoreContext';
 import PaymentModal from '../components/PaymentModal';
@@ -192,7 +192,11 @@ const CartPage: React.FC = () => {
                         </button>
                       </div>
                     <span className={`text-lg sm:text-xl font-mono font-bold text-white ${isArabic ? 'mr-auto ml-0' : 'ml-auto sm:ml-0'}`}>
-                      {formatPrice((item.discountPrice ?? item.price) * item.quantity)}
+                      {(() => {
+                        const activeDiscountPrice = item.colorDiscountPrices?.[item.selectedColor] ?? item.discountPrice;
+                        const activePrice = item.colorPrices?.[item.selectedColor] ?? item.price;
+                        return formatPrice((activeDiscountPrice ?? activePrice) * item.quantity);
+                      })()}
                     </span>
                   </div>
                 </div>
@@ -278,7 +282,23 @@ const CartPage: React.FC = () => {
                     <Truck size={14} />
                     <span>{texts.shipping}</span>
                   </div>
-                  <span className="font-mono">{texts.free}</span>
+                  <span className="font-mono text-green-400 font-bold">{texts.free}</span>
+                </div>
+
+                {/* Trust Messages */}
+                <div className="pt-2 flex flex-col gap-2 border-t border-white/5 mt-2">
+                  <div className="flex items-center gap-2 text-[10px] text-brand-gold font-bold">
+                    <ShieldCheck size={12} />
+                    <span>{isArabic ? 'ضمان استرجاع المنتج خلال 14 يوم' : '14-day product return guarantee'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-brand-gold font-bold">
+                    <Lock size={12} />
+                    <span>{isArabic ? 'حق الخصوصية التامة لـبياناتك' : 'Complete privacy for your data'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-brand-gold font-bold">
+                    <ShieldCheck size={12} />
+                    <span>{isArabic ? 'تسوق بثقة وأمان' : 'Shop with confidence and security'}</span>
+                  </div>
                 </div>
                 <div className="pt-6 border-t border-white/10 flex justify-between items-end">
                   <span className="text-lg">{texts.total}</span>
@@ -308,6 +328,16 @@ const CartPage: React.FC = () => {
               <div className="mt-10 pt-10 border-t border-white/10 text-center">
                 <p className="text-[10px] uppercase font-black tracking-[0.3em] text-brand-gold mb-6">{texts.secureOptions}</p>
                 <div className="flex flex-wrap justify-center gap-2">
+                   <div className="bg-[#000000] px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-zinc-900 transition-all">
+                      <span className="text-white text-lg"></span>
+                      <span className="text-[7px] text-white font-black tracking-tight group-hover:text-white transition-colors uppercase">Apple Pay</span>
+                   </div>
+                   <div className="bg-[#4285F4] px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-white hover:border-[#4285F4] transition-all">
+                      <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-[#4285F4] font-black text-[8px] transform group-hover:scale-110 transition-transform">
+                        <Smartphone size={12} />
+                      </div>
+                      <span className="text-[7px] text-white group-hover:text-[#4285F4] font-black tracking-tight transition-colors uppercase">Google Pay</span>
+                   </div>
                    <div className="bg-[#008296] px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-[#009fb7] transition-all">
                       <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/MasterCard_Logo.svg" alt="Mastercard" className="h-5 w-auto brightness-0 invert" />
                       <span className="text-[7px] text-white font-black tracking-tight group-hover:text-white transition-colors uppercase">Card</span>
@@ -317,12 +347,6 @@ const CartPage: React.FC = () => {
                         <Coins size={12} />
                       </div>
                       <span className="text-[7px] text-white font-black tracking-tight group-hover:text-white transition-colors uppercase">Crypto</span>
-                   </div>
-                   <div className="bg-[#4285F4] px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 flex-1 min-w-[30%] border border-white/10 group cursor-pointer hover:bg-white hover:border-[#4285F4] transition-all">
-                      <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-[#4285F4] font-black text-[8px] transform group-hover:scale-110 transition-transform">
-                        <Smartphone size={12} />
-                      </div>
-                      <span className="text-[7px] text-white group-hover:text-[#4285F4] font-black tracking-tight transition-colors uppercase">Google Pay</span>
                    </div>
                    <div className="bg-[#22c55e] px-3 py-2 rounded-xl flex items-center justify-center gap-2 shadow-sm h-12 w-full border border-white/10 group cursor-pointer hover:bg-[#16a34a] transition-all">
                       <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -375,6 +399,15 @@ const CartPage: React.FC = () => {
               <div className="flex flex-col">
                 <span className="font-black text-brand-charcoal text-[13px] leading-none uppercase">Crypto</span>
                 <span className="font-bold text-brand-charcoal/40 text-[9px] uppercase tracking-tighter mt-1">Wallet</span>
+              </div>
+            </div>
+            <div className="bg-white px-6 py-4 rounded-2xl shadow-xl h-16 flex items-center gap-3 transition-transform hover:scale-110 active:scale-95 cursor-pointer">
+              <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center text-white shadow-lg">
+                <span className="text-xl"></span>
+              </div>
+              <div className="flex flex-col">
+                <span className="font-black text-brand-charcoal text-[13px] leading-none uppercase">Apple Pay</span>
+                <span className="font-bold text-brand-charcoal/40 text-[9px] uppercase tracking-tighter mt-1">{isArabic ? 'دفع آمن' : 'Secure Pay'}</span>
               </div>
             </div>
             <div className="bg-white px-6 py-4 rounded-2xl shadow-xl h-16 flex items-center gap-3 transition-transform hover:scale-110 active:scale-95 cursor-pointer">

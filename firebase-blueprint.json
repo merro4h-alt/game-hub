@@ -56,9 +56,25 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["productId", "addedPrice", "createdAt"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Store-wide configuration",
+      "type": "object",
+      "properties": {
+        "googlePayMerchantId": { "type": "string" },
+        "storeName": { "type": "string" },
+        "whatsappNumber": { "type": "string" },
+        "baseShippingRate": { "type": "number" },
+        "stripePublicKey": { "type": "string" }
+      }
     }
   },
   "firestore": {
+    "/settings/{settingId}": {
+      "schema": "Setting",
+      "description": "Store configuration documents"
+    },
     "/users/{userId}": {
       "schema": "User",
       "description": "User profiles"
