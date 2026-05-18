@@ -581,6 +581,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       await setDoc(doc(db, 'products', productWithTimestamp.id), productWithTimestamp);
       console.log('Successfully added product to Firestore');
+      showAlert(i18n.language === 'ar' ? 'تم إضافة المنتج بنجاح!' : 'Product added successfully!', 'success');
     } catch (error) {
       console.warn('Error adding product to Firestore:', error);
       const { handleFirestoreError, OperationType } = await import('./lib/firebase');

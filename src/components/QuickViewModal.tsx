@@ -29,6 +29,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0]);
   const [quantity, setQuantity] = useState(1);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isShowingVideo, setIsShowingVideo] = useState(false);
 
   const allImages = [product.image, ...(product.images || [])];
 
@@ -38,6 +39,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
       const colorImgIndex = allImages.indexOf(product.colorImages[selectedColor]);
       if (colorImgIndex !== -1) {
         setActiveImageIndex(colorImgIndex);
+        setIsShowingVideo(false);
       }
     }
   }, [selectedColor]);
@@ -74,26 +76,62 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
           <div className="p-6 md:p-8 space-y-4">
             <div className="relative aspect-square rounded-3xl overflow-hidden bg-white/5 border border-white/5">
               <AnimatePresence mode="wait">
-                <motion.img
-                  key={activeImageIndex}
-                  src={allImages[activeImageIndex] || 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600'}
-                  alt={product.name}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+                {isShowingVideo && product.videoUrl ? (
+                  <motion.div 
+                    key="video"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="w-full h-full bg-black flex items-center justify-center"
+                  >
+                    <video 
+                      src={product.videoUrl} 
+                      className="w-full h-full object-contain" 
+                      controls 
+                      autoPlay 
+                      playsInline
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.img
+                    key={activeImageIndex}
+                    src={allImages[activeImageIndex] || 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600'}
+                    alt={product.name}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
               </AnimatePresence>
             </div>
             
-            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+              {product.videoUrl && (
+                <button
+                  onClick={() => setIsShowingVideo(true)}
+                  className={`w-16 h-20 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all flex items-center justify-center bg-brand-gold/20 relative ${
+                    isShowingVideo ? 'border-brand-gold scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <video src={product.videoUrl} className="w-full h-full object-cover opacity-40" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-brand-gold flex items-center justify-center text-white scale-75 shadow-lg">
+                      <Plus size={14} className="rotate-45" />
+                    </div>
+                  </div>
+                </button>
+              )}
               {allImages.map((img, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setActiveImageIndex(idx)}
+                  onClick={() => {
+                    setActiveImageIndex(idx);
+                    setIsShowingVideo(false);
+                  }}
                   className={`w-16 h-20 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all ${
-                    activeImageIndex === idx ? 'border-brand-gold scale-105' : 'border-transparent opacity-60 hover:opacity-100'
+                    activeImageIndex === idx && !isShowingVideo ? 'border-brand-gold scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
                   }`}
                 >
                   <img src={img} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />

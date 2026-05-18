@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Upload, Plus, Save, RefreshCw, CheckCircle, Sparkles, Link, Globe, ShoppingBag } from 'lucide-react';
+import { X, Upload, Plus, Save, RefreshCw, CheckCircle, Sparkles, Link, Globe, ShoppingBag, Video } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { GoogleGenAI } from "@google/genai";
 import { Product } from '../types';
 import { useStore } from '../StoreContext';
 import { useAuth } from '../AuthContext';
+import { useAlert } from '../contexts/AlertContext';
 import { COLORS_OPTIONS, SIZES_CLOTHES, SIZES_SHOES, COSMETIC_SIZES } from '../constants';
 
 interface AddProductModalProps {
@@ -18,6 +19,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
   const { t, i18n } = useTranslation();
   const { addToProducts, updateProduct, addCampaign } = useStore();
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const isArabic = i18n.language?.startsWith('ar') || false;
 
   useEffect(() => {
@@ -490,16 +492,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
       
       if (errorMessageStr.toLowerCase().includes('large') || errorMessageStr.toLowerCase().includes('1mib') || errorMessageStr.toLowerCase().includes('limit')) {
         displayMessage += isArabic 
-          ? 'حجم المنتج كبير جداً. حاول تقليل عدد الصور المرفقة أو دقتها.' 
-          : 'Product data is too large. Try reducing the number of images or their quality.';
+          ? 'إجمالي حجم الصور والفيديو كبير جداً (يجب أن يكون أقل من 1MB). يرجى تقليل عدد الصور أو استخدام رابط فيديو خارجي بدلاً من رفع ملف.' 
+          : 'Total images and video size exceeds database limits (must be under 1MB). Please reduce images or use a Video URL instead of a file.';
       } else if (errorMessageStr.includes('permission-denied') || errorMessageStr.includes('permissions') || errorMessageStr.includes('403')) {
         displayMessage += isArabic 
           ? 'ليس لديك صلاحيات كافية (Admin). تأكد من تسجيل الدخول بحساب مسؤول.' 
           : 'You do not have sufficient permissions (Admin). Make sure you are signed in as an admin.';
       } else {
         displayMessage += isArabic 
-          ? `الخطأ: ${errorMessageStr.length > 100 ? errorMessageStr.substring(0, 100) + '...' : errorMessageStr}` 
-          : `Error: ${errorMessageStr.length > 100 ? errorMessageStr.substring(0, 100) + '...' : errorMessageStr}`;
+          ? `الخطأ: ${errorMessageStr.length > 200 ? errorMessageStr.substring(0, 200) + '...' : errorMessageStr}` 
+          : `Error: ${errorMessageStr.length > 200 ? errorMessageStr.substring(0, 200) + '...' : errorMessageStr}`;
       }
       
       setErrorMsg(displayMessage);
@@ -641,12 +643,52 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                     type="button"
                     onClick={() => document.getElementById('file-upload')?.click()}
                     className="aspect-square border-2 border-dashed border-brand-charcoal/10 rounded-2xl flex flex-col items-center justify-center hover:border-brand-gold transition-colors text-brand-charcoal/30 hover:text-brand-gold bg-white"
+                    title={isArabic ? 'إضافة صور' : 'Add Photos'}
                   >
                     <Plus size={24} />
-                    <span className="text-[10px] font-bold uppercase mt-2">Add Photo</span>
+                    <span className="text-[10px] font-bold uppercase mt-2">{isArabic ? 'صور' : 'Photos'}</span>
+                  </button>
+
+                  <button 
+                    type="button"
+                    onClick={() => document.getElementById('video-upload')?.click()}
+                    className="aspect-square border-2 border-dashed border-brand-charcoal/10 rounded-2xl flex flex-col items-center justify-center hover:border-brand-gold transition-colors text-green-600/30 hover:text-green-600 bg-white group overflow-hidden relative"
+                    title={isArabic ? 'إضافة فيديو' : 'Add Video'}
+                  >
+                    {formData.videoUrl ? (
+                      <div className="w-full h-full relative">
+                        <video src={formData.videoUrl} className="w-full h-full object-cover opacity-50" />
+                        <div className="absolute inset-0 flex items-center justify-center text-green-600">
+                          <CheckCircle size={24} />
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <Video size={24} />
+                        <span className="text-[9px] font-black uppercase mt-1.5">{isArabic ? 'إرفاق فيديو' : 'Attach Video'}</span>
+                      </>
+                    )}
                   </button>
                 </div>
                 <input id="file-upload" type="file" className="hidden" onChange={handleImageChange} accept="image/*" multiple />
+                <input id="video-upload" type="file" className="hidden" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setIsProcessing(true);
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setFormData(prev => ({ ...prev, videoUrl: reader.result as string }));
+                      setSuccessMsg(isArabic ? 'تم إرفاق الفيديو بنجاح!' : 'Video attached successfully!');
+                      setIsProcessing(false);
+                      setTimeout(() => setSuccessMsg(null), 3000);
+                    };
+                    reader.onerror = () => {
+                      setErrorMsg(isArabic ? 'فشل في قراءة ملف الفيديو' : 'Failed to read video file');
+                      setIsProcessing(false);
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }} accept="video/*" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -732,31 +774,47 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-[10px] font-bold uppercase text-brand-charcoal/40">
-                      {isArabic ? 'رابط الفيديو الإعلاني (اختياري)' : 'Video Ad URL (Optional)'}
-                    </label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-[10px] font-bold uppercase text-brand-charcoal/40">
+                        {isArabic ? 'رابط الفيديو الإعلاني' : 'Video Ad URL'}
+                      </label>
+                      {formData.videoUrl && (
+                        <button 
+                          onClick={() => setFormData(prev => ({ ...prev, videoUrl: '' }))}
+                          className="text-[9px] font-black text-red-600 uppercase hover:underline"
+                        >
+                          {isArabic ? 'حذف الفيديو' : 'Remove Video'}
+                        </button>
+                      )}
+                    </div>
                     <div className="relative">
                       <input
                         type="url"
-                        value={formData.videoUrl}
+                        value={formData.videoUrl.startsWith('data:') ? (isArabic ? 'تم إرفاق ملف محلي' : 'Local file attached') : formData.videoUrl}
                         onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
                         className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold outline-none text-brand-charcoal"
                         placeholder="https://.../video.mp4"
+                        disabled={formData.videoUrl.startsWith('data:')}
                       />
                       <Globe className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-charcoal/20" size={16} />
                     </div>
+                    <p className={`text-[10px] mt-1 font-bold ${formData.videoUrl.startsWith('data:') ? 'text-red-500' : 'text-brand-charcoal/40 italic'}`}>
+                      {formData.videoUrl.startsWith('data:') 
+                        ? (isArabic ? '* تحذير: ملف الفيديو المرفق يجب أن يكون صغيراً جداً (أقل من 1MB). يفضل استخدام رابط بدلاً من ذلك.' : '* WARNING: Attached video files must be very small (<1MB). Better use a URL instead.')
+                        : (isArabic ? '* الملاحظة: يفضل استخدام روابط YouTube أو Google Drive للفيديوهات الكبيرة.' : '* Note: Use YouTube or Google Drive links for large videos.')}
+                    </p>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-brand-charcoal/50">
-                  {isArabic ? 'الفئة' : 'Category'}
+                  {isArabic ? 'تصنيف المنتج (الفئة)' : 'Category'}
                 </label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value as Product['category'], sizes: [] })}
-                  className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold focus:border-transparent outline-none appearance-none text-brand-charcoal font-medium"
+                  className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold focus:border-transparent outline-none appearance-none text-brand-charcoal font-bold"
                 >
                   <option value="New">New</option>
                   <option value="Best Seller">Best Seller</option>
@@ -990,12 +1048,12 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                     editingProduct ? <Save size={20} /> : <Plus size={20} />
                   )}
                   {isProcessing 
-                    ? (isArabic ? 'جاري الحفظ...' : 'Saving Product...') 
+                    ? (isArabic ? 'جاري الحفظ...' : 'Saving...') 
                     : successMsg
-                      ? (isArabic ? 'تم بنجاح!' : 'Success!')
+                      ? successMsg
                       : (editingProduct 
                         ? (isArabic ? 'حفظ التغييرات' : 'Save Changes') 
-                        : (isArabic ? 'إضافة المنتج' : 'Create Product'))}
+                        : (isArabic ? 'إضافة منتج' : 'Add Product'))}
                 </button>
               </div>
               </div>

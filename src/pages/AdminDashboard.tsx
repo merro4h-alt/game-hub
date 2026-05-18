@@ -297,30 +297,43 @@ const AdminDashboard: React.FC = () => {
           </p>
         </div>
         
-        <div className="flex items-center gap-2 bg-[#1A1A1A] p-1.5 rounded-2xl border border-white/5">
-            {[
-                { id: 'analytics', label: t('admin.analytics'), icon: TrendingUp },
-                { id: 'products', label: t('admin.products'), icon: Package },
-                { id: 'imported', label: i18n.language === 'ar' ? 'المستوردة' : 'Imported', icon: Wand2 },
-                { id: 'inventory', label: i18n.language === 'ar' ? 'المخزون' : 'Inventory', icon: Clipboard },
-                { id: 'orders', label: t('admin.orders'), icon: ShoppingBag },
-                { id: 'winning', label: t('admin.winning'), icon: ArrowUpRight },
-                { id: 'marketing', label: i18n.language === 'ar' ? 'التسويق' : 'Marketing', icon: Sparkles },
-                { id: 'settings', label: i18n.language === 'ar' ? 'الإعدادات' : 'Settings', icon: Settings },
-            ].map(tab => (
-                <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-                        activeTab === tab.id 
-                        ? 'bg-brand-gold text-brand-charcoal shadow-lg shadow-brand-gold/20' 
-                        : 'text-white/40 hover:text-white hover:bg-white/5'
-                    }`}
-                >
-                    <tab.icon size={14} />
-                    {tab.label}
-                </button>
-            ))}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <button 
+            type="button"
+            onClick={() => {
+                setEditingProduct(null);
+                setIsAddModalOpen(true);
+            }}
+            className="bg-[#4F46E5] text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-brand-charcoal transition-all shadow-xl shadow-[#4F46E5]/20 border border-white/10"
+          >
+              <Plus size={16} />
+              {i18n.language === 'ar' ? 'إضافة منتج' : 'Add Product'}
+          </button>
+          <div className="flex items-center gap-2 bg-[#1A1A1A] p-1.5 rounded-2xl border border-white/5">
+              {[
+                  { id: 'analytics', label: t('admin.analytics'), icon: TrendingUp },
+                  { id: 'products', label: t('admin.products'), icon: Package },
+                  { id: 'imported', label: i18n.language === 'ar' ? 'المستوردة' : 'Imported', icon: Wand2 },
+                  { id: 'inventory', label: i18n.language === 'ar' ? 'المخزون' : 'Inventory', icon: Clipboard },
+                  { id: 'orders', label: t('admin.orders'), icon: ShoppingBag },
+                  { id: 'winning', label: t('admin.winning'), icon: ArrowUpRight },
+                  { id: 'marketing', label: i18n.language === 'ar' ? 'التسويق' : 'Marketing', icon: Sparkles },
+                  { id: 'settings', label: i18n.language === 'ar' ? 'الإعدادات' : 'Settings', icon: Settings },
+              ].map(tab => (
+                  <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                          activeTab === tab.id 
+                          ? 'bg-brand-gold text-brand-charcoal shadow-lg shadow-brand-gold/20' 
+                          : 'text-white/40 hover:text-white hover:bg-white/5'
+                      }`}
+                  >
+                      <tab.icon size={14} />
+                      <span className="hidden lg:inline">{tab.label}</span>
+                  </button>
+              ))}
+          </div>
         </div>
       </div>
 
@@ -1042,10 +1055,10 @@ const AdminDashboard: React.FC = () => {
                                 setEditingProduct(null);
                                 setIsAddModalOpen(true);
                             }}
-                            className="bg-brand-charcoal text-white px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-brand-gold transition-all shadow-xl shadow-brand-gold/5 whitespace-nowrap border-2 border-brand-gold/20"
+                            className="bg-[#4F46E5] text-white px-8 py-3.5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-brand-charcoal transition-all shadow-xl shadow-[#4F46E5]/20 whitespace-nowrap border-2 border-[#4F46E5]/10"
                           >
-                              <Plus size={18} className="text-brand-gold" />
-                              {t('admin.addProduct')}
+                              <Plus size={18} className="text-white" />
+                              {i18n.language === 'ar' ? 'إضافة منتج جديد' : 'Add New Product'}
                           </button>
                       </div>
                   </div>

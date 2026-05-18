@@ -578,50 +578,67 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
       case 'crypto':
         return (
           <div className="space-y-6">
-             <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#f7931a] flex items-center gap-2 mb-4">
-               <Coins size={12} strokeWidth={3} /> {isArabic ? 'الدفع بالعملات الرقمية' : 'Pay via Cryptocurrency'}
-             </h4>
-             <div className="flex items-center gap-4 bg-[#f7931a]/5 p-5 rounded-3xl border border-[#f7931a]/20 mb-6 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none group-hover:rotate-12 transition-transform">
-                  <Coins size={60} />
-                </div>
-                <div className="w-12 h-12 rounded-2xl bg-[#f7931a] flex items-center justify-center text-white shadow-xl transform group-hover:scale-110 transition-transform">
-                  <Coins size={24} />
-                </div>
-                <div>
-                  <h5 className="text-[14px] font-black text-[#f7931a] tracking-tight uppercase leading-none">USDT / BTC / ETH</h5>
-                  <p className="text-[10px] font-bold text-brand-charcoal/40 uppercase mt-1.5">{isArabic ? 'دعم كامل لجميع الشبكات' : 'Full Support All Networks'}</p>
-                </div>
-             </div>
+              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00A38C] flex items-center gap-2 mb-4">
+                <Coins size={12} strokeWidth={3} /> {isArabic ? 'الدفع بالعملات الرقمية (USDT)' : 'Pay via USDT (Crypto)'}
+              </h4>
+              <div className="flex items-center gap-4 bg-[#00A38C]/5 p-5 rounded-3xl border border-[#00A38C]/20 mb-6 relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none group-hover:rotate-12 transition-transform">
+                   <Coins size={60} />
+                 </div>
+                 <div className="w-12 h-12 rounded-2xl bg-[#00A38C] flex items-center justify-center text-white shadow-xl transform group-hover:scale-110 transition-transform">
+                   <img src="https://cryptologos.cc/logos/tether-usdt-logo.svg?v=025" className="w-6 h-6 invert brightness-0" alt="USDT" />
+                 </div>
+                 <div>
+                   <h5 className="text-[14px] font-black text-[#00A38C] tracking-tight uppercase leading-none">USDT (TRC20)</h5>
+                   <p className="text-[10px] font-bold text-brand-charcoal/40 uppercase mt-1.5">{isArabic ? 'دفع سريع وآمن' : 'Fast & Secure Payment'}</p>
+                 </div>
+              </div>
 
-             <div className="bg-brand-charcoal/[0.03] p-6 rounded-[2.5rem] border border-brand-charcoal/10 text-center space-y-5 relative overflow-hidden">
-                <p className="text-xs text-brand-charcoal/70 font-semibold leading-relaxed">
-                  {isArabic 
-                    ? `يرجى تحويل المعادل لـ (${formatPrice(finalTotal)}) إلى العنوان التالي:` 
-                    : `Please transfer (${formatPrice(finalTotal)}) to:`}
-                </p>
-                
-                <div className="bg-white py-5 px-4 rounded-2xl border border-brand-charcoal/10 shadow-sm group cursor-pointer active:scale-95 transition-all hover:border-brand-gold/30">
-                  <p className="text-[10px] font-mono font-black text-brand-charcoal break-all tracking-wider md:text-xs">
-                    TX221wiLGdKizoXaCaiRyLHjzZxxP63iFU
-                  </p>
-                  <div className="mt-4 flex items-center justify-center gap-3 opacity-80 group-hover:opacity-100 transition-opacity">
-                    <div className="h-[1px] w-8 bg-brand-gold/40" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold font-mono">{isArabic ? 'شبكة TRC20 - اضغط للنسخ' : 'TRC20 NETWORK - CLICK TO COPY'}</span>
-                    <div className="h-[1px] w-8 bg-brand-gold/40" />
-                  </div>
-                </div>
+              <div className="bg-black p-8 rounded-[2.5rem] text-center space-y-6 relative overflow-hidden shadow-2xl">
+                 <div className="space-y-1">
+                   <h3 className="text-white text-xl font-black">{isArabic ? 'إيداع USDT' : 'DEPOSIT USDT'}</h3>
+                   <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em]">{isArabic ? 'شبكة TRC20 فقط' : 'TRC20 NETWORK ONLY'}</p>
+                 </div>
 
-                <div className="flex justify-center py-4 bg-white/50 rounded-2xl backdrop-blur-sm">
-                  <div className="p-3 bg-white rounded-2xl border border-brand-charcoal/10 shadow-lg transform hover:scale-105 transition-transform cursor-zoom-in">
-                    <img 
-                      src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TX221wiLGdKizoXaCaiRyLHjzZxxP63iFU" 
-                      alt="Crypto QR Code" 
-                      className="w-24 h-24 sm:w-32 sm:h-32 grayscale brightness-90 hover:grayscale-0 transition-all"
-                    />
-                  </div>
-                </div>
-             </div>
+                 <div className="flex justify-center">
+                   <div className="p-4 bg-white rounded-[2rem] shadow-2xl transform hover:scale-105 transition-all duration-500 cursor-pointer">
+                     <img 
+                       src="/crypto_qr.png" 
+                       alt="Crypto QR Code" 
+                       className="w-48 h-48 sm:w-56 sm:h-56 object-contain"
+                       onError={(e) => {
+                         // Fallback if local image doesn't exist yet
+                         (e.target as HTMLImageElement).src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=TX221wiLGdKizoXaCaiRyLHjzZxxP63iFU`;
+                       }}
+                     />
+                   </div>
+                 </div>
+
+                 <div className="space-y-4">
+                    <p className="text-xs text-white/70 font-semibold leading-relaxed">
+                      {isArabic 
+                        ? `يرجى تحويل المعادل لـ (${formatPrice(total)}) إلى العنوان التالي:` 
+                        : `Please transfer (${formatPrice(total)}) to:`}
+                    </p>
+                    
+                    <div 
+                      className="bg-brand-gold/10 py-6 px-4 rounded-3xl border-2 border-brand-gold/30 group cursor-pointer active:scale-95 transition-all hover:bg-brand-gold hover:text-white"
+                      onClick={() => {
+                        navigator.clipboard.writeText('TX221wiLGdKizoXaCaiRyLHjzZxxP63iFU');
+                        showAlert(isArabic ? 'تم نسخ العنوان!' : 'Address Copied!', 'success');
+                      }}
+                    >
+                      <p className="text-base sm:text-2xl font-mono font-black text-brand-gold group-hover:text-white break-all tracking-normal text-center select-all">
+                        TX221wiLGdKizoXaCaiRyLHjzZxxP63iFU
+                      </p>
+                      <div className="flex items-center justify-center gap-2 mt-3">
+                         <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 group-hover:opacity-100 group-hover:text-white transition-opacity">
+                            {isArabic ? 'اضغط لنسخ العنوان' : 'TAP TO COPY ADDRESS'}
+                         </span>
+                      </div>
+                    </div>
+                 </div>
+              </div>
 
              {/* MANDATORY RECEIPT UPLOAD */}
              <div className="space-y-3">
@@ -707,15 +724,15 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
                     <span className="text-[9px] font-black uppercase text-brand-charcoal/30 tracking-[0.2em]">{isArabic ? 'صاحب الحساب' : 'Account Holder'}</span>
                     <p className="text-sm font-black text-brand-charcoal">{settings.bankDetails.accountHolder || 'N/A'}</p>
                   </div>
-                  <div className="p-4 bg-white rounded-2xl border border-brand-charcoal/5 shadow-sm space-y-1 relative group cursor-pointer" 
+                  <div className="p-5 bg-white rounded-2xl border-2 border-brand-charcoal/5 shadow-sm space-y-1 relative group cursor-pointer" 
                        onClick={() => {
                          navigator.clipboard.writeText(settings.bankDetails.iban);
                          showAlert(isArabic ? 'تم نسخ IBAN!' : 'IBAN Copied!', 'success');
                        }}>
                     <span className="text-[9px] font-black uppercase text-brand-charcoal/30 tracking-[0.2em]">IBAN</span>
-                    <p className="text-xs font-mono font-black text-brand-charcoal break-all">{settings.bankDetails.iban || 'N/A'}</p>
+                    <p className="text-sm sm:text-lg font-mono font-black text-brand-charcoal break-all leading-relaxed">{settings.bankDetails.iban || 'N/A'}</p>
                     <div className="absolute inset-0 bg-brand-gold opacity-0 group-hover:opacity-10 transition-opacity flex items-center justify-center rounded-2xl">
-                       <span className="bg-white px-2 py-1 rounded text-[8px] font-black uppercase text-brand-gold shadow-sm">{isArabic ? 'اضغط للنسخ' : 'Tap to Copy'}</span>
+                       <span className="bg-brand-charcoal text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-black/20">{isArabic ? 'إضغط لنسخ الآيبان' : 'Tap to Copy IBAN'}</span>
                     </div>
                   </div>
                 </div>
