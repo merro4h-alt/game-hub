@@ -11,11 +11,13 @@ const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 md:col-span-2">
-            <Link to="/" className="flex items-center gap-4 mb-6 group">
-              <span className="text-4xl font-black italic tracking-tighter text-white">
-                Trendi<span className="text-[#4F46E5]">fi</span>
+            <Link to="/" className="flex items-center gap-3 mb-6 group">
+              <span className="text-3xl font-logo font-extrabold tracking-wider leading-none flex items-baseline select-none uppercase">
+                <span className="text-white">ONXI</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C5A05B] to-[#EAD8B1] drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
+                  FI
+                </span>
               </span>
-              <Logo className="w-12 h-12 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500" variant="gradient" />
             </Link>
             <p className="text-brand-cream/60 max-w-sm font-light text-lg mb-8">
               {t('footer.description')}

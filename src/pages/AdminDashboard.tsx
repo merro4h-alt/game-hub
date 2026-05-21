@@ -134,6 +134,12 @@ const AdminDashboard: React.FC = () => {
       setOrders(ordersData);
       setRecentOrders(ordersData.slice(0, 5));
       setLoading(false);
+    }, (error) => {
+      console.error("Error fetching orders in AdminDashboard:", error);
+      import('../lib/firebase').then(({ handleFirestoreError, OperationType }) => {
+        handleFirestoreError(error, OperationType.LIST, 'orders');
+      }).catch(console.error);
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -304,10 +310,11 @@ const AdminDashboard: React.FC = () => {
                 setEditingProduct(null);
                 setIsAddModalOpen(true);
             }}
-            className="bg-[#4F46E5] text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-brand-charcoal transition-all shadow-xl shadow-[#4F46E5]/20 border border-white/10"
+            className="group relative bg-[#4F46E5] text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center gap-3 hover:bg-[#4338CA] active:scale-95 transition-all shadow-xl shadow-[#4F46E5]/20 border border-white/10 overflow-hidden"
           >
-              <Plus size={16} />
-              {i18n.language === 'ar' ? 'إضافة منتج' : 'Add Product'}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              <Plus size={18} className="transition-transform group-hover:rotate-90" />
+              <span className="relative z-10">{t('admin.addProduct')}</span>
           </button>
           <div className="flex items-center gap-2 bg-[#1A1A1A] p-1.5 rounded-2xl border border-white/5">
               {[
@@ -1047,6 +1054,9 @@ const AdminDashboard: React.FC = () => {
                                 <option value="New">{t('categories.new')}</option>
                                 <option value="Best Seller">{t('categories.bestSeller')}</option>
                                 <option value="Offers">{t('categories.offers')}</option>
+                                <option value="Fashion & Beauty">{t('categories.fashionBeauty')}</option>
+                                <option value="Sports">{t('categories.sports')}</option>
+                                <option value="Imported">Imported</option>
                           </select>
                           <button 
                             type="button"
@@ -1055,10 +1065,10 @@ const AdminDashboard: React.FC = () => {
                                 setEditingProduct(null);
                                 setIsAddModalOpen(true);
                             }}
-                            className="bg-[#4F46E5] text-white px-8 py-3.5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-brand-charcoal transition-all shadow-xl shadow-[#4F46E5]/20 whitespace-nowrap border-2 border-[#4F46E5]/10"
+                            className="bg-[#4F46E5] text-white px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-[#4338CA] transition-all shadow-xl shadow-[#4F46E5]/20 whitespace-nowrap border-2 border-[#4F46E5]/10"
                           >
                               <Plus size={18} className="text-white" />
-                              {i18n.language === 'ar' ? 'إضافة منتج جديد' : 'Add New Product'}
+                              {t('admin.addProduct')}
                           </button>
                       </div>
                   </div>
@@ -1372,7 +1382,7 @@ const AdminDashboard: React.FC = () => {
                                         <td className="px-8 py-6">
                                             <div className="flex -space-x-2">
                                                 {order.items.slice(0, 3).map((item: any, idx) => (
-                                                    <div key={idx} className="w-8 h-8 rounded-full border-2 border-[#1A1A1A] overflow-hidden bg-white">
+                                                    <div key={`${order.id}-img-${idx}`} className="w-8 h-8 rounded-full border-2 border-[#1A1A1A] overflow-hidden bg-white">
                                                         <img src={item.image} className="w-full h-full object-cover" alt="" />
                                                     </div>
                                                 ))}
@@ -1487,7 +1497,7 @@ const AdminDashboard: React.FC = () => {
                                                 {order.items.map((item: any, idx) => (
                                                     item.supplierUrl && (
                                                         <a 
-                                                            key={idx}
+                                                            key={`${order.id}-${item.id || idx}-${idx}`}
                                                             href={item.supplierUrl}
                                                             target="_blank"
                                                             rel="noreferrer"

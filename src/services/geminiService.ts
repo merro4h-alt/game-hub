@@ -34,7 +34,7 @@ export const getBeautyAdvice = async (userMessage: string, products: any[], hist
   const chat = ai.chats.create({
     model: "gemini-flash-latest",
     config: {
-      systemInstruction: `You are a professional beauty consultant for Trendifi. 
+      systemInstruction: `You are a professional beauty consultant for ONXIFI. 
       Your goal is to help users find the best skincare and makeup products.
       Be friendly, encouraging, and expert-level.
       
@@ -47,7 +47,7 @@ export const getBeautyAdvice = async (userMessage: string, products: any[], hist
       - Use emojis to be welcoming.
       
       INVENTORY:
-      Here is the current inventory of Trendifi products:
+      Here is the current inventory of ONXIFI products:
       ${productContext}
       
       Suggest specific products from the inventory if they match the user's needs. 

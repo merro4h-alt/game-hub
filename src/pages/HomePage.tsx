@@ -7,7 +7,7 @@ import { useStore } from '../StoreContext';
 import { INITIAL_PRODUCTS } from '../constants';
 import { ListingSkeleton } from '../components/ProductSkeleton';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Quote, Sparkles, Flame, Tag, Clock, Copy, Check, Globe, Play } from 'lucide-react';
+import { ArrowRight, Quote, Sparkles, Flame, Tag, Clock, Copy, Check, Globe, Play, Flower2, Crown, Dumbbell } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ReviewModal } from '../components/ReviewModal';
 
@@ -157,6 +157,8 @@ const HomePage: React.FC = () => {
     { key: 'new', label: t('categories.new'), icon: <Sparkles size={14} />, category: 'New' },
     { key: 'bestSeller', label: t('categories.bestSeller'), icon: <Flame size={14} />, category: 'Best Seller' },
     { key: 'offers', label: t('categories.offers'), icon: <Tag size={14} />, category: 'Offers' },
+    { key: 'fashionBeauty', label: t('categories.fashionBeauty'), icon: <Crown size={14} />, category: 'Fashion & Beauty' },
+    { key: 'sports', label: t('categories.sports'), icon: <Dumbbell size={14} />, category: 'Sports' },
     { key: 'imported', label: i18n.language === 'ar' ? 'مستوردة' : 'Imported', icon: <Globe size={14} />, category: 'Imported' },
   ];
 
@@ -246,7 +248,7 @@ const HomePage: React.FC = () => {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 sm:gap-8">
               {featuredProducts.map((product, index) => (
                 <motion.div 
-                  key={product.id} 
+                  key={`${product.id}-${index}`} 
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}

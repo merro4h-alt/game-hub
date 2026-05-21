@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Upload, Plus, Save, RefreshCw, CheckCircle, Sparkles, Link, Globe, ShoppingBag, Video } from 'lucide-react';
+import { X, Upload, Plus, Save, RefreshCw, CheckCircle, Sparkles, Link, Globe, ShoppingBag, Video, Play, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { GoogleGenAI } from "@google/genai";
 import { Product } from '../types';
@@ -54,6 +54,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [showVideoPreview, setShowVideoPreview] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -303,7 +304,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
       // Use simpler prompt format as per skill
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Write a product description for: Name: ${formData.name}, Category: ${formData.category}. Target Store: Trendifi. Language: ${isArabic ? 'Arabic' : 'English'}.`,
+        contents: `Write a product description for: Name: ${formData.name}, Category: ${formData.category}. Target Store: ONXIFI. Language: ${isArabic ? 'Arabic' : 'English'}.`,
         config: {
           systemInstruction: `You are a professional e-commerce copywriter. Create a compelling description highlighting benefits. Return ONLY text. Max 250 characters. For Arabic, use a professional luxury tone.`,
         }
@@ -649,26 +650,46 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                     <span className="text-[10px] font-bold uppercase mt-2">{isArabic ? 'صور' : 'Photos'}</span>
                   </button>
 
-                  <button 
-                    type="button"
-                    onClick={() => document.getElementById('video-upload')?.click()}
+                  <div 
                     className="aspect-square border-2 border-dashed border-brand-charcoal/10 rounded-2xl flex flex-col items-center justify-center hover:border-brand-gold transition-colors text-green-600/30 hover:text-green-600 bg-white group overflow-hidden relative"
-                    title={isArabic ? 'إضافة فيديو' : 'Add Video'}
                   >
                     {formData.videoUrl ? (
-                      <div className="w-full h-full relative">
+                      <div className="w-full h-full relative group/video">
                         <video src={formData.videoUrl} className="w-full h-full object-cover opacity-50" />
-                        <div className="absolute inset-0 flex items-center justify-center text-green-600">
+                        <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover/video:opacity-100 transition-opacity bg-black/20">
+                          <button
+                            type="button"
+                            onClick={() => setShowVideoPreview(true)}
+                            className="p-2 bg-white text-brand-charcoal rounded-full shadow-lg hover:scale-110 transition-transform"
+                            title={isArabic ? 'تشغيل الفيديو' : 'Play Video'}
+                          >
+                            <Play size={16} fill="currentColor" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById('video-upload')?.click()}
+                            className="p-2 bg-brand-gold text-white rounded-full shadow-lg hover:scale-110 transition-transform"
+                            title={isArabic ? 'تعديل الفيديو' : 'Edit Video'}
+                          >
+                            <Pencil size={16} />
+                          </button>
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center text-green-600 pointer-events-none group-hover/video:hidden">
                           <CheckCircle size={24} />
                         </div>
                       </div>
                     ) : (
-                      <>
+                      <button 
+                        type="button"
+                        onClick={() => document.getElementById('video-upload')?.click()}
+                        className="w-full h-full flex flex-col items-center justify-center"
+                        title={isArabic ? 'إضافة فيديو' : 'Add Video'}
+                      >
                         <Video size={24} />
                         <span className="text-[9px] font-black uppercase mt-1.5">{isArabic ? 'إرفاق فيديو' : 'Attach Video'}</span>
-                      </>
+                      </button>
                     )}
-                  </button>
+                  </div>
                 </div>
                 <input id="file-upload" type="file" className="hidden" onChange={handleImageChange} accept="image/*" multiple />
                 <input id="video-upload" type="file" className="hidden" onChange={(e) => {
@@ -787,16 +808,45 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                         </button>
                       )}
                     </div>
-                    <div className="relative">
+                    <div className="relative group">
                       <input
                         type="url"
                         value={formData.videoUrl.startsWith('data:') ? (isArabic ? 'تم إرفاق ملف محلي' : 'Local file attached') : formData.videoUrl}
                         onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                        className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold outline-none text-brand-charcoal"
+                        className="w-full px-4 py-3 bg-white rounded-xl border border-brand-charcoal/10 focus:ring-2 focus:ring-brand-gold outline-none text-brand-charcoal pr-24"
                         placeholder="https://.../video.mp4"
                         disabled={formData.videoUrl.startsWith('data:')}
                       />
-                      <Globe className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-charcoal/20" size={16} />
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                        {formData.videoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setShowVideoPreview(true)}
+                            className="p-2 bg-brand-gold/10 text-brand-gold hover:bg-brand-gold hover:text-white rounded-lg transition-all"
+                            title={isArabic ? 'تشغيل الفيديو' : 'Play Video'}
+                          >
+                            <Play size={14} fill="currentColor" />
+                          </button>
+                        )}
+                        <label className="p-2 bg-brand-charcoal/5 text-brand-charcoal hover:bg-brand-charcoal hover:text-white rounded-lg transition-all cursor-pointer">
+                          <Pencil size={14} />
+                          <input 
+                            type="file" 
+                            accept="video/*" 
+                            className="hidden" 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setFormData(prev => ({ ...prev, videoUrl: reader.result as string }));
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
                     </div>
                     <p className={`text-[10px] mt-1 font-bold ${formData.videoUrl.startsWith('data:') ? 'text-red-500' : 'text-brand-charcoal/40 italic'}`}>
                       {formData.videoUrl.startsWith('data:') 
@@ -819,6 +869,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                   <option value="New">New</option>
                   <option value="Best Seller">Best Seller</option>
                   <option value="Offers">Offers</option>
+                  <option value="Fashion & Beauty">Fashion & Beauty</option>
+                  <option value="Sports">Sports</option>
+                  <option value="Imported">Imported</option>
                 </select>
               </div>
 
@@ -1060,6 +1113,40 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
           </motion.div>
         </div>
       )}
+
+      {/* Video Preview Modal */}
+      <AnimatePresence>
+        {showVideoPreview && formData.videoUrl && (
+          <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-brand-charcoal/80 backdrop-blur-sm"
+              onClick={() => setShowVideoPreview(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-brand-charcoal w-full max-w-3xl aspect-video rounded-3xl shadow-2xl overflow-hidden z-[601]"
+            >
+              <button
+                onClick={() => setShowVideoPreview(false)}
+                className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-colors z-10"
+              >
+                <X size={20} />
+              </button>
+              <video
+                src={formData.videoUrl}
+                autoPlay
+                controls
+                className="w-full h-full"
+              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </AnimatePresence>
   );
 };

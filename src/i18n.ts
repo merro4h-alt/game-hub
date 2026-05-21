@@ -19,7 +19,7 @@ const resources = {
       },
       "supplier": {
         "title": "Supplier Hub",
-        "subtitle": "List your products on Trendifi",
+        "subtitle": "List your products on ONXIFI",
         "submitProduct": "Submit New Product",
         "myProducts": "My Listings",
         "earnings": "Earnings",
@@ -72,7 +72,7 @@ const resources = {
         "newsletterDesc": "Join our elite circle for exclusive drops and design insights.",
         "specGuarantee": "Specification Guarantee",
         "specGuaranteeDesc": "We guarantee that all products strictly match the photos and specifications provided. If you receive a different product, you are entitled to a full refund or a free replacement.",
-        "copyright": "© 2024 Trendifi Lifestyle. All rights reserved."
+        "copyright": "© 2024 ONXIFI Lifestyle. All rights reserved."
       },
       "home": {
         "firstChoice": "Your first choice for shopping",
@@ -122,14 +122,15 @@ const resources = {
         "bestSeller": "Best Seller",
         "offers": "Offers",
         "fashion": "Fashion",
-        "cosmetic": "Cosmetics",
-        "sport": "Sports",
+        "beauty": "Beauty",
+        "fashionBeauty": "Fashion & Beauty",
+        "sports": "Sports",
         "accessories": "Accessories",
         "lifestyle": "Lifestyle"
       },
       "reviews": {
         "title": "Customer Reviews",
-        "subtitle": "What our community says about Trendifi",
+        "subtitle": "What our community says about ONXIFI",
         "items": {
           "1": {
             "name": "Sarah J.",
@@ -149,7 +150,7 @@ const resources = {
         },
         "addReview": "Write a Review",
         "modalTitle": "Rate Your Experience",
-        "modalSubtitle": "We value your feedback. How was your experience with Trendifi?",
+        "modalSubtitle": "We value your feedback. How was your experience with ONXIFI?",
         "ratingLabel": "Your Rating",
         "commentLabel": "Your Review",
         "commentPlaceholder": "Tell us what you liked or how we can improve...",
@@ -200,7 +201,7 @@ const resources = {
         "heroTitle1": "Redefining",
         "heroTitleItalic": "Style",
         "heroTitle2": "& Integrity",
-        "heroDesc": "Trendifi was born from a simple vision: to create a space where premium craftsmanship meets conscious design. We believe that true luxury lies in the details.",
+        "heroDesc": "ONXIFI was born from a simple vision: to create a space where premium craftsmanship meets conscious design. We believe that true luxury lies in the details.",
         "philosophyTitle": "Our Philosophy",
         "philosophyDesc": "We don't just sell products; we curate experiences. Each item in our collection is selected for its unique story, superior quality, and aesthetic longevity.",
         "precision": "Precision",
@@ -299,7 +300,7 @@ const resources = {
         },
         "success": {
           "title": "Application Received Successfully!",
-          "desc1": "Thank you for your interest in Trendifi. Our team is currently reviewing your information to ensure it matches our partnership criteria.",
+          "desc1": "Thank you for your interest in ONXIFI. Our team is currently reviewing your information to ensure it matches our partnership criteria.",
           "desc2": "One of our specialists will contact you via phone or email within 24 hours to provide full details and start your journey as a merchant."
         },
         "globalModal": {
@@ -498,14 +499,15 @@ const resources = {
         "bestSeller": "الأكثر مبيعاً",
         "offers": "العروض",
         "fashion": "الأزياء",
-        "cosmetic": "التجميل",
-        "sport": "الرياضة",
+        "beauty": "الجمال",
+        "fashionBeauty": "موضة وجمال",
+        "sports": "رياضة",
         "accessories": "الإكسسوارات",
         "lifestyle": "لايف ستايل"
       },
       "reviews": {
         "title": "آراء العملاء",
-        "subtitle": "ماذا يقول مجتمعنا عن Trendifi",
+        "subtitle": "ماذا يقول مجتمعنا عن ONXIFI",
         "items": {
           "1": {
             "name": "سارة ج.",
@@ -576,7 +578,7 @@ const resources = {
         "heroTitle1": "إعادة تعريف",
         "heroTitleItalic": "الأناقة",
         "heroTitle2": "والنزاهة",
-        "heroDesc": "ولدت Trendifi من رؤية بسيطة: إنشاء مساحة حيث تجتمع الحرفية المتميزة مع التصميم الواعي. نحن نؤمن بأن الفخامة الحقيقية تكمن في التفاصيل.",
+        "heroDesc": "ولدت ONXIFI من رؤية بسيطة: إنشاء مساحة حيث تجتمع الحرفية المتميزة مع التصميم الواعي. نحن نؤمن بأن الفخامة الحقيقية تكمن في التفاصيل.",
         "philosophyTitle": "فلسفتنا",
         "philosophyDesc": "نحن لا نبيع المنتجات فحسب؛ بل نصنع التجارب. يتم اختيار كل قطعة في مجموعتنا لقصتها الفريدة وجودتها الفائقة وجمالها الدائم.",
         "precision": "الدقة",
@@ -675,7 +677,7 @@ const resources = {
         },
         "success": {
           "title": "تم استلام طلب الانضمام بنجاح!",
-          "desc1": "نشكرك على اهتمامك بـ Trendifi. يقوم فريقنا حالياً بمراجعة معلوماتك للتأكد من مطابقتها لمعايير الشراكة لدينا.",
+          "desc1": "نشكرك على اهتمامك بـ ONXIFI. يقوم فريقنا حالياً بمراجعة معلوماتك للتأكد من مطابقتها لمعايير الشراكة لدينا.",
           "desc2": "سيقوم أحد مستشارينا بالتواصل معك عبر الهاتف أو البريد الإلكتروني خلال 24 ساعة لتزويدك بكافة التفاصيل وبدء عملك كتاجر."
         },
         "globalModal": {

@@ -33,7 +33,7 @@ export const ChatWidget: React.FC = () => {
         body: JSON.stringify({
           name: "Customer Inquiry",
           message: currentMsg,
-          _subject: "New Message from Trendifi Chat",
+          _subject: "New Message from ONXIFI Chat",
           _template: "table"
         })
       });

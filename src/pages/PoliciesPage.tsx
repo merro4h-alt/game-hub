@@ -75,8 +75,8 @@ const PoliciesPage = () => {
             className="text-lg text-brand-charcoal/60 dark:text-white/60 max-w-2xl mx-auto leading-relaxed"
           >
             {isArabic 
-              ? 'نهدف في Trendifi إلى بناء علاقة ثقة طويلة الأمد مع عملائنا من خلال سياسات واضحة تضع مصلحة العميل أولاً.'
-              : 'At Trendifi, we aim to build a long-term trust relationship with our customers through clear policies that put the customer first.'}
+              ? 'نهدف في ONXIFI إلى بناء علاقة ثقة طويلة الأمد مع عملائنا من خلال سياسات واضحة تضع مصلحة العميل أولاً.'
+              : 'At ONXIFI, we aim to build a long-term trust relationship with our customers through clear policies that put the customer first.'}
           </motion.p>
         </div>
 
@@ -166,8 +166,8 @@ const PoliciesPage = () => {
             <div className="mt-16 pt-16 border-t border-white/10 text-center">
               <p className="text-white/40 text-xs italic">
                 {isArabic 
-                  ? 'آخر تحديث: مايو 2026 • جميع الحقوق محفوظة لـ Trendifi' 
-                  : 'Last Updated: May 2026 • All rights reserved to Trendifi'}
+                  ? 'آخر تحديث: مايو 2026 • جميع الحقوق محفوظة لـ ONXIFI' 
+                  : 'Last Updated: May 2026 • All rights reserved to ONXIFI'}
               </p>
             </div>
           </div>

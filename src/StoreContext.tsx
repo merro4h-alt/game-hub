@@ -184,9 +184,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return onSnapshot(q, (snapshot) => {
           const campaignsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as import('./types').Campaign[];
           setCampaigns(campaignsData);
+        }, (error) => {
+          console.warn("Error loading campaigns:", error);
+          import('./lib/firebase').then(({ handleFirestoreError, OperationType }) => {
+            handleFirestoreError(error, OperationType.LIST, 'campaigns');
+          }).catch(console.error);
         });
       } catch (e) {
-        console.error("Error loading campaigns:", e);
+        console.error("Error loading campaigns (outer):", e);
       }
     };
     let unsub: any;
@@ -284,7 +289,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [settings, setSettings] = useState({
     googlePayMerchantId: 'BCR2DN5TROGI7Q2U',
-    storeName: 'Trendifi Store',
+    storeName: 'ONXIFI Store',
     whatsappNumber: '9647837814009',
     baseShippingRate: 20,
     stripePublicKey: '',
@@ -314,9 +319,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               ...data
             }));
           }
+        }, (error) => {
+          console.warn("Error loading settings:", error);
+          import('./lib/firebase').then(({ handleFirestoreError, OperationType }) => {
+            handleFirestoreError(error, OperationType.GET, 'settings/general');
+          }).catch(console.error);
         });
       } catch (e) {
-        console.error("Error loading settings:", e);
+        console.error("Error loading settings (outer):", e);
       }
     };
 
@@ -416,6 +426,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         unsubscribe = onSnapshot(q, (snapshot) => {
           const wishlistData = snapshot.docs.map(doc => doc.data() as WishlistItem);
           setWishlist(wishlistData);
+        }, (error) => {
+          console.warn("Error loading wishlist:", error);
+          import('./lib/firebase').then(({ handleFirestoreError, OperationType }) => {
+            handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/wishlist`);
+          }).catch(console.error);
         });
       } catch (e) {
         console.error("Error loading wishlist:", e);

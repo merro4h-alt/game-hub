@@ -107,11 +107,13 @@ function AppContent() {
   if ((storeLoading || authLoading) && !isSafetyTimeoutReached) {
     return (
       <div className="fixed inset-0 bg-[#0A0A0B] flex flex-col items-center justify-center z-[9999]">
-        <div className="flex items-center gap-4 mb-8 animate-pulse">
-          <span className="text-6xl font-black italic tracking-tighter text-white">
-            Trendi<span className="text-[#4F46E5]">fi</span>
+        <div className="flex items-center gap-3 mb-8">
+          <span className="text-3xl sm:text-4xl lg:text-5xl font-logo font-extrabold tracking-wider leading-none flex items-baseline select-none uppercase">
+            <span className="text-white">ONXI</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C5A05B] to-[#EAD8B1] drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
+              FI
+            </span>
           </span>
-          <Logo className="w-16 h-16" variant="gradient" />
         </div>
         <div className="flex flex-col items-center gap-2">
           <div className="w-48 h-1 bg-white/5 rounded-full overflow-hidden">
@@ -139,8 +141,8 @@ function AppContent() {
   return (
     <>
       <Helmet>
-        <title>{t('app.title', 'Trendifi | Lifestyle Store')}</title>
-        <meta name="description" content={t('app.description', 'Trendifi is your premier lifestyle store with regional payment integrations.')} />
+        <title>{t('app.title', 'ONXIFI | Lifestyle Store')}</title>
+        <meta name="description" content={t('app.description', 'ONXIFI is your premier lifestyle store with regional payment integrations.')} />
       </Helmet>
       <header className="fixed top-0 left-0 w-full z-[100]">
         <PromotionBar />

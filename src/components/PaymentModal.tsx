@@ -195,7 +195,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
     ).join('\n');
     
     return encodeURIComponent(
-      `🛍️ *طلب جديد من Trendifi: ${info.trackingId}*\n\n` +
+      `🛍️ *طلب جديد من ONXIFI: ${info.trackingId}*\n\n` +
       `👤 *معلومات العميل:*\n` +
       `• الاسم: ${formData.name}\n` +
       `• الهاتف: ${fullPhoneNumber}\n` +

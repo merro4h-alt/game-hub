@@ -93,8 +93,20 @@ service cloud.firestore {
 
     // Admins Whitelist
     match /admins/{userId} {
-      allow read: if isAdmin();
+      allow read: if isSignedIn(); // Allow checking if self is admin
       allow write: if isAdmin(); // Only existing admins can add new ones
+    }
+
+    // Campaigns (Marketing)
+    match /campaigns/{campaignId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Settings
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // Test writes for debugging

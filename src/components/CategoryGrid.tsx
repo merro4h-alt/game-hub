@@ -9,34 +9,28 @@ const CategoryGrid: React.FC = () => {
 
   const categories = [
     {
-      key: 'fashion',
+      key: 'fashionBeauty',
       image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=800',
       count: '240+',
       className: 'md:col-span-2 md:row-span-2 h-[400px] md:h-full',
     },
     {
-      key: 'cosmetic',
-      image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800',
-      count: '150+',
-      className: 'md:col-span-1 md:row-span-1 h-[250px] md:h-full',
-    },
-    {
-      key: 'sport',
+      key: 'sports',
       image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
       count: '180+',
-      className: 'md:col-span-1 md:row-span-1 h-[250px] md:h-full',
+      className: 'md:col-span-2 md:row-span-1 h-[250px] md:h-full',
     },
     {
       key: 'accessories',
       image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800',
       count: '120+',
-      className: 'md:col-span-1 md:row-span-2 h-[350px] md:h-full',
+      className: 'md:col-span-1 md:row-span-1 h-[250px] md:h-full',
     },
     {
       key: 'lifestyle',
       image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=800',
       count: '95+',
-      className: 'md:col-span-2 md:row-span-1 h-[250px] md:h-full',
+      className: 'md:col-span-1 md:row-span-1 h-[250px] md:h-full',
     },
   ];
 

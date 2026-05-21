@@ -1,6 +1,6 @@
 {
-  "name": "Trendifi",
-  "description": "Trendifi: A premium modern e-commerce destination featuring high-end fashion, cosmetics, and lifestyle products with seamless Iraqi payment integrations.",
+  "name": "ONXIFI",
+  "description": "ONXIFI: A premium modern e-commerce destination featuring high-end fashion, cosmetics, and lifestyle products with seamless Iraqi payment integrations.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

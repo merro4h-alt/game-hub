@@ -80,12 +80,12 @@ const ProductDetailPage: React.FC = () => {
   return (
     <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-[#0A0A0B] text-white min-h-screen">
       <Helmet>
-        <title>{product.name} | Trendifi</title>
+        <title>{product.name} | ONXIFI</title>
         <meta name="description" content={product.description} />
-        <meta property="og:title" content={`${product.name} | Trendifi`} />
+        <meta property="og:title" content={`${product.name} | ONXIFI`} />
         <meta property="og:description" content={product.description} />
         <meta property="og:image" content={product.image} />
-        <meta property="twitter:title" content={`${product.name} | Trendifi`} />
+        <meta property="twitter:title" content={`${product.name} | ONXIFI`} />
         <meta property="twitter:description" content={product.description} />
         <meta property="twitter:image" content={product.image} />
         <script type="application/ld+json">
@@ -97,7 +97,7 @@ const ProductDetailPage: React.FC = () => {
             "description": product.description,
             "brand": {
               "@type": "Brand",
-              "name": "Trendifi"
+              "name": "ONXIFI"
             },
             "offers": {
               "@type": "Offer",

@@ -9,7 +9,7 @@ export interface Product {
   colorDiscountPrices?: Record<string, number>;
   image: string;
   images?: string[];
-  category: 'New' | 'Best Seller' | 'Offers' | 'Imported';
+  category: 'New' | 'Best Seller' | 'Offers' | 'Imported' | 'Fashion & Beauty' | 'Sports';
   colors: string[];
   colorImages?: Record<string, string>;
   sizes: string[];

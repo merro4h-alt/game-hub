@@ -70,9 +70,9 @@ const Navbar: React.FC = () => {
   ];
 
   const categories = [
-    { name: t('categories.fashion'), icon: '👗' },
-    { name: t('categories.cosmetic'), icon: '💄' },
-    { name: t('categories.lifestyle'), icon: '✨' },
+    { name: t('categories.fashionBeauty'), icon: '✨' },
+    { name: t('categories.sports'), icon: '⚽' },
+    { name: t('categories.lifestyle'), icon: '🛋️' },
     { name: t('categories.accessories'), icon: '🎒' },
   ];
 
@@ -106,13 +106,11 @@ const Navbar: React.FC = () => {
 
             {/* Logo Group */}
             <div className="flex flex-col min-w-0">
-              <Link to="/" className="flex items-center gap-1.5 sm:gap-2 group flex-shrink-0" onClick={() => setIsOpen(false)}>
-                <div className="flex items-baseline">
-                  <span className="text-2xl sm:text-3xl lg:text-5xl font-black italic tracking-tighter text-brand-charcoal leading-none">
-                    Trendi<span className="text-[#4F46E5]">fi</span>
-                  </span>
+              <Link to="/" className="flex items-center gap-2 sm:gap-3 group flex-shrink-0" onClick={() => setIsOpen(false)}>
+                <div className="flex items-baseline font-logo tracking-wider font-extrabold text-xl sm:text-2xl lg:text-3xl select-none leading-none drop-shadow-sm uppercase">
+                  <span className="text-black">ONXI</span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C5A05B] to-[#D4AF37]">FI</span>
                 </div>
-                <Logo className="w-10 h-10 sm:w-14 sm:h-14 lg:w-20 lg:h-20 transition-all duration-500 flex-shrink-0 rotate-6" variant="gradient" />
               </Link>
             </div>
 

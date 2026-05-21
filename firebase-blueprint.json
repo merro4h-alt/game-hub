@@ -66,14 +66,34 @@
         "storeName": { "type": "string" },
         "whatsappNumber": { "type": "string" },
         "baseShippingRate": { "type": "number" },
-        "stripePublicKey": { "type": "string" }
+        "stripePublicKey": { "type": "string" },
+        "bankDetails": { "type": "object" }
       }
+    },
+    "Campaign": {
+      "title": "Campaign",
+      "description": "Marketing promotion or banner",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "image": { "type": "string" },
+        "link": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "type": { "type": "string", "enum": ["hero", "banner", "popup"] },
+        "startDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "image", "isActive"]
     }
   },
   "firestore": {
     "/settings/{settingId}": {
       "schema": "Setting",
       "description": "Store configuration documents"
+    },
+    "/campaigns/{campaignId}": {
+      "schema": "Campaign",
+      "description": "Marketing campaigns and banners"
     },
     "/users/{userId}": {
       "schema": "User",

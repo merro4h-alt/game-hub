@@ -14,7 +14,7 @@ const ShopPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
   const [sortBy, setSortBy] = useState<'default' | 'priceLow' | 'priceHigh' | 'rating'>('default');
-  const [filterType, setFilterType] = useState<'all' | 'new' | 'bestSeller' | 'offers'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'new' | 'bestSeller' | 'offers' | 'fashionBeauty' | 'sports'>('all');
   const [isSortOpen, setIsSortOpen] = useState(false);
 
   const queryParams = new URLSearchParams(location.search);
@@ -32,6 +32,10 @@ const ShopPage: React.FC = () => {
         result = result.filter(p => p.category === 'New');
       } else if (filterType === 'bestSeller') {
         result = result.filter(p => p.category === 'Best Seller');
+      } else if (filterType === 'fashionBeauty') {
+        result = result.filter(p => p.category === 'Fashion & Beauty');
+      } else if (filterType === 'sports') {
+        result = result.filter(p => p.category === 'Sports');
       }
     }
 
@@ -41,7 +45,10 @@ const ShopPage: React.FC = () => {
         result = result.filter(p => p.category === 'Offers' || p.discountPrice !== undefined);
       } else {
         result = result.filter(p => {
-          const categoryKey = p.category === 'Best Seller' ? 'bestSeller' : p.category.toLowerCase();
+          let categoryKey = p.category.toLowerCase();
+          if (p.category === 'Best Seller') categoryKey = 'bestSeller';
+          if (p.category === 'Fashion & Beauty') categoryKey = 'fashionBeauty';
+          
           return p.category === categoryFilter || t(`categories.${categoryKey}`) === categoryFilter;
         });
       }
@@ -82,8 +89,8 @@ const ShopPage: React.FC = () => {
   return (
     <div className="pt-24 pb-32 bg-[#0A0A0B] min-h-screen text-white">
       <Helmet>
-        <title>{categoryFilter ? `${categoryFilter} | Shop Trendifi` : 'Shop | Trendifi - Everything New and Unique'}</title>
-        <meta name="description" content="Shop the latest unique products at Trendifi. Quality electronics, fashion, and lifestyle items with local payment options in Iraq." />
+        <title>{categoryFilter ? `${categoryFilter} | Shop ONXIFI` : 'Shop | ONXIFI - Everything New and Unique'}</title>
+        <meta name="description" content="Shop the latest unique products at ONXIFI. Quality electronics, fashion, and lifestyle items with local payment options in Iraq." />
       </Helmet>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-16 flex flex-col items-center text-center">
@@ -115,6 +122,8 @@ const ShopPage: React.FC = () => {
               { id: 'new', label: t('categories.new') },
               { id: 'bestSeller', label: t('categories.bestSeller') },
               { id: 'offers', label: t('categories.offers') },
+              { id: 'fashionBeauty', label: t('categories.fashionBeauty') },
+              { id: 'sports', label: t('categories.sports') },
             ].map((tab) => (
               <button
                 key={tab.id}
