@@ -361,9 +361,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const unsubscribe = onSnapshot(q, (snapshot) => {
           console.log(`Received products update context: ${snapshot.size} products total`);
           const productsData = snapshot.docs.map(doc => {
-            const data = doc.data();
+            const data = doc.data() as any;
+            const updated = { ...data };
+            if (updated.name && typeof updated.name === 'string') {
+              updated.name = updated.name.replace(/Trendifi/gi, 'ONXIFI');
+            }
+            if (updated.description && typeof updated.description === 'string') {
+              updated.description = updated.description.replace(/Trendifi/gi, 'ONXIFI');
+            }
             return {
-              ...data,
+              ...updated,
               id: doc.id
             };
           }) as Product[];
