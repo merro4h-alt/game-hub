@@ -13,9 +13,9 @@ const Footer: React.FC = () => {
           <div className="col-span-1 md:col-span-2">
             <Link to="/" className="flex items-center gap-3 mb-6 group">
               {i18n.language.startsWith('ar') ? (
-                <span dir="rtl" className="text-3xl font-logo font-extrabold tracking-wider leading-none flex items-baseline select-none uppercase gap-1">
+                <span dir="rtl" className="text-3xl font-arabic font-extrabold tracking-wide leading-none flex items-center select-none uppercase gap-1.5">
                   <span className="text-white">اونكس</span>
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C5A05B] to-[#EAD8B1] drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
+                  <span className="inline-block px-1.5 py-1 text-transparent bg-clip-text bg-gradient-to-r from-[#C5A05B] to-[#EAD8B1] drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
                     فاي
                   </span>
                 </span>

@@ -108,9 +108,9 @@ const Navbar: React.FC = () => {
             <div className="flex flex-col min-w-0">
               <Link to="/" className="flex items-center gap-2 sm:gap-3 group flex-shrink-0" onClick={() => setIsOpen(false)}>
                 {isRtl ? (
-                  <div dir="rtl" className="flex items-baseline font-logo tracking-wider font-extrabold text-xl sm:text-2xl lg:text-3xl select-none leading-none drop-shadow-sm uppercase gap-1">
+                  <div dir="rtl" className="flex items-center font-arabic tracking-wide font-extrabold text-xl sm:text-2xl lg:text-3xl select-none leading-none drop-shadow-sm uppercase gap-1.5">
                     <span className="text-black">اونكس</span>
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C5A05B] to-[#D4AF37]">فاي</span>
+                    <span className="inline-block px-1.5 py-0.5 text-transparent bg-clip-text bg-gradient-to-r from-[#C5A05B] to-[#D4AF37]">فاي</span>
                   </div>
                 ) : (
                   <div dir="ltr" className="flex items-baseline font-logo tracking-wider font-extrabold text-xl sm:text-2xl lg:text-3xl select-none leading-none drop-shadow-sm uppercase">
@@ -142,9 +142,9 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Icons (Right) */}
-          <div className="flex items-center gap-0.5 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             
-            <div className="flex items-center gap-0 sm:gap-2">
+            <div className="flex items-center gap-2 sm:gap-4">
               <button 
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
                 className="text-brand-charcoal/70 hover:text-brand-charcoal transition-colors flex-shrink-0 p-1 sm:p-2 hover:bg-white rounded-xl"

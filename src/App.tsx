@@ -109,9 +109,9 @@ function AppContent() {
       <div className="fixed inset-0 bg-[#0A0A0B] flex flex-col items-center justify-center z-[9999]">
         <div className="flex items-center gap-3 mb-8">
           {i18n.language === 'ar' ? (
-            <span dir="rtl" className="text-3xl sm:text-4xl lg:text-5xl font-logo font-extrabold tracking-wider leading-none flex items-baseline select-none uppercase gap-1">
+            <span dir="rtl" className="text-3xl sm:text-4xl lg:text-5xl font-arabic font-extrabold tracking-wide leading-none flex items-center select-none uppercase gap-1.5">
               <span className="text-white">اونكس</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C5A05B] to-[#EAD8B1] drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
+              <span className="inline-block px-1.5 py-1 text-transparent bg-clip-text bg-gradient-to-r from-[#C5A05B] to-[#EAD8B1] drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
                 فاي
               </span>
             </span>
