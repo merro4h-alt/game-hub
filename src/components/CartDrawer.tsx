@@ -347,6 +347,18 @@ export const CartDrawer: React.FC = () => {
                         </span>
                       </div>
 
+                      {/* Return Policy Terms */}
+                      <div id="cart-drawer-return-policy" className="mt-1 p-2.5 bg-[#FDFBF7]/80 border border-[#C5A05B]/10 rounded-xl space-y-1.5 text-start">
+                        <div className="flex items-center gap-2 text-brand-charcoal/75 text-[10px] font-bold">
+                          <ShieldCheck size={12} className="text-[#C5A05B] shrink-0" />
+                          <span>{isRtl ? 'فترة استرجاع مرنة تصل إلى 14 يوماً' : 'Flexible return period up to 14 days'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-brand-charcoal/75 text-[10px] font-bold">
+                          <ShieldCheck size={12} className="text-[#C5A05B] shrink-0" />
+                          <span>{isRtl ? 'استرداد كامل المبلغ في حال العيوب المصنعية' : 'Full refund in case of manufacturing defects'}</span>
+                        </div>
+                      </div>
+
                       <div className="flex justify-between text-base font-black text-brand-charcoal pt-2">
                         <span>{texts.totalText}</span>
                         <span className="text-[#C5A05B]">{formatPrice(finalTotalWithShipping)}</span>
@@ -362,14 +374,6 @@ export const CartDrawer: React.FC = () => {
                         <ShieldCheck size={16} className="text-[#C5A05B] group-hover:scale-110 transition-transform" />
                         <span>{texts.checkoutBtn}</span>
                       </button>
-
-                      <Link
-                        to="/cart"
-                        onClick={() => setIsCartOpen(false)}
-                        className="w-full py-3 border border-gray-150 hover:bg-gray-50 rounded-xl text-center text-[10px] font-black uppercase tracking-widest transition-colors block text-brand-charcoal/70"
-                      >
-                        {texts.viewFullCart}
-                      </Link>
                     </div>
 
                   </div>
