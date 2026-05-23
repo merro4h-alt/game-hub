@@ -1,10 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4F46E5;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#7C3AED;stop-opacity:1" />
+    <linearGradient id="gold" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#9A7B3E" />
+      <stop offset="25%" style="stop-color:#C5A05B" />
+      <stop offset="50%" style="stop-color:#F5E2C3" />
+      <stop offset="75%" style="stop-color:#D4AF37" />
+      <stop offset="100%" style="stop-color:#B38F4D" />
+    </linearGradient>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#111112" />
+      <stop offset="100%" style="stop-color:#060607" />
     </linearGradient>
   </defs>
-  <rect width="460" height="460" x="26" y="26" rx="100" fill="url(#grad1)" />
-  <path d="M256 380V132M156 232l100-100 100 100" stroke="white" stroke-width="48" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+  
+  <!-- Squircle Background -->
+  <rect width="472" height="472" x="20" y="20" rx="140" fill="url(#bg)" stroke="url(#gold)" stroke-width="12" />
+  
+  <!-- Outer Ring -->
+  <circle cx="256" cy="256" r="130" fill="none" stroke="url(#gold)" stroke-width="24" />
+  
+  <!-- Inner Elegant Hexagram / Diamond Cut representing Onyx facet cut -->
+  <polygon points="256,160 339,208 339,304 256,352 173,304 173,208" fill="none" stroke="url(#gold)" stroke-width="10" stroke-linejoin="round" />
+  
+  <!-- Subtle Central Dot / Sparkle -->
+  <circle cx="256" cy="256" r="16" fill="url(#gold)" />
 </svg>

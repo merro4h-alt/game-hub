@@ -2,14 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import HeroSlider from '../components/HeroSlider';
 import ProductCard from '../components/ProductCard';
-import { LoyaltyBanner } from '../components/LoyaltyBanner';
 import { useStore } from '../StoreContext';
 import { INITIAL_PRODUCTS } from '../constants';
 import { ListingSkeleton } from '../components/ProductSkeleton';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Quote, Sparkles, Flame, Tag, Clock, Copy, Check, Globe, Play, Flower2, Crown, Dumbbell } from 'lucide-react';
+import { ArrowRight, Quote, Sparkles, Flame, Tag, Clock, Copy, Check, Globe, Play, Flower2, Crown, Dumbbell, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ReviewModal } from '../components/ReviewModal';
+import { ShopTheLook } from '../components/ShopTheLook';
 
 const DiscountSection = () => {
   const { t, i18n } = useTranslation();
@@ -142,6 +142,47 @@ const HomePage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { products, isLoading } = useStore();
   const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  // Track scrolling progress to update dot indicator
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+        const totalScrollable = scrollWidth - clientWidth;
+        if (totalScrollable > 0) {
+          const absoluteScroll = Math.abs(scrollLeft);
+          setScrollProgress(absoluteScroll / totalScrollable);
+        }
+      }
+    };
+
+    const currentScrollRef = scrollRef.current;
+    if (currentScrollRef) {
+      currentScrollRef.addEventListener('scroll', handleScroll, { passive: true });
+      // Initial trigger
+      handleScroll();
+    }
+    return () => {
+      if (currentScrollRef) {
+        currentScrollRef.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const isRTL = i18n.language === 'ar';
+      let scrollAmount = 240;
+      if (direction === 'left') {
+        scrollAmount = isRTL ? 240 : -240;
+      } else {
+        scrollAmount = isRTL ? -240 : 240;
+      }
+      scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
   const featuredProducts = useMemo(() => {
     // Show a mix of categories including the newest ones
     return [...products].reverse().slice(0, 4);
@@ -166,28 +207,97 @@ const HomePage: React.FC = () => {
     <div className="bg-[#0A0A0B] text-white min-h-screen">
       <HeroSlider />
 
-      {/* Centered Category Buttons - Moved to top for better accessibility */}
-      <div className="flex justify-center flex-wrap gap-4 px-4 py-8 relative z-20">
-        {categories.map((cat, index) => (
-          <motion.div
-            key={cat.key}
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + index * 0.1, type: "spring", stiffness: 200 }}
-          >
-            <Link
-              to={`/shop?category=${encodeURIComponent(cat.category)}`}
-              className="group px-6 py-3 bg-white dark:bg-white/5 border border-brand-charcoal/5 dark:border-white/10 rounded-2xl hover:shadow-2xl hover:shadow-[#4F46E5]/10 hover:-translate-y-1 transition-all duration-300 flex items-center gap-3 whitespace-nowrap"
+      {/* Elegant Swipeable Category Slider */}
+      <div className="relative max-w-7xl mx-auto px-4 md:px-8 py-8 z-20 group/slider">
+        {/* Left Arrow (visible on mobile and desktop) */}
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-2 md:left-10 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-full bg-brand-charcoal/90 hover:bg-[#4F46E5] text-white border border-white/10 hover:border-transparent opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg cursor-pointer"
+          aria-label="Previous Category"
+        >
+          <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
+        </button>
+
+        {/* Swipeable container with touch & mouse drag support */}
+        <div 
+          ref={scrollRef}
+          onMouseDown={(e) => {
+            const ele = scrollRef.current;
+            if (!ele) return;
+            const startX = e.pageX - ele.offsetLeft;
+            const scrollLeft = ele.scrollLeft;
+            
+            const handleMouseMove = (le: MouseEvent) => {
+              const x = le.pageX - ele.offsetLeft;
+              const walk = (x - startX) * 1.5; // scroll-speed
+              ele.scrollLeft = scrollLeft - walk;
+            };
+            
+            const handleMouseUp = () => {
+              document.removeEventListener('mousemove', handleMouseMove);
+              document.removeEventListener('mouseup', handleMouseUp);
+            };
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+          }}
+          className="flex whitespace-nowrap overflow-x-auto no-scrollbar scroll-smooth gap-3 md:gap-4 py-4 px-2 relative touch-pan-x select-none cursor-grab active:cursor-grabbing"
+        >
+          {categories.map((cat, index) => (
+            <motion.div
+              key={cat.key}
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 + index * 0.08, type: "spring", stiffness: 150 }}
+              className="shrink-0"
             >
-              <div className="text-[#4F46E5] group-hover:scale-110 group-hover:rotate-6 transition-transform">
-                {cat.icon}
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-charcoal dark:text-white transition-colors group-hover:text-[#4F46E5]">
-                {cat.label}
-              </span>
-            </Link>
-          </motion.div>
-        ))}
+              <Link
+                to={`/shop?category=${encodeURIComponent(cat.category)}`}
+                className="group px-4 py-3 md:px-6 md:py-4 bg-[#0F0F11]/90 hover:bg-[#151518] border border-white/5 hover:border-[#4F46E5]/50 rounded-2xl hover:shadow-2xl hover:shadow-[#4F46E5]/15 hover:-translate-y-1 transition-all duration-300 flex items-center gap-3 md:gap-4.5 pointer-events-auto"
+                draggable="false"
+              >
+                <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-xl bg-white/5 group-hover:bg-[#4F46E5]/12 text-[#4F46E5] group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-inner shrink-0">
+                  {cat.icon}
+                </div>
+                <div className="flex flex-col text-start">
+                  <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] md:tracking-[0.15em] text-white transition-colors group-hover:text-[#4F46E5]">
+                    {cat.label}
+                  </span>
+                  <span className="text-[7px] md:text-[8px] text-white/40 group-hover:text-white/60 transition-colors uppercase font-mono tracking-widest mt-1">
+                    {i18n.language === 'ar' ? 'تصفح الآن' : 'EXPLORE'}
+                  </span>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Right Arrow (visible on mobile and desktop) */}
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-2 md:right-10 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-full bg-brand-charcoal/90 hover:bg-[#4F46E5] text-white border border-white/10 hover:border-transparent opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg cursor-pointer"
+          aria-label="Next Category"
+        >
+          <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+        </button>
+
+        {/* Modern Dot Scroll indicator for mobile */}
+        <div className="flex justify-center gap-1.5 mt-2 md:hidden">
+          {categories.map((cat, idx) => {
+            const activeIdx = Math.min(
+              categories.length - 1,
+              Math.max(0, Math.floor(scrollProgress * (categories.length - 1) + 0.5))
+            );
+            return (
+              <div
+                key={cat.key}
+                className={`h-1 rounded-full transition-all duration-300 ${
+                  activeIdx === idx ? 'w-4 bg-[#4F46E5]' : 'w-1 bg-white/20'
+                }`}
+              />
+            );
+          })}
+        </div>
       </div>
 
       {/* Shiny Storefront Welcome badge */}
@@ -260,63 +370,12 @@ const HomePage: React.FC = () => {
             </div>
           )}
           
-          <LoyaltyBanner />
         </div>
       </section>
 
-      {/* Video Promo Section */}
-      {promoProduct && (
-        <section id="promo-video-section" className="py-20 px-4">
-          <div className="max-w-7xl mx-auto">
-            <div className="relative min-h-[550px] md:min-h-0 md:aspect-[21/9] rounded-[3rem] overflow-hidden group border border-white/10 shadow-2xl">
-              <video 
-                src={promoProduct.videoUrl} 
-                className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-700"
-                muted
-                loop
-                autoPlay
-                playsInline
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-              
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  className="space-y-6"
-                >
-                  <span className="inline-block px-4 py-1.5 rounded-full bg-brand-gold text-black text-[10px] font-black uppercase tracking-[0.2em]">
-                    {i18n.language === 'ar' ? 'عرض خاص' : 'Featured Ad'}
-                  </span>
-                  <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white tracking-tighter">
-                    {promoProduct.name}
-                  </h2>
-                  <p className="text-sm sm:text-base md:text-lg text-white/70 max-w-2xl mx-auto font-medium">
-                    {promoProduct.description}
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-                    <button
-                      onClick={() => setIsVideoModalOpen(true)}
-                      className="group flex items-center gap-3 bg-brand-gold py-4 px-10 rounded-full text-brand-charcoal font-black uppercase tracking-widest text-xs hover:bg-white transition-all hover:scale-105 active:scale-95 shadow-xl shadow-brand-gold/20"
-                    >
-                      {i18n.language === 'ar' ? 'شاهد الإعلان الآن' : 'Watch Official Ad'}
-                    </button>
-                    <Link
-                      to="/shop"
-                      className="group flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 py-4 px-10 rounded-full text-white font-black uppercase tracking-widest text-xs hover:bg-white hover:text-brand-charcoal transition-all hover:scale-105 active:scale-95"
-                    >
-                      {i18n.language === 'ar' ? 'تسوق الآن' : 'Shop Now'}
-                      <ArrowRight size={18} />
-                    </Link>
-                  </div>
-                </motion.div>
-              </div>
+      <ShopTheLook />
 
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Video Promo Section Removed */}
 
 
       {/* Full Screen Video Modal */}

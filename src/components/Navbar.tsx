@@ -24,7 +24,8 @@ const Navbar: React.FC = () => {
     setCurrency,
     formatPrice,
     filteredProducts,
-    wishlist
+    wishlist,
+    setIsCartOpen
   } = useStore();
   const { user, isAdmin, login, signout } = useAuth();
   const [isLoginLoading, setIsLoginLoading] = useState(false);
@@ -91,7 +92,7 @@ const Navbar: React.FC = () => {
         scrolled 
           ? 'bg-white/95 backdrop-blur-xl shadow-lg shadow-black/5' 
           : 'bg-white/90 backdrop-blur-md'
-      } border-b border-brand-charcoal/5 sticky top-0 z-[100]`}>
+      } border-b border-brand-charcoal/5 sticky top-0 z-[1010]`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20 sm:h-24 gap-2 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
@@ -169,7 +170,11 @@ const Navbar: React.FC = () => {
                 </AnimatePresence>
               </Link>
 
-              <Link to="/cart" className="relative text-brand-charcoal/70 hover:text-brand-charcoal transition-colors flex-shrink-0 p-1 sm:p-2 hover:bg-white rounded-xl" title={t('common.cart')}>
+              <button 
+                onClick={() => setIsCartOpen(true)} 
+                className="relative text-brand-charcoal/70 hover:text-brand-charcoal transition-colors flex-shrink-0 p-1 sm:p-2 hover:bg-white rounded-xl cursor-pointer" 
+                title={t('common.cart')}
+              >
                 <ShoppingBag size={18} />
                 <AnimatePresence>
                   {totalItems > 0 && (
@@ -185,7 +190,7 @@ const Navbar: React.FC = () => {
                     </motion.span>
                   )}
                 </AnimatePresence>
-              </Link>
+              </button>
             </div>
 
             {/* Auth Dropdown */}
@@ -391,7 +396,7 @@ const Navbar: React.FC = () => {
       {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-[1000] flex items-start justify-center pt-24 px-6 sm:px-12 pointer-events-none">
+          <div className="fixed inset-x-0 bottom-0 top-20 sm:top-24 z-[1000] flex items-start justify-start pt-14 sm:pt-16 pl-3 pr-4 sm:pl-4 sm:pr-6 pointer-events-none">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -400,11 +405,11 @@ const Navbar: React.FC = () => {
               className="absolute inset-0 bg-black/20 backdrop-blur-sm pointer-events-auto"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: -20 }}
+              initial={{ opacity: 0, scale: 0.9, y: -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: -20 }}
+              exit={{ opacity: 0, scale: 0.9, y: -10 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="relative w-full max-w-[280px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-brand-charcoal/5 overflow-hidden flex flex-col p-4 pointer-events-auto"
+              className="relative w-full max-w-[245px] bg-white rounded-[2rem] shadow-[0_15px_40px_rgba(0,0,0,0.08)] border border-brand-charcoal/5 overflow-hidden flex flex-col p-3 pointer-events-auto"
             >
               <div className="flex flex-col">
                 {navLinks.map((link, index) => {
@@ -412,29 +417,29 @@ const Navbar: React.FC = () => {
                   return (
                     <motion.div
                       key={link.path}
-                      initial={{ opacity: 0, x: isRtl ? 15 : -15 }}
+                      initial={{ opacity: 0, x: isRtl ? 12 : -12 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.04 }}
+                      transition={{ delay: index * 0.03 }}
                     >
                       <Link
                         to={link.path}
                         onClick={() => setIsOpen(false)}
-                        className={`flex items-center justify-between px-5 py-4 rounded-[1.8rem] transition-all duration-500 group mb-1.5 ${
+                        className={`flex items-center justify-between px-4 py-3 rounded-[1.4rem] transition-all duration-500 group mb-1 ${
                           isActive 
-                            ? 'bg-white shadow-[0_15px_30px_-5px_rgba(197,160,91,0.15)] border border-[#C5A05B]/20 scale-[1.02] z-10' 
-                            : 'bg-brand-charcoal/[0.02] hover:bg-white hover:shadow-lg hover:shadow-brand-charcoal/5 text-brand-charcoal border border-transparent hover:border-brand-charcoal/10'
+                            ? 'bg-white shadow-[0_10px_20px_-5px_rgba(197,160,91,0.12)] border border-[#C5A05B]/20 scale-[1.02] z-10' 
+                            : 'bg-brand-charcoal/[0.015] hover:bg-white hover:shadow-md hover:shadow-brand-charcoal/5 text-brand-charcoal border border-transparent hover:border-brand-charcoal/10'
                         }`}
                       >
-                        <span className={`text-[12px] font-black uppercase tracking-widest transition-all duration-500 ${
+                        <span className={`text-[13px] font-black uppercase tracking-widest transition-all duration-500 ${
                           isActive ? 'text-[#C5A05B]' : 'text-brand-charcoal/60 group-hover:text-[#C5A05B]'
                         }`}>
                           {link.name}
                         </span>
-                        <div className={`p-1.5 rounded-full transition-all duration-500 ${
+                        <div className={`p-1 rounded-full transition-all duration-500 ${
                           isActive ? 'bg-[#C5A05B]/10 rotate-0' : 'bg-brand-charcoal/5 group-hover:bg-[#C5A05B]/10 -rotate-45 group-hover:rotate-0'
                         }`}>
                           <ArrowRight 
-                            size={isActive ? 16 : 14} 
+                            size={isActive ? 15 : 13} 
                             className={`${isRtl ? 'rotate-180' : ''} ${isActive ? 'text-[#C5A05B]' : 'text-brand-charcoal/20 group-hover:text-[#C5A05B]'} transition-all duration-500`} 
                           />
                         </div>

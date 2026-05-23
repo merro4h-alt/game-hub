@@ -78,3 +78,14 @@ export interface WishlistItem {
   currentPrice?: number;
   createdAt: any;
 }
+
+export interface PriceAlertSubscription {
+  productId: string;
+  productName: string;
+  userEmail: string;
+  targetPrice: number;
+  initialPrice: number;
+  createdAt: string;
+  active: boolean;
+}
+

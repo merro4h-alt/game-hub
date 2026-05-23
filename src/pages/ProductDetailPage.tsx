@@ -17,19 +17,30 @@ import {
   Minus,
   Maximize2,
   Play,
-  X
+  X,
+  Sparkles,
+  Gift,
+  CheckCircle2,
+  Bell,
+  BellRing
 } from 'lucide-react';
 import { useStore } from '../StoreContext';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { Product } from '../types';
 import ProductCard from '../components/ProductCard';
+import { useAuth } from '../AuthContext';
+import { useAlert } from '../contexts/AlertContext';
 
 const ProductDetailPage: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
-  const { products, addToCart, recentlyViewed, addToRecentlyViewed, formatPrice, toggleWishlist, isInWishlist } = useStore();
+  const { 
+    products, addToCart, recentlyViewed, addToRecentlyViewed, formatPrice, toggleWishlist, isInWishlist,
+    priceAlerts, subscribeToPriceAlert, unsubscribeFromPriceAlert, isSubscribedToPriceAlert
+  } = useStore();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { showAlert } = useAlert();
   
   const product = useMemo(() => products.find(p => p.id === productId), [products, productId]);
   
@@ -41,6 +52,57 @@ const ProductDetailPage: React.FC = () => {
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  // Cross-selling & Bundle Upselling State
+  const recommendedProducts = useMemo(() => {
+    if (!product) return [];
+    return products.filter(p => p.id !== product.id).slice(0, 2);
+  }, [products, product]);
+
+  const [checkedPromo, setCheckedPromo] = useState<Record<string, boolean>>({});
+  const [selectedPromoColors, setSelectedPromoColors] = useState<Record<string, string>>({});
+  const [selectedPromoSizes, setSelectedPromoSizes] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (product && recommendedProducts.length > 0) {
+      const initialChecked: Record<string, boolean> = {};
+      const initialColors: Record<string, string> = {};
+      const initialSizes: Record<string, string> = {};
+
+      recommendedProducts.forEach(p => {
+        initialChecked[p.id] = true; // Auto-checked to drive higher average order value (AOV)
+        if (p.colors && p.colors.length > 0) {
+          initialColors[p.id] = p.colors[0];
+        }
+        if (p.sizes && p.sizes.length > 0) {
+          initialSizes[p.id] = p.sizes[0];
+        }
+      });
+
+      setCheckedPromo(initialChecked);
+      setSelectedPromoColors(initialColors);
+      setSelectedPromoSizes(initialSizes);
+    }
+  }, [product, recommendedProducts]);
+
+  const { user } = useAuth();
+  const [alertEmail, setAlertEmail] = useState('');
+  const [alertTargetPrice, setAlertTargetPrice] = useState('');
+
+  // Pre-fill target price and email when product status or user changes
+  useEffect(() => {
+    if (product) {
+      const activePrice = product.colorDiscountPrices?.[selectedColor] ?? product.discountPrice ?? product.colorPrices?.[selectedColor] ?? product.price;
+      // Default price alert to a 10% lower price than current
+      setAlertTargetPrice(String(Math.round(activePrice * 0.9)));
+    }
+  }, [product, selectedColor]);
+
+  useEffect(() => {
+    if (user?.email) {
+      setAlertEmail(user.email);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (product) {
@@ -388,6 +450,135 @@ const ProductDetailPage: React.FC = () => {
             </button>
           </div>
 
+          {/* Price Alert Subscription Card */}
+          <div className="mb-8 p-6 rounded-3xl bg-white/5 border border-white/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-brand-gold/5 rounded-full blur-3xl pointer-events-none" />
+            
+            {isSubscribedToPriceAlert(product.id) ? (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-3 text-brand-gold">
+                  <div className="w-10 h-10 rounded-2xl bg-brand-gold/10 flex items-center justify-center">
+                    <BellRing size={20} className="animate-pulse text-brand-gold" />
+                  </div>
+                  <div>
+                    <h4 className="font-black uppercase tracking-wider text-xs">
+                      {i18n.language === 'ar' ? 'تنبيه انخفاض السعر مفعل!' : 'Price Drop Alert Active!'}
+                    </h4>
+                    <p className="text-[11px] text-white/40">
+                      {i18n.language === 'ar' ? 'نحن نراقب التحديثات لك' : 'We are monitoring price changes for you'}
+                    </p>
+                  </div>
+                </div>
+
+                {(() => {
+                  const sub = priceAlerts.find(a => a.productId === product.id);
+                  return (
+                    <div className="text-xs text-white/70 space-y-1.5 leading-relaxed bg-white/5 p-4 rounded-2xl border border-white/5">
+                      <p className="flex justify-between items-center gap-2">
+                        <span className="text-white/40">{i18n.language === 'ar' ? 'البريد المستهدف:' : 'Alert email:'}</span>
+                        <strong className="text-white font-mono break-all">{sub?.userEmail}</strong>
+                      </p>
+                      <p className="flex justify-between items-center gap-2">
+                        <span className="text-white/40">{i18n.language === 'ar' ? 'السعر المستهدف:' : 'Target Price:'}</span>
+                        <strong className="text-brand-gold font-mono">{formatPrice(sub?.targetPrice ?? 0)}</strong>
+                      </p>
+                    </div>
+                  );
+                })()}
+
+                <button
+                  onClick={() => unsubscribeFromPriceAlert(product.id)}
+                  className="w-full py-3 bg-red-950/20 text-red-400 hover:bg-red-900/40 border border-red-900/30 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all"
+                >
+                  {i18n.language === 'ar' ? 'إلغاء تنبيه السعر' : 'Cancel Price Alert'}
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-3 text-brand-gold">
+                  <div className="w-10 h-10 rounded-2xl bg-brand-gold/10 flex items-center justify-center">
+                    <Bell size={20} className="text-brand-gold" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-white text-sm">
+                      {i18n.language === 'ar' ? 'اشتراك تنبيه الأسعار' : 'Price Alert Subscription'}
+                    </h4>
+                    <p className="text-[10px] text-white/40 uppercase tracking-widest font-black">
+                      {i18n.language === 'ar' ? 'اشترك لتنبيهك فور انخفاض السعر' : 'Get instant alerts when the price drops'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Target Price Selector */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[10, 20, 30].map((percent) => {
+                    const activePrice = product.colorDiscountPrices?.[selectedColor] ?? product.discountPrice ?? product.colorPrices?.[selectedColor] ?? product.price;
+                    const calculatedTarget = Math.round(activePrice * (1 - percent / 100));
+                    return (
+                      <button
+                        key={percent}
+                        type="button"
+                        onClick={() => setAlertTargetPrice(String(calculatedTarget))}
+                        className={`py-2 px-1 rounded-xl text-[10px] font-mono font-black transition-all border flex flex-col items-center gap-0.5 ${
+                          alertTargetPrice === String(calculatedTarget)
+                            ? 'bg-brand-gold/20 text-brand-gold border-brand-gold/50'
+                            : 'bg-white/5 text-white/60 border-white/5 hover:border-white/20'
+                        }`}
+                      >
+                        <span>-{percent}%</span>
+                        <span className="text-white font-bold">{formatPrice(calculatedTarget)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom price input or manual target check */}
+                <div className="space-y-3">
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-white/30 tracking-wider pointer-events-none">
+                      {i18n.language === 'ar' ? 'السعر المستهدف' : 'Target Price'}
+                    </span>
+                    <input
+                      type="number"
+                      value={alertTargetPrice}
+                      onChange={(e) => setAlertTargetPrice(e.target.value)}
+                      placeholder="0"
+                      className="w-full text-right bg-white/5 border border-white/10 rounded-2xl py-3 pl-24 pr-4 font-mono font-bold text-xs text-brand-gold focus:outline-none focus:ring-1 focus:ring-brand-gold/30 focus:border-brand-gold/40"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-white/30 tracking-wider pointer-events-none">
+                      {i18n.language === 'ar' ? 'البريد الإلكتروني' : 'Your Email'}
+                    </span>
+                    <input
+                      type="email"
+                      value={alertEmail}
+                      onChange={(e) => setAlertEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="w-full text-right bg-white/5 border border-white/10 rounded-2xl py-3 pl-24 pr-4 font-sans text-xs text-white focus:outline-none focus:ring-1 focus:ring-brand-gold/30 focus:border-brand-gold/40"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (!alertEmail) {
+                        return;
+                      }
+                      if (!alertTargetPrice || parseFloat(alertTargetPrice) <= 0) {
+                        return;
+                      }
+                      subscribeToPriceAlert(product.id, product.name, alertEmail, parseFloat(alertTargetPrice));
+                    }}
+                    className="w-full py-4 bg-brand-gold text-white hover:bg-white hover:text-black rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95"
+                  >
+                    {i18n.language === 'ar' ? 'اشترك الآن مجاناً' : 'Subscribe Free Now'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Social Proof & Urgency */}
           <div className="mb-10 p-6 rounded-3xl bg-brand-gold/5 border border-brand-gold/10 flex items-start gap-4">
             <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-brand-gold shadow-sm flex-shrink-0">
@@ -455,6 +646,286 @@ const ProductDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Frequently Bought Together (Upselling & Cross-selling) */}
+      {recommendedProducts.length > 0 && (
+        <section className="mt-20 p-8 md:p-12 rounded-[2.5rem] bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/10 relative overflow-hidden backdrop-blur-md">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-brand-gold/5 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
+          
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-12 h-12 rounded-2xl bg-brand-gold/10 flex items-center justify-center text-brand-gold">
+              <Sparkles size={24} className="animate-pulse" />
+            </div>
+            <div>
+              <span className="text-brand-gold text-xs font-black uppercase tracking-[0.4em] block">
+                {i18n.language === 'ar' ? 'عروض الحزمة المميزة ووفر أكثر!' : 'Premium Bundle Deals & Save More!'}
+              </span>
+              <h2 className="text-3xl font-black tracking-tighter text-white mt-1">
+                {i18n.language === 'ar' ? 'منتجات ينصح بها مع هذا المنتج' : 'Frequently Recommended With This Item'}
+              </h2>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-8 items-stretch">
+            {/* Main Current Product (Immutable base) and Plus Signs */}
+            <div className="xl:col-span-3 pb-4">
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_auto_1fr] gap-4 md:gap-6 items-center">
+                {/* Product 0: Current Item */}
+                <div className="p-6 rounded-3xl bg-white/5 border border-white/10 flex flex-col relative h-full justify-between">
+                  <div>
+                    <span className="absolute top-4 left-4 bg-brand-gold/20 text-brand-gold text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">
+                      {i18n.language === 'ar' ? 'المنتج الحالي' : 'Current Item'}
+                    </span>
+                    <div className="w-24 h-24 rounded-2xl overflow-hidden mb-4 bg-white/5 mx-auto">
+                      <img 
+                        src={product.colorImages?.[selectedColor] || product.image} 
+                        alt={product.name} 
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    <h3 className="font-bold text-white text-sm line-clamp-2 mb-1 uppercase text-center md:text-left rtl:md:text-right">{product.name}</h3>
+                    <div className="flex items-center justify-center md:justify-start gap-2 mb-3">
+                      <span className="text-brand-gold font-mono font-bold text-sm">
+                        {formatPrice(product.colorDiscountPrices?.[selectedColor] ?? product.discountPrice ?? product.colorPrices?.[selectedColor] ?? product.price)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-white/40 space-y-1 bg-white/5 p-3 rounded-xl mt-4">
+                    <p className="flex justify-between">
+                      <span>{i18n.language === 'ar' ? 'اللون:' : 'Color:'}</span>
+                      <span className="text-white font-semibold">{selectedColor || '-'}</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span>{i18n.language === 'ar' ? 'المقاس:' : 'Size:'}</span>
+                      <span className="text-white font-semibold">{selectedSize || '-'}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Plus symbol */}
+                {recommendedProducts.map((p, idx) => {
+                  const isChecked = !!checkedPromo[p.id];
+                  const chosenColor = selectedPromoColors[p.id] || p.colors[0] || '';
+                  const chosenSize = selectedPromoSizes[p.id] || p.sizes[0] || '';
+                  const basePrice = p.colorDiscountPrices?.[chosenColor] ?? p.discountPrice ?? p.colorPrices?.[chosenColor] ?? p.price;
+                  const discountedPromoPrice = basePrice * 0.8; // 20% discount on cross-sell items!
+
+                  return (
+                    <React.Fragment key={p.id}>
+                      {/* Plus icon */}
+                      <div className="flex justify-center text-white/30 font-black text-2xl py-2">
+                        +
+                      </div>
+
+                      {/* Recommended Item Card */}
+                      <div className={`p-6 rounded-3xl border transition-all flex flex-col relative h-full justify-between ${
+                        isChecked ? 'bg-white/5 border-white/10 shadow-lg' : 'bg-[#0A0A0B]/20 border-white/5 opacity-50'
+                      }`}>
+                        <div>
+                          {/* Checkbox button */}
+                          <button
+                            onClick={() => {
+                              setCheckedPromo(prev => ({ ...prev, [p.id]: !prev[p.id] }));
+                            }}
+                            className="absolute top-4 right-4 flex items-center justify-center w-6 h-6 rounded-xl border transition-all bg-[#0A0A0B]"
+                            style={{ borderColor: isChecked ? '#D4AF37' : 'rgba(255,255,255,0.1)' }}
+                          >
+                            {isChecked && <Check size={14} className="text-brand-gold" />}
+                          </button>
+
+                          <div className="w-24 h-24 rounded-2xl overflow-hidden mb-4 bg-white/5 mx-auto">
+                            <img 
+                              src={p.colorImages?.[chosenColor] || p.image} 
+                              alt={p.name} 
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          </div>
+
+                          <h3 className="font-bold text-white text-sm line-clamp-2 mb-1 uppercase text-center md:text-left rtl:md:text-right">{p.name}</h3>
+                          
+                          <div className="flex items-center justify-center md:justify-start gap-1.5 flex-wrap mb-3">
+                            <span className="text-brand-gold font-mono font-black text-sm">{formatPrice(discountedPromoPrice)}</span>
+                            <span className="text-white/30 line-through font-mono text-xs">{formatPrice(basePrice)}</span>
+                            <span className="text-green-500 text-[9px] font-black uppercase bg-green-500/10 px-1.5 py-0.5 rounded">
+                              -20%
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Options */}
+                        {isChecked && (
+                          <div className="space-y-2 pt-2 border-t border-white/5 mt-4">
+                            {/* Color selection */}
+                            {p.colors.length > 1 && (
+                              <div>
+                                <span className="text-[9px] font-black uppercase tracking-wider text-white/30 block mb-1">
+                                  {i18n.language === 'ar' ? 'اللون' : 'Color'}
+                                </span>
+                                <div className="flex flex-wrap gap-1">
+                                  {p.colors.map(col => (
+                                    <button
+                                      key={col}
+                                      onClick={() => setSelectedPromoColors(prev => ({ ...prev, [p.id]: col }))}
+                                      className={`text-[9px] px-2 py-0.5 rounded-lg border font-sans uppercase font-bold transition-all ${
+                                        chosenColor === col 
+                                          ? 'bg-brand-gold text-[#0A0A0B] border-brand-gold' 
+                                          : 'bg-white/5 text-white/70 border-white/5 hover:border-white/20'
+                                      }`}
+                                    >
+                                      {col}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Size selection */}
+                            {p.sizes.length > 1 && (
+                              <div>
+                                <span className="text-[9px] font-black uppercase tracking-wider text-white/30 block mb-1">
+                                  {i18n.language === 'ar' ? 'المقاس' : 'Size'}
+                                </span>
+                                <div className="flex flex-wrap gap-1">
+                                  {p.sizes.map(sz => (
+                                    <button
+                                      key={sz}
+                                      onClick={() => setSelectedPromoSizes(prev => ({ ...prev, [p.id]: sz }))}
+                                      className={`text-[9px] px-2 py-0.5 rounded-lg border font-mono font-bold transition-all ${
+                                        chosenSize === sz 
+                                          ? 'bg-brand-gold text-[#0A0A0B] border-brand-gold' 
+                                          : 'bg-white/5 text-white/70 border-white/5 hover:border-white/20'
+                                      }`}
+                                    >
+                                      {sz}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Bundle Checkout Box */}
+            <div className="p-6 md:p-8 rounded-[2rem] bg-brand-gold/5 border border-brand-gold/15 flex flex-col justify-between relative overflow-hidden h-full">
+              <div className="absolute -right-10 -bottom-10 w-24 h-24 bg-brand-gold/10 rounded-full blur-2xl pointer-events-none" />
+              
+              <div className="space-y-4">
+                <span className="text-brand-gold text-[10px] uppercase font-black tracking-widest block mb-1">
+                  {i18n.language === 'ar' ? 'إجمالي الحزمة المعروضة' : 'Bargain Bundle Summary'}
+                </span>
+                
+                {(() => {
+                  const activeDiscountPrice = product.colorDiscountPrices?.[selectedColor] ?? product.discountPrice;
+                  const activePrice = product.colorPrices?.[selectedColor] ?? product.price;
+                  const initialPrice = activeDiscountPrice ?? activePrice;
+                  
+                  let totalBundleOriginal = initialPrice * quantity;
+                  let totalBundleDiscounted = initialPrice * quantity;
+                  let savingsAmount = 0;
+                  let itemsCount = 1;
+
+                  recommendedProducts.forEach(p => {
+                    if (checkedPromo[p.id]) {
+                      const pColor = selectedPromoColors[p.id] || p.colors[0] || '';
+                      const basePrice = p.colorDiscountPrices?.[pColor] ?? p.discountPrice ?? p.colorPrices?.[pColor] ?? p.price;
+                      const discountedPromoPrice = basePrice * 0.8;
+
+                      totalBundleOriginal += basePrice;
+                      totalBundleDiscounted += discountedPromoPrice;
+                      savingsAmount += (basePrice - discountedPromoPrice);
+                      itemsCount += 1;
+                    }
+                  });
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-baseline border-b border-white/5 pb-3 font-sans">
+                        <span className="text-xs text-white/50">{i18n.language === 'ar' ? 'عدد المنتجات:' : 'Selected items:'}</span>
+                        <span className="text-sm font-black text-white">{itemsCount}</span>
+                      </div>
+                      
+                      {savingsAmount > 0 && (
+                        <div className="flex justify-between items-baseline border-b border-white/5 pb-3 font-sans">
+                          <span className="text-xs text-white/40">{i18n.language === 'ar' ? 'السعر الأصلي للمجموعة:' : 'Original Total:'}</span>
+                          <span className="text-sm line-through text-white/30 font-mono">{formatPrice(totalBundleOriginal)}</span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-baseline pb-1">
+                        <span className="text-xs text-white/70 font-black">{i18n.language === 'ar' ? 'السعر الكلي المميز:' : 'Special Bundle Price:'}</span>
+                        <div className="text-right">
+                          <span className="text-2xl font-mono font-black text-brand-gold block">{formatPrice(totalBundleDiscounted)}</span>
+                          {savingsAmount > 0 && (
+                            <span className="text-[10px] text-green-400 font-bold block">
+                              {i18n.language === 'ar' 
+                                ? `وفرت ${formatPrice(savingsAmount)} (خصم 20% على الملحقات)` 
+                                : `Save ${formatPrice(savingsAmount)} (20% off accessories)`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Add bundle to cart button */}
+                      <button
+                        onClick={() => {
+                          const activeDiscountPrice = product.colorDiscountPrices?.[selectedColor] ?? product.discountPrice;
+                          const activePrice = product.colorPrices?.[selectedColor] ?? product.price;
+                          const initialPrice = activeDiscountPrice ?? activePrice;
+                          
+                          // Add main
+                          addToCart(product, selectedColor, selectedSize, quantity);
+                          
+                          // Add checked extras
+                          let count = 0;
+                          recommendedProducts.forEach(p => {
+                            if (checkedPromo[p.id]) {
+                              const pColor = selectedPromoColors[p.id] || p.colors[0] || '';
+                              const pSize = selectedPromoSizes[p.id] || p.sizes[0] || '';
+                              const basePrice = p.colorDiscountPrices?.[pColor] ?? p.discountPrice ?? p.colorPrices?.[pColor] ?? p.price;
+                              const discountedRowPrice = Number((basePrice * 0.8).toFixed(2));
+
+                              const cloneProduct: Product = {
+                                ...p,
+                                price: discountedRowPrice,
+                                discountPrice: undefined,
+                                colorPrices: undefined,
+                                colorDiscountPrices: undefined
+                              };
+                              
+                              addToCart(cloneProduct, pColor, pSize, 1);
+                              count++;
+                            }
+                          });
+
+                          showAlert(
+                            i18n.language === 'ar' 
+                              ? `تم إضافة المجموعة (${count + 1} منتجات) إلى السلة بخصم مميز!` 
+                              : `Added Bundle (${count + 1} items) to your cart with exclusive discount!`, 
+                            'success'
+                          );
+                        }}
+                        className="w-full py-4 bg-brand-gold text-white hover:bg-white hover:text-[#0A0A0B] rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+                      >
+                        <ShoppingCart size={16} />
+                        {i18n.language === 'ar' ? 'أضف المجموعة للسلة' : 'Add Bundle to Cart'}
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Size Guide Modal */}
       <AnimatePresence>

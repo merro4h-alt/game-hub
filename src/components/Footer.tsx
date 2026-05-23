@@ -32,7 +32,7 @@ const Footer: React.FC = () => {
               {t('footer.description')}
             </p>
             <div className="flex space-x-4">
-              <a href="https://instagram.com/trendi_ah" target="_blank" rel="noopener noreferrer" className="p-3 rounded-full border border-brand-cream/10 hover:border-[#4F46E5] hover:text-[#4F46E5] transition-all" title="Instagram">
+              <a href="https://instagram.com/onx_fi" target="_blank" rel="noopener noreferrer" className="p-3 rounded-full border border-brand-cream/10 hover:border-[#4F46E5] hover:text-[#4F46E5] transition-all" title="Instagram">
                 <Instagram size={20} />
               </a>
               <a href="#" className="p-3 rounded-full border border-brand-cream/10 hover:border-[#4F46E5] hover:text-[#4F46E5] transition-all" title="Twitter">
@@ -44,7 +44,7 @@ const Footer: React.FC = () => {
               <a href="https://wa.me/+9647837814009" target="_blank" rel="noopener noreferrer" className="p-3 rounded-full border border-brand-cream/10 hover:border-[#25D366] hover:text-[#25D366] transition-all" title="WhatsApp">
                 <MessageCircle size={20} />
               </a>
-              <a href="https://tiktok.com/@ah.92t" target="_blank" rel="noopener noreferrer" className="p-3 rounded-full border border-brand-cream/10 hover:border-white hover:text-white transition-all flex items-center justify-center" title="TikTok">
+              <a href="https://tiktok.com/@onx_fi" target="_blank" rel="noopener noreferrer" className="p-3 rounded-full border border-brand-cream/10 hover:border-white hover:text-white transition-all flex items-center justify-center" title="TikTok">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                   <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.01.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.81-.73-3.95-1.66V13.5c0 1.91-.79 3.73-2.18 5.04-1.39 1.3-3.32 1.98-5.26 1.87-2-.11-3.85-1.14-5.02-2.78-1.18-1.63-1.53-3.75-.95-5.69.58-1.94 2.1-3.41 4.02-3.93v4.09c-.77.16-1.49.61-1.96 1.25-.47.64-.67 1.45-.55 2.24.12.79.55 1.5 1.19 1.97.64.47 1.45.67 2.24.55.79-.12 1.5-.55 1.97-1.19.46-.64.67-1.45.55-2.24V0h-.01z"/>
                 </svg>

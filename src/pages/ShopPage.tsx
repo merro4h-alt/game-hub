@@ -1,13 +1,12 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { useStore } from '../StoreContext';
 import ProductCard from '../components/ProductCard';
-import { LoyaltyBanner } from '../components/LoyaltyBanner';
 import { ListingSkeleton } from '../components/ProductSkeleton';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
-import { ChevronDown, Filter, Sparkles } from 'lucide-react';
+import { ChevronDown, Filter, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const ShopPage: React.FC = () => {
   const { products, isLoading } = useStore();
@@ -16,6 +15,20 @@ const ShopPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<'default' | 'priceLow' | 'priceHigh' | 'rating'>('default');
   const [filterType, setFilterType] = useState<'all' | 'new' | 'bestSeller' | 'offers' | 'fashionBeauty' | 'sports'>('all');
   const [isSortOpen, setIsSortOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const isRTL = i18n.language === 'ar';
+      let scrollAmount = 200;
+      if (direction === 'left') {
+        scrollAmount = isRTL ? 200 : -200;
+      } else {
+        scrollAmount = isRTL ? -200 : 200;
+      }
+      scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   const queryParams = new URLSearchParams(location.search);
   const categoryFilter = queryParams.get('category');
@@ -115,28 +128,79 @@ const ShopPage: React.FC = () => {
             {t('shop.subtitle')}
           </p>
 
-          {/* Sales Sections Tabs */}
-          <div className="flex flex-wrap justify-center gap-3 mb-12">
-            {[
-              { id: 'all', label: i18n.language === 'ar' ? 'الكل' : 'All' },
-              { id: 'new', label: t('categories.new') },
-              { id: 'bestSeller', label: t('categories.bestSeller') },
-              { id: 'offers', label: t('categories.offers') },
-              { id: 'fashionBeauty', label: t('categories.fashionBeauty') },
-              { id: 'sports', label: t('categories.sports') },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setFilterType(tab.id as any)}
-                className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                  filterType === tab.id 
-                    ? 'bg-brand-gold text-[#0A0A0B] shadow-[0_0_20px_rgba(212,175,55,0.3)]' 
-                    : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          {/* Elegant Slideable Categories Menu */}
+          <div className="relative w-full max-w-3xl mx-auto px-4 py-4 mb-8 group/slider z-25">
+            {/* Left Scroll Button */}
+            <button
+              onClick={() => scroll('left')}
+              className="absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-[#151518]/90 hover:bg-[#4F46E5] text-white border border-white/5 opacity-0 group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg hidden md:block cursor-pointer"
+              aria-label="Previous Category"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            {/* Slider Container with drag support */}
+            <div 
+              ref={scrollRef}
+              onMouseDown={(e) => {
+                const ele = scrollRef.current;
+                if (!ele) return;
+                const startX = e.pageX - ele.offsetLeft;
+                const scrollLeft = ele.scrollLeft;
+                
+                const handleMouseMove = (le: MouseEvent) => {
+                  const x = le.pageX - ele.offsetLeft;
+                  const walk = (x - startX) * 1.5; // scroll-speed
+                  ele.scrollLeft = scrollLeft - walk;
+                };
+                
+                const handleMouseUp = () => {
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              }}
+              className="flex whitespace-nowrap overflow-x-auto no-scrollbar scroll-smooth gap-3.5 py-2 px-1 justify-start md:justify-center relative touch-pan-x select-none cursor-grab active:cursor-grabbing"
+            >
+              {[
+                { id: 'all', label: i18n.language === 'ar' ? 'الكل' : 'All' },
+                { id: 'new', label: t('categories.new') },
+                { id: 'bestSeller', label: t('categories.bestSeller') },
+                { id: 'offers', label: t('categories.offers') },
+                { id: 'fashionBeauty', label: t('categories.fashionBeauty') },
+                { id: 'sports', label: t('categories.sports') },
+              ].map((tab, idx) => (
+                <motion.div
+                  key={tab.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 * idx, type: "spring", stiffness: 200 }}
+                  className="shrink-0"
+                >
+                  <button
+                    onClick={() => setFilterType(tab.id as any)}
+                    className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 transform select-none cursor-pointer ${
+                      filterType === tab.id 
+                        ? 'bg-brand-gold text-[#0A0A0B] shadow-[0_0_20px_rgba(212,175,55,0.3)] scale-102 border border-brand-gold w-full' 
+                        : 'bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 hover:border-white/10 w-full'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Right Scroll Button */}
+            <button
+              onClick={() => scroll('right')}
+              className="absolute right-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-[#151518]/90 hover:bg-[#4F46E5] text-white border border-white/5 opacity-0 group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg hidden md:block cursor-pointer"
+              aria-label="Next Category"
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
 
           {/* Sorting Dropdown - Centered */}
@@ -199,8 +263,8 @@ const ShopPage: React.FC = () => {
             <p className="text-white/50">{t('shop.subtitle')}</p>
           </div>
         )}
+
         
-        <LoyaltyBanner />
       </div>
     </div>
   );

@@ -54,7 +54,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     name: 'Stealth Pro Smartwatch + Hi-Fi Earbuds',
     description: 'High-end business smartwatch with built-in dual Bluetooth 5.0 wireless earbuds. Features HD full circle touch screen, metal technology, heart rate monitoring, and 25 days standby time.',
     price: 249.00,
-    image: 'https://images.unsplash.com/photo-1508685096489-7aac29a1bd3b?auto=format&fit=crop&q=80&w=800',
+    image: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=800',
     images: [
       'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800',
       'https://images.unsplash.com/photo-1544117518-33bc0f7a61d9?auto=format&fit=crop&q=80&w=800'

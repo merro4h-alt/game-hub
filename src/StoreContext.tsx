@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Product, CartItem, WishlistItem } from './types';
+import { Product, CartItem, WishlistItem, PriceAlertSubscription } from './types';
 import { INITIAL_PRODUCTS } from './constants';
 import { useAuth } from './AuthContext';
 import { useAlert } from './contexts/AlertContext';
@@ -25,6 +25,8 @@ interface StoreContextType {
   totalItems: number;
   totalPrice: number;
   discountedTotal: number;
+  isCartOpen: boolean;
+  setIsCartOpen: (isOpen: boolean) => void;
   quickViewProduct: Product | null;
   setQuickViewProduct: (product: Product | null) => void;
   isAddModalOpen: boolean;
@@ -58,6 +60,10 @@ interface StoreContextType {
   updateCampaign: (campaign: import('./types').Campaign) => Promise<void>;
   deleteCampaign: (id: string) => Promise<void>;
   updateSettings: (newSettings: Partial<StoreContextType['settings']>) => Promise<void>;
+  priceAlerts: PriceAlertSubscription[];
+  subscribeToPriceAlert: (productId: string, productName: string, email: string, targetPrice: number) => Promise<void>;
+  unsubscribeFromPriceAlert: (productId: string) => Promise<void>;
+  isSubscribedToPriceAlert: (productId: string) => boolean;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -81,6 +87,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       localStorage.setItem('trendifi_wishlist', JSON.stringify(wishlist));
     }
   }, [wishlist, user]);
+
+  const [priceAlerts, setPriceAlerts] = useState<PriceAlertSubscription[]>(() => {
+    try {
+      const saved = localStorage.getItem('trendifi_price_alerts');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    if (!user) {
+      localStorage.setItem('trendifi_price_alerts', JSON.stringify(priceAlerts));
+    }
+  }, [priceAlerts, user]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Cart and other state from localStorage
@@ -107,6 +128,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -451,31 +473,100 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, [user]);
 
-  // Price Drop Logic
+  // Fetch price alerts from Firestore
   useEffect(() => {
-    if (wishlist.length === 0 || products.length === 0) return;
+    if (!user) return;
 
-    wishlist.forEach(item => {
-      const product = products.find(p => p.id === item.productId);
-      if (product) {
-        const currentPrice = product.discountPrice ?? product.price;
-        if (currentPrice < item.addedPrice) {
-          // Check if we already notified for this specific price drop in this session
-          const sessionKey = `notified_drop_${item.productId}_${currentPrice}`;
-          if (!sessionStorage.getItem(sessionKey)) {
-            // Wrap in setTimeout to avoid "Cannot update a component while rendering a different component"
-            setTimeout(() => {
-              showAlert(`${t('shop.priceDropAlert')}: ${t('shop.priceDropMsg', { 
-                name: product.name, 
-                price: formatPrice(currentPrice) 
-              })}`, 'info');
-            }, 0);
-            sessionStorage.setItem(sessionKey, 'true');
+    let unsubscribe: (() => void) | undefined;
+
+    const loadPriceAlerts = async () => {
+      try {
+        const { db } = await import('./lib/firebase');
+        const { collection, onSnapshot, query, writeBatch, doc } = await import('firebase/firestore');
+        
+        // Merge guest price alerts with cloud price alerts if they exist
+        const guestAlerts = JSON.parse(localStorage.getItem('trendifi_price_alerts') || '[]');
+        if (guestAlerts.length > 0) {
+          const batch = writeBatch(db);
+          guestAlerts.forEach((item: PriceAlertSubscription) => {
+            const ref = doc(db, 'users', user.uid, 'priceAlerts', item.productId);
+            batch.set(ref, item, { merge: true });
+          });
+          await batch.commit();
+          localStorage.removeItem('trendifi_price_alerts');
+        }
+
+        const q = query(collection(db, 'users', user.uid, 'priceAlerts'));
+        
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const alertsData = snapshot.docs.map(doc => doc.data() as PriceAlertSubscription);
+          setPriceAlerts(alertsData);
+        }, (error) => {
+          console.warn("Error loading price alerts:", error);
+        });
+      } catch (e) {
+        console.error("Error loading price alerts:", e);
+      }
+    };
+
+    loadPriceAlerts();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user]);
+
+  // Price Drop & Custom Price Alert Logic
+  useEffect(() => {
+    if (products.length === 0) return;
+
+    // 1. Wishlist price drop logic
+    if (wishlist.length > 0) {
+      wishlist.forEach(item => {
+        const product = products.find(p => p.id === item.productId);
+        if (product) {
+          const currentPrice = product.discountPrice ?? product.price;
+          if (currentPrice < item.addedPrice) {
+            const sessionKey = `notified_drop_${item.productId}_${currentPrice}`;
+            if (!sessionStorage.getItem(sessionKey)) {
+              setTimeout(() => {
+                showAlert(`${t('shop.priceDropAlert')}: ${t('shop.priceDropMsg', { 
+                  name: product.name, 
+                  price: formatPrice(currentPrice) 
+                })}`, 'info');
+              }, 0);
+              sessionStorage.setItem(sessionKey, 'true');
+            }
           }
         }
-      }
-    });
-  }, [products, wishlist, t, showAlert]);
+      });
+    }
+
+    // 2. Custom Price Alerts Subscription Logic
+    if (priceAlerts.length > 0) {
+      priceAlerts.forEach(alert => {
+        if (!alert.active) return;
+        const product = products.find(p => p.id === alert.productId);
+        if (product) {
+          const currentPrice = product.discountPrice ?? product.price;
+          if (currentPrice <= alert.targetPrice) {
+            const alertKey = `price_alert_triggered_${alert.productId}_${currentPrice}`;
+            if (!sessionStorage.getItem(alertKey)) {
+              setTimeout(() => {
+                showAlert(
+                  i18n.language === 'ar' 
+                    ? `تنبيه السعر! انخفض سعر ${product.name} إلى ${formatPrice(currentPrice)} (هدفك كان ${formatPrice(alert.targetPrice)})`
+                    : `Price Alert! ${product.name} dropped to ${formatPrice(currentPrice)} (your target was ${formatPrice(alert.targetPrice)})`,
+                  'success'
+                );
+              }, 0);
+              sessionStorage.setItem(alertKey, 'true');
+            }
+          }
+        }
+      });
+    }
+  }, [products, wishlist, priceAlerts, t, i18n.language, showAlert]);
 
   const toggleWishlist = async (productId: string) => {
     if (!user) {
@@ -542,6 +633,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setAppliedDiscount({ code: 'START15', percent: 15 });
       return { success: true, message: 'تم تطبيق خصم 15% بنجاح!' };
     }
+
+    // Support Wheel of Fortune Discount Codes
+    const wheelMatch = normalizedCode.match(/^(LUCKY|FORTUNE|WHEEL)(5|10|15|20|25)$/);
+    if (wheelMatch) {
+      const percent = parseInt(wheelMatch[2], 10);
+      setAppliedDiscount({ code: normalizedCode, percent });
+      return { 
+        success: true, 
+        message: `تم تطبيق خصم عجلة الحظ بنسبة ${percent}% بنجاح!` 
+      };
+    }
+
     return { success: false, message: 'كود الخصم غير صحيح.' };
   };
 
@@ -673,6 +776,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const itemImage = product.colorImages?.[color] || product.image;
       return [...prev, { ...product, image: itemImage, quantity: requestedQuantity, selectedColor: color, selectedSize: size }];
     });
+    setIsCartOpen(true);
   };
 
   const removeFromCart = (productId: string, color: string, size: string) => {
@@ -769,6 +873,94 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
+  const subscribeToPriceAlert = async (productId: string, productName: string, email: string, targetPrice: number) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    const initialPrice = product.discountPrice ?? product.price;
+
+    const subscription: PriceAlertSubscription = {
+      productId,
+      productName,
+      userEmail: email,
+      targetPrice,
+      initialPrice,
+      createdAt: new Date().toISOString(),
+      active: true
+    };
+
+    if (!user) {
+      // Offline guest alert
+      setPriceAlerts(prev => {
+        const filtered = prev.filter(a => a.productId !== productId);
+        return [...filtered, subscription];
+      });
+      showAlert(
+        i18n.language === 'ar' 
+          ? 'تم الاشتراك بنجاح لتنبيهات السعر!' 
+          : 'Successfully subscribed to price alerts!',
+        'success'
+      );
+      return;
+    }
+
+    try {
+      const { db } = await import('./lib/firebase');
+      const { doc, setDoc } = await import('firebase/firestore');
+      
+      const alertRef = doc(db, 'users', user.uid, 'priceAlerts', productId);
+      await setDoc(alertRef, subscription);
+      
+      showAlert(
+        i18n.language === 'ar' 
+          ? 'تم حفظ الاشتراك في حسابك بنجاح!' 
+          : 'Price alert successfully saved to your account!',
+        'success'
+      );
+    } catch (e) {
+      console.error("Error subscribing to price alert:", e);
+      showAlert(
+        i18n.language === 'ar' 
+          ? 'حدث خطأ أثناء حفظ الاشتراك' 
+          : 'Error saving subscription',
+        'error'
+      );
+    }
+  };
+
+  const unsubscribeFromPriceAlert = async (productId: string) => {
+    if (!user) {
+      setPriceAlerts(prev => prev.filter(a => a.productId !== productId));
+      showAlert(
+        i18n.language === 'ar' 
+          ? 'تم إلغاء الاشتراك بنجاح' 
+          : 'Successfully unsubscribed',
+        'info'
+      );
+      return;
+    }
+
+    try {
+      const { db } = await import('./lib/firebase');
+      const { doc, deleteDoc } = await import('firebase/firestore');
+      
+      const alertRef = doc(db, 'users', user.uid, 'priceAlerts', productId);
+      await deleteDoc(alertRef);
+      
+      showAlert(
+        i18n.language === 'ar' 
+          ? 'تم إلغاء الاشتراك في التنبيه بنجاح' 
+          : 'Successfully unsubscribed from price alert',
+        'info'
+      );
+    } catch (e) {
+      console.error("Error unsubscribing from price alert:", e);
+    }
+  };
+
+  const isSubscribedToPriceAlert = (productId: string): boolean => {
+    return priceAlerts.some(a => a.productId === productId && a.active);
+  };
+
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -782,6 +974,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       addToCart, removeFromCart, updateCartQuantity, clearCart,
       applyDiscountCode, completePurchase, appliedDiscount, hasPurchased,
       totalItems, totalPrice, discountedTotal,
+      isCartOpen, setIsCartOpen,
       isAddModalOpen, setIsAddModalOpen,
       quickViewProduct, setQuickViewProduct,
       editingProduct, setEditingProduct,
@@ -792,7 +985,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       recentlyViewed, addToRecentlyViewed,
       isDarkMode, toggleDarkMode,
       settings, updateSettings,
-      campaigns, addCampaign, updateCampaign, deleteCampaign
+      campaigns, addCampaign, updateCampaign, deleteCampaign,
+      priceAlerts, subscribeToPriceAlert, unsubscribeFromPriceAlert, isSubscribedToPriceAlert
     }}>
       {children}
     </StoreContext.Provider>

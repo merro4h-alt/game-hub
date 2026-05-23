@@ -141,8 +141,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
 
   const fullPhoneNumber = `${phonePrefix} ${formData.phone}`;
 
-  const effectiveShippingFee = paymentMethod === 'cod' ? shippingFee : 0;
-  const finalTotal = total + effectiveShippingFee;
+  const effectiveShippingFee = 0;
+  const finalTotal = total;
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -206,7 +206,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total }) =
       `🚚 *شركة الشحن:* ${paymentMethod === 'cod' ? (shippingProviders.find(p => p.id === selectedProvider)?.name || selectedProvider) : (isArabic ? 'شحن إلكتروني' : 'Electronic Shipping')}\n` +
       `--------------------------\n` +
       `💰 *المجموع:* ${formatPrice(total)}\n` +
-      `🚚 *الشحن:* ${formatPrice(effectiveShippingFee)}\n` +
+      `🚚 *الشحن:* ${isArabic ? 'مجانًا 🎁' : 'FREE Shipping 🎁'}\n` +
       `✨ *الإجمالي:* ${formatPrice(finalTotal)}\n` +
       `--------------------------\n` +
       `🔗 *رابط التتبع:* ${info.trackingLink}\n` +

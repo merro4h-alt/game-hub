@@ -28,6 +28,8 @@ import PoliciesPage from './pages/PoliciesPage';
 import AddProductModal from './components/AddProductModal';
 import QuickViewModal from './components/QuickViewModal';
 import { ChatWidget } from './components/ChatWidget';
+import { FortuneWheel } from './components/FortuneWheel';
+import { CartDrawer } from './components/CartDrawer';
 import { useStore } from './StoreContext';
 import { PromotionBar } from './components/PromotionBar';
 import { NewsletterPopup } from './components/NewsletterPopup';
@@ -56,6 +58,7 @@ const GlobalModals = () => {
           />
         )}
       </AnimatePresence>
+      <CartDrawer />
     </>
   );
 };
@@ -177,6 +180,7 @@ function AppContent() {
       <Footer />
       <GlobalModals />
       <ChatWidget />
+      <FortuneWheel />
       <NewsletterPopup />
       <ScrollProgress />
     </>
