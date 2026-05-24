@@ -25,6 +25,7 @@ import ProductDetailPage from './pages/ProductDetailPage';
 import AdminDashboard from './pages/AdminDashboard';
 import DropShippingPage from './pages/DropShippingPage';
 import PoliciesPage from './pages/PoliciesPage';
+import GiftAdvisorPage from './pages/GiftAdvisorPage';
 import AddProductModal from './components/AddProductModal';
 import QuickViewModal from './components/QuickViewModal';
 import { ChatWidget } from './components/ChatWidget';
@@ -107,6 +108,45 @@ function AppContent() {
     return () => clearTimeout(timer);
   }, [storeLoading, authLoading]);
 
+  // Session & Unique Visitor Tracking
+  useEffect(() => {
+    try {
+      const isSessionTracked = sessionStorage.getItem('onxifi_session_tracked');
+      if (!isSessionTracked) {
+        sessionStorage.setItem('onxifi_session_tracked', 'true');
+        
+        let visitorId = localStorage.getItem('onxifi_visitor_id');
+        if (!visitorId) {
+          visitorId = `v_${Math.random().toString(36).substring(2, 11)}`;
+          localStorage.setItem('onxifi_visitor_id', visitorId);
+        }
+        
+        // Dynamic import to avoid hindering initial App render performance
+        Promise.all([
+          import('./lib/firebase'),
+          import('firebase/firestore')
+        ]).then(([{ db }, { collection, addDoc, serverTimestamp }]) => {
+          if (db && db.type !== 'mock') {
+            addDoc(collection(db, 'visits'), {
+              visitorId,
+              timestamp: serverTimestamp() || new Date().toISOString(),
+              userAgent: navigator.userAgent,
+              language: navigator.language || 'ar',
+              referer: document.referrer || 'direct',
+              page: window.location.pathname
+            }).catch(err => {
+              console.warn("Failed tracking visit in Firestore:", err);
+            });
+          }
+        }).catch(err => {
+          console.warn("Dynamic import for tracking modules failed:", err);
+        });
+      }
+    } catch (e) {
+      console.warn("Error executing session visit tracking logic:", e);
+    }
+  }, []);
+
   if ((storeLoading || authLoading) && !isSafetyTimeoutReached) {
     return (
       <div className="fixed inset-0 bg-[#0A0A0B] flex flex-col items-center justify-center z-[9999]">
@@ -175,6 +215,7 @@ function AppContent() {
           <Route path="/drop-shipping" element={<DropShippingPage />} />
           <Route path="/policies" element={<PoliciesPage />} />
           <Route path="/product/:productId" element={<ProductDetailPage />} />
+          <Route path="/gift-advisor" element={<GiftAdvisorPage />} />
         </Routes>
       </main>
       <Footer />

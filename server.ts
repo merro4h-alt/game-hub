@@ -375,6 +375,152 @@ Total: $${total.toFixed(2)}
     }
   });
 
+  // Gift Advisor and Smart Picker dynamic AI endpoint
+  app.post("/api/gift-advisor", async (req, res) => {
+    const { receiver, occasion, interests, budget, storeProducts, lang } = req.body;
+
+    const isAr = lang === 'ar';
+    const numericBudget = Number(budget) || 150;
+
+    // Filter products within budget automatically first as base matches
+    let matches = (storeProducts || []).filter((p: any) => p.price <= numericBudget);
+    
+    // Sort matches by interest similarities
+    if (interests && matches.length > 0) {
+      const lowerInterest = interests.toLowerCase();
+      matches.sort((a: any, b: any) => {
+        const descA = (a.description || '').toLowerCase() + (a.name || '').toLowerCase() + (a.category || '').toLowerCase();
+        const descB = (b.description || '').toLowerCase() + (b.name || '').toLowerCase() + (b.category || '').toLowerCase();
+        
+        let scoreA = 0;
+        let scoreB = 0;
+
+        // Smart sub-string score
+        if (lowerInterest.includes('tech') || lowerInterest.includes('تكنو') || lowerInterest.includes('ذكي') || lowerInterest.includes('ساع')) {
+          if (descA.includes('smart') || descA.includes('performance') || descA.includes('electronics') || descA.includes('earbuds') || descA.includes('watch') || descA.includes('ساعة')) scoreA += 5;
+          if (descB.includes('smart') || descB.includes('performance') || descB.includes('electronics') || descB.includes('earbuds') || descB.includes('watch') || descB.includes('ساعة')) scoreB += 5;
+        }
+        if (lowerInterest.includes('fashion') || lowerInterest.includes('أناق') || lowerInterest.includes('فخام') || lowerInterest.includes('ملاب')) {
+          if (descA.includes('shirt') || descA.includes('linen') || descA.includes('fabric') || descA.includes('style') || descA.includes('قميص')) scoreA += 5;
+          if (descB.includes('shirt') || descB.includes('linen') || descB.includes('fabric') || descB.includes('style') || descB.includes('قميص')) scoreB += 5;
+        }
+        if (lowerInterest.includes('cosmetics') || lowerInterest.includes('عناي') || lowerInterest.includes('جمال') || lowerInterest.includes('سيروم')) {
+          if (descA.includes('serum') || descA.includes('glow') || descA.includes('hydration') || descA.includes('skin') || descA.includes('سيروم')) scoreA += 5;
+          if (descB.includes('serum') || descB.includes('glow') || descB.includes('hydration') || descB.includes('skin') || descB.includes('سيروم')) scoreB += 5;
+        }
+
+        return scoreB - scoreA;
+      });
+    }
+
+    // fallback if no products match the budget
+    if (matches.length === 0 && storeProducts && storeProducts.length > 0) {
+      matches = storeProducts.slice(0, 2);
+    }
+
+    const selectedIds = matches.slice(0, 2).map((p: any) => p.id);
+
+    // If Gemini API Key is available, invoke Gemini via @google/genai as instructed by SKILL.md
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const { GoogleGenAI, Type } = await import("@google/genai");
+        const ai = new GoogleGenAI({
+          apiKey: process.env.GEMINI_API_KEY,
+          httpOptions: {
+            headers: {
+              'User-Agent': 'aistudio-build',
+            }
+          }
+        });
+
+        const prompt = `
+You are the AI Gift Expert & Smart Purchase-Picker for the luxurious brand store ONXIFI.
+User wants to choose a perfect gift:
+- For Whom: ${receiver}
+- On Occasion: ${occasion}
+- With Vibe / Style: ${interests}
+- Within Budget: $${numericBudget}
+
+Available Store Products Catalog:
+${JSON.stringify((storeProducts || []).map((p: any) => ({ id: p.id, name: p.name, desc: p.description, price: p.price })))}
+
+Identify and recommend the 1 or 2 best products from the catalog list that match these criteria perfectly.
+Formulate beautifully stylized, luxury-quality output:
+1. "reasoning": Highly compelling, premium explanation of why these make the perfect gift for ${receiver} on ${occasion} (written in ${isAr ? 'Arabic' : 'English'}).
+2. "giftCardText": A custom heartfelt print-ready message card dedicated to ${receiver} for their ${occasion} (written in ${isAr ? 'Arabic' : 'English'}).
+3. "wrappingTip": Artistic suggestion on recommended gift packaging, wrapping theme, and luxury box presentation (written in ${isAr ? 'Arabic' : 'English'}).
+
+Return strictly JSON matching responseSchema.
+        `;
+
+        const response = await ai.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                selectedProductIds: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING },
+                  description: "IDs of the best 1 to 2 products chosen from the catalog."
+                },
+                reasoning: {
+                  type: Type.STRING,
+                  description: "Custom premium reasoning for these recommendations."
+                },
+                giftCardText: {
+                  type: Type.STRING,
+                  description: "Beautiful personal dedication message."
+                },
+                wrappingTip: {
+                  type: Type.STRING,
+                  description: "Gift wrapping wrapping theme and presentation advice."
+                }
+              },
+              required: ["selectedProductIds", "reasoning", "giftCardText", "wrappingTip"]
+            }
+          }
+        });
+
+        if (response && response.text) {
+          const apiResult = JSON.parse(response.text.trim());
+          return res.json({
+            success: true,
+            source: 'gemini',
+            ...apiResult
+          });
+        }
+      } catch (gemError: any) {
+        console.error("Gemini API execution failed, falling back to programmatic matching:", gemError.message || gemError);
+      }
+    }
+
+    // Programmatic matching response if key missing or call fails (fail-safe)
+    const selectedProductNames = matches.slice(0, 2).map((p: any) => p.name).join(isAr ? ' و ' : ' and ');
+    const reasoning = isAr
+      ? `تم اختيار "${selectedProductNames}" كخيار مثالي لـ ${receiver} بمناسبة ${occasion}. تتميز هذه الخيارات بجودتها الفائقة وملاءمتها المثالية لميزانيتك، وهي تمزج الأناقة العصرية مع التفاصيل الفاخرة التي تجعلها هدية لا تُنسى لعشاق نمط "${interests}".`
+      : `We have selected "${selectedProductNames}" as the absolute best match for ${receiver} on the occasion of ${occasion}. These selections represent pristine, luxurious quality within your budget limits, perfectly aligning with the recipient's tastes and "${interests}" theme.`;
+
+    const giftCardText = isAr
+      ? `إلى نبض قلبي والغالي على روحي.. بمناسبة ${occasion}، أردت أن أهدي إليك شيئاً يعبر عن مدى امتناني لوجودك الجميل في حياتي. أتمنى أن ينال هذا الاختيار إعجابك ويسعد قلبك الطاهر!`
+      : `To someone who colors my world with joy.. On this wonderful occasion of ${occasion}, I wanted to gift you something that reflects my absolute love and appreciation. May this choice bring warmth to your heart and a beautiful smile to your day!`;
+
+    const wrappingTip = isAr
+      ? `ننصح بتغليف الهدية بورق مخملي فاخر باللون الأسود الملكي أو الأخضر الزمردي، مع لفه بشريطة حرير ذهبية براقة من متجرنا، وإضافة بطاقة صغيرة مكتوبة بخط اليد مع غصن صغير من اللافندر المجفف.`
+      : `We suggest wrapping this precious gift in luxury royal velvet or deep emerald paper. Encircle it with a smooth champagne gold silk ribbon, and attach your hand-written card along with a delicate sprig of dried lavender.`;
+
+    return res.json({
+      success: true,
+      source: 'local_algorithm',
+      selectedProductIds: selectedIds,
+      reasoning,
+      giftCardText,
+      wrappingTip
+    });
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

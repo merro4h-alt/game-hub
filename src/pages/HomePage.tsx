@@ -6,7 +6,7 @@ import { useStore } from '../StoreContext';
 import { INITIAL_PRODUCTS } from '../constants';
 import { ListingSkeleton } from '../components/ProductSkeleton';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Quote, Sparkles, Flame, Tag, Clock, Copy, Check, Globe, Play, Flower2, Crown, Dumbbell, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, Quote, Sparkles, Flame, Tag, Clock, Copy, Check, Globe, Play, Flower2, Crown, Dumbbell, ChevronLeft, ChevronRight, Gift, ShieldCheck, Lock, RotateCcw, Truck, Award, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ReviewModal } from '../components/ReviewModal';
 import { ShopTheLook } from '../components/ShopTheLook';
@@ -375,8 +375,174 @@ const HomePage: React.FC = () => {
 
       <ShopTheLook />
 
-      {/* Video Promo Section Removed */}
+      {/* AI Gift Advisor Section Callout */}
+      <section className="py-24 relative overflow-hidden bg-black/40 border-t border-b border-white/5">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-gold/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="bg-gradient-to-br from-[#121213] to-[#1A1A1E] p-10 md:p-16 rounded-[3rem] border border-white/5 flex flex-col md:flex-row items-center justify-between gap-12 shadow-2xl">
+            <div className="max-w-2xl space-y-6 text-left rtl:text-right">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand-gold/15 text-[#EAD8B1] border border-brand-gold/20 rounded-full text-[10px] font-black uppercase tracking-widest leading-none">
+                <Sparkles size={12} className="text-[#C5A031]" />
+                {i18n.language === 'ar' ? 'مستشار الهدايا الذكي' : 'AI Smart Concept'}
+              </span>
+              <h3 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+                {i18n.language === 'ar' ? 'مستشار الهدايا الذكي والانتقاء الفوري' : 'Confused About What Gift to Buy?'} <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C5A05B] to-[#EAD8B1] italic font-serif">
+                  {i18n.language === 'ar' ? 'دع الذكاء الاصطناعي ينتقيها لك' : 'Let AI Choose from our catalog'}
+                </span>
+              </h3>
+              <p className="text-white/55 text-base font-light leading-relaxed">
+                {i18n.language === 'ar'
+                  ? 'أجب عن بضعة أسئلة بسيطة وسيرشح لك مستشار الهدايا تفاصيل كروت الإهداء الملائمة وأجود المنتجات لميزانيتك بدعم من نماذج Gemini.'
+                  : 'Answer simple questions and let our Gemini-guided model suggest the finest products from our lifestyle inventory with custom greetings and packaging guides.'}
+              </p>
+            </div>
+            
+            <Link 
+              to="/gift-advisor" 
+              className="px-10 py-5 bg-[#C5A05B] hover:bg-[#EAD8B1] text-[#0A0A0B] font-black uppercase text-xs tracking-widest rounded-2xl transition-all shadow-xl shadow-brand-gold/15 flex items-center gap-2 flex-shrink-0 cursor-pointer"
+            >
+              <Gift size={16} />
+              {i18n.language === 'ar' ? 'جرّب الانتقاء الذكي الآن' : 'Try Smart Advisor'}
+            </Link>
+          </div>
+        </div>
+      </section>
 
+      {/* 100% Secure & Golden Guarantees Section */}
+      <section id="trust-guarantees-section" className="py-24 relative overflow-hidden bg-gradient-to-b from-black/20 to-black/80 border-b border-white/5">
+        <div className="absolute inset-0 max-w-7xl mx-auto pointer-events-none">
+          <div className="absolute top-[20%] right-[-10%] w-[400px] h-[400px] bg-[#C5A031]/5 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[20%] left-[-10%] w-[400px] h-[400px] bg-green-500/5 rounded-full blur-[120px]" />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex flex-col items-center text-center mb-16 space-y-4"
+          >
+            <span className="text-[#C5A05B] font-black uppercase tracking-[0.3em] text-[10px] px-4 py-1.5 bg-[#C5A05B]/10 rounded-full border border-[#C5A05B]/20 flex items-center gap-2">
+              <ShieldCheck size={12} />
+              {i18n.language === 'ar' ? 'تسوق آمن ومضمون 100%' : '100% CERTIFIED SECURE STORE'}
+            </span>
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white uppercase leading-tight">
+              {i18n.language === 'ar' ? 'رحلتك الشرائية محميّة بالكامل' : 'Your Shopping Journey is Fully Protected'} <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C5A05B] via-green-400 to-[#EAD8B1] font-serif italic font-medium">
+                {i18n.language === 'ar' ? 'شعارنا: الصدق، الجودة، والأمان التام' : 'Our Creed: Integrity, Quality & Safety First'}
+              </span>
+            </h2>
+            <p className="text-white/50 text-sm max-w-2xl leading-relaxed">
+              {i18n.language === 'ar'
+                ? 'في متجر اونكس فاي كسرنا كل حواجز التردد. نلتزم بأعلى معايير موثوقية المستهلك لنمنحك تجربة دفع واستلام سلسة خالية من أي قلق.'
+                : 'At ONXIFI, we break every custom barrier. We commit to the highest tier of buyer protections to give you a smooth, anxiety-free lifestyle experience.'}
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                titleAr: 'الدفع عند الاستلام بمرونة',
+                titleEn: 'Flexible Cash on Delivery',
+                descAr: 'لا حاجة للدفع الفوري مسبقاً! نفخر بتقديم خيار الدفع عند الاستلام لتعاين جودة ومقاس منتجك بنفسك قبل أن تسلّم هللة واحدة.',
+                descEn: 'Zero pre-payment pressure. We proudly offer Cash on Delivery so you inspect dimensions, texture, and quality before paying.',
+                icon: <Truck size={24} className="text-[#C5A05B]" />,
+                badgeAr: 'الخيار الأكثر أماناً',
+                badgeEn: 'Safest Choice',
+                color: 'group-hover:text-[#C5A05B] bg-[#C5A05B]/10 border-[#C5A05B]/20 animate-pulse'
+              },
+              {
+                titleAr: 'الضمان الذهبي للاسترجاع',
+                titleEn: 'Golden Return Guarantee',
+                descAr: 'استرجاع فوري وسهل خلال 14 يوماً من استلام الشحنة إذا لم يطابق المنتج توقعاتك بالكامل. بدون أسئلة محرجة أو تعقيد.',
+                descEn: 'Fully transparent, prompt refunds within 14 days of receiving your item if it does not meet your standard. Hassle-free.',
+                icon: <RotateCcw size={24} className="text-amber-400" />,
+                badgeAr: 'حماية كاملة',
+                badgeEn: 'Full Protection',
+                color: 'group-hover:text-amber-400 bg-amber-400/10 border-amber-400/20'
+              },
+              {
+                titleAr: 'تشفير بوابات بالكامل SSL',
+                titleEn: 'SSL Secure Encrypted Connection',
+                descAr: 'نقوم بتشفير وحماية كافة الدفعات الإلكترونية (مدى، فيزا، مستركارد، آبل باي) بأحدث بروتوكولات الأمان العالمية 256-bit ذات الموثوقية العالية.',
+                descEn: 'All digit transactions (Mada, Apple Pay, Cards) run through dynamic military-grade 256-bit encryption. Your details never touch our servers.',
+                icon: <Lock size={24} className="text-green-400" />,
+                badgeAr: 'معتمد دولياً',
+                badgeEn: 'Secure SSL',
+                color: 'group-hover:text-green-400 bg-green-500/10 border-green-500/20'
+              },
+              {
+                titleAr: 'منتجات أصلية 100% مع فحص الجودة',
+                titleEn: '100% Authentic & QC Checked',
+                descAr: 'كل قطعة يتم اختيارها وتوريدها من مصادرها الرسمية مباشرة وتخضع لفحص يدوي دقيق لضمان سلامتها وخلوها من العيوب تماماً.',
+                descEn: 'Every item passes thorough physical inspection before dispatching. We hold official partnerships ensuring authentic premium status.',
+                icon: <Award size={24} className="text-blue-400" />,
+                badgeAr: 'أصلي 100%',
+                badgeEn: '100% Genuine',
+                color: 'group-hover:text-blue-400 bg-blue-500/10 border-blue-500/20'
+              },
+              {
+                titleAr: 'فريق دعم عملاء بشري كفؤ 24/7',
+                titleEn: 'Human Care Premium Support',
+                descAr: 'لا تتعامل مع آلات! فريق دعم عملاء بشري كفؤ متواجد لخدمتك عبر واتساب طوال اليوم لحل مشكلتك وتتبع شحنتك فوراً.',
+                descEn: 'No automated bots. Our dedicated service managers communicate with you on WhatsApp in real-time, responding in seconds.',
+                icon: <MessageCircle size={24} className="text-[#25D366]" />,
+                badgeAr: 'متصل الآن بالواتساب',
+                badgeEn: 'Always Online',
+                color: 'group-hover:text-[#25D366] bg-[#25D366]/10 border-[#25D366]/20'
+              },
+              {
+                titleAr: 'رقم تتبع حي لكل شحنة',
+                titleEn: 'Live Shipment Tracking Code',
+                descAr: 'احصل على تحديثات لحظيّة عبر الرسائل النصية والبريد لمعرفة مكان طردك بدقة وتوقيت وصوله المتوقع دقيقة بدقيقة.',
+                descEn: 'SMS alerts and email notifications instantly stream live tracking updates directly so you can see your parcel cargo state live.',
+                icon: <Sparkles size={24} className="text-pink-400" />,
+                badgeAr: 'شفافية كاملة',
+                badgeEn: 'Full Transparency',
+                color: 'group-hover:text-pink-400 bg-pink-500/10 border-pink-500/20'
+              }
+            ].map((guarantee, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.6 }}
+                className="bg-[#111112] border border-white/5 p-8 rounded-[2.5rem] flex flex-col justify-between group hover:bg-[#151517] hover:border-white/10 hover:shadow-2xl transition-all duration-500 relative overflow-hidden"
+              >
+                {/* Background ambient lighting */}
+                <div className="absolute right-0 top-0 w-24 h-24 bg-white/1 rounded-full blur-xl group-hover:bg-[#C5A05B]/5 group-hover:scale-150 transition-all duration-700" />
+                
+                <div className="space-y-6">
+                  <div className="flex justify-between items-start">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border transition-all duration-500 ${guarantee.color}`}>
+                      {guarantee.icon}
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1 bg-white/5 text-white/40 border border-white/5 rounded-full">
+                      {i18n.language === 'ar' ? guarantee.badgeAr : guarantee.badgeEn}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 text-start">
+                    <h3 className="text-lg font-bold text-white group-hover:text-[#C5A05B] transition-colors duration-300">
+                      {i18n.language === 'ar' ? guarantee.titleAr : guarantee.titleEn}
+                    </h3>
+                    <p className="text-white/40 text-[13px] leading-relaxed font-light">
+                      {i18n.language === 'ar' ? guarantee.descAr : guarantee.descEn}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-8 pt-4 border-t border-white/5 flex items-center gap-1.5 text-[10px] uppercase font-black tracking-widest text-[#C5A05B]">
+                  <ShieldCheck size={14} className="text-green-500" />
+                  <span>{i18n.language === 'ar' ? 'ضمان معتمد رسميّاً' : 'Officially Certified'}</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Full Screen Video Modal */}
       <AnimatePresence>

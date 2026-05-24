@@ -63,6 +63,7 @@ const Navbar: React.FC = () => {
   const navLinks = [
     { name: i18n.language === 'ar' ? 'الرئيسية' : 'HOME', path: '/' },
     { name: i18n.language === 'ar' ? 'المتجر' : 'SHOP', path: '/shop' },
+    { name: i18n.language === 'ar' ? 'مستشار الهدايا' : 'GIFT ADVISOR', path: '/gift-advisor' },
     { name: i18n.language === 'ar' ? 'بوابة الموردين' : 'SUPPLIER PORTAL', path: '/drop-shipping' },
     { name: i18n.language === 'ar' ? 'تتبع الطلب' : 'TRACK ORDER', path: '/track' },
     { name: i18n.language === 'ar' ? 'من نحن' : 'ABOUT US', path: '/about' },

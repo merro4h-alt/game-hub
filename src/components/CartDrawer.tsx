@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ShoppingBag, X, Plus, Minus, Trash2, ArrowRight, ArrowLeft, Truck, ShieldCheck, Ticket, Gift, Sparkles, ShoppingCart } from 'lucide-react';
 import { useStore } from '../StoreContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PaymentModal from './PaymentModal';
 
 export const CartDrawer: React.FC = () => {
+  const navigate = useNavigate();
   const {
     cart,
     removeFromCart,
@@ -165,7 +166,10 @@ export const CartDrawer: React.FC = () => {
                         <p className="text-xs text-brand-charcoal/40 max-w-[200px] leading-relaxed mx-auto">{texts.emptyDesc}</p>
                       </div>
                       <button
-                        onClick={() => setIsCartOpen(false)}
+                        onClick={() => {
+                          setIsCartOpen(false);
+                          navigate('/shop');
+                        }}
                         className="px-6 py-2.5 bg-[#C5A05B] hover:bg-brand-charcoal text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 shadow-md hover:shadow-lg active:scale-95"
                       >
                         {texts.startShopping}
@@ -350,6 +354,10 @@ export const CartDrawer: React.FC = () => {
                       {/* Return Policy Terms */}
                       <div id="cart-drawer-return-policy" className="mt-1 p-2.5 bg-[#FDFBF7]/80 border border-[#C5A05B]/10 rounded-xl space-y-1.5 text-start">
                         <div className="flex items-center gap-2 text-brand-charcoal/75 text-[10px] font-bold">
+                          <Truck size={12} className="text-[#C5A05B] shrink-0" />
+                          <span>{isRtl ? 'سياسة الشحن: وقت التوصيل قد يتراوح بين 8-15 يوماً' : 'Shipping Policy: Delivery time may range between 8-15 days'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-brand-charcoal/75 text-[10px] font-bold">
                           <ShieldCheck size={12} className="text-[#C5A05B] shrink-0" />
                           <span>{isRtl ? 'فترة استرجاع مرنة تصل إلى 14 يوماً' : 'Flexible return period up to 14 days'}</span>
                         </div>
@@ -374,6 +382,17 @@ export const CartDrawer: React.FC = () => {
                         <ShieldCheck size={16} className="text-[#C5A05B] group-hover:scale-110 transition-transform" />
                         <span>{texts.checkoutBtn}</span>
                       </button>
+
+                      {/* Security Trust Seals */}
+                      <div className="pt-2 flex flex-col items-center justify-center gap-1.5 text-[10px] text-brand-charcoal/50">
+                        <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                          <span>{isRtl ? 'اتصال آمن ومشفر 256-Bit SSL' : '256-Bit SSL Encrypted Connection'}</span>
+                        </div>
+                        <p className="text-[9px] text-center text-brand-charcoal/40 font-light px-2 animate-pulse">
+                          {isRtl ? 'حقوق المشتري وحماية البيانات مضمونة بالكامل لدينا لحمايتك' : 'Buyer protection & digital data fully guaranteed by ONXIFI'}
+                        </p>
+                      </div>
                     </div>
 
                   </div>

@@ -601,46 +601,46 @@ const ProductDetailPage: React.FC = () => {
           </div>
 
           {/* Trust Badges Section - Improved */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-10 border-t border-white/10 mt-auto">
-            <div className="flex items-center gap-4 group">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500 border border-indigo-500/20">
-                <Truck size={22} />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-10 border-t border-white/10 mt-auto">
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5 group hover:border-[#C5A05B]/30 hover:bg-white/[0.04] transition-all duration-300 text-start">
+              <div className="w-10 h-10 rounded-xl bg-[#C5A05B]/10 flex items-center justify-center text-[#C5A05B] group-hover:scale-110 transition-transform">
+                <Truck size={18} />
               </div>
-              <div className="flex flex-col">
-                <span className="text-[11px] font-black uppercase tracking-widest text-indigo-500 mb-0.5">
-                  {i18n.language === 'ar' ? 'الشحن مجاناً' : 'Free Shipping'}
+              <div className="flex flex-col min-w-0">
+                <span className="text-[11px] font-black uppercase tracking-wider text-white">
+                  {i18n.language === 'ar' ? 'الدفع عند الاستلام' : 'Cash on Delivery'}
                 </span>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[9px] text-white/40 uppercase tracking-tighter font-bold">
-                    {i18n.language === 'ar' ? 'ضمان استرجاع المنتج خلال 14 يوم' : '14-day money back guarantee'}
-                  </span>
-                  <span className="text-[9px] text-white/40 uppercase tracking-tighter font-bold">
-                    {i18n.language === 'ar' ? 'حق الخصوصية التامة لبياناتك' : 'Total data privacy'}
-                  </span>
-                  <span className="text-[9px] text-brand-gold uppercase tracking-widest font-black">
-                    {i18n.language === 'ar' ? 'تسوق بثقة وأمان' : 'Shop with confidence'}
-                  </span>
-                </div>
+                <span className="text-[9px] text-white/40 font-semibold truncate">
+                  {i18n.language === 'ar' ? 'عاين منتجك قبل الدفع' : 'Inspect item first'}
+                </span>
               </div>
             </div>
             
-            <div className="flex items-center gap-4 group">
-              <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-white/5 flex items-center justify-center text-green-600 dark:text-green-400 group-hover:bg-green-600 group-hover:text-white transition-all duration-500 border border-transparent dark:border-white/5">
-                <ShieldCheck size={22} />
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5 group hover:border-amber-400/30 hover:bg-white/[0.04] transition-all duration-300 text-start">
+              <div className="w-10 h-10 rounded-xl bg-amber-400/10 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
+                <RotateCcw size={18} />
               </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white">Secure Checkout</span>
-                <span className="text-[10px] text-white/40 uppercase tracking-tighter">100% Protected</span>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[11px] font-black uppercase tracking-wider text-white">
+                  {i18n.language === 'ar' ? 'الضمان الذهبي 14 يوم' : 'Golden Refund'}
+                </span>
+                <span className="text-[9px] text-white/40 font-semibold truncate">
+                  {i18n.language === 'ar' ? 'استرجع أموالك فوراً' : 'Instantly get money back'}
+                </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 group">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-white/5 flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:bg-amber-600 group-hover:text-white transition-all duration-500 border border-transparent dark:border-white/5">
-                <RotateCcw size={22} />
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5 group hover:border-green-400/30 hover:bg-white/[0.04] transition-all duration-300 text-start">
+              <div className="w-10 h-10 rounded-xl bg-green-400/10 flex items-center justify-center text-green-400 group-hover:scale-110 transition-transform">
+                <ShieldCheck size={18} />
               </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white">{i18n.language === 'ar' ? 'ضمان الاسترجاع' : 'Easy Returns'}</span>
-                <span className="text-[10px] text-white/40 uppercase tracking-tighter">{i18n.language === 'ar' ? 'استرجاع مجاني في حال اختلاف المواصفات' : 'Money back if specs don\'t match'}</span>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[11px] font-black uppercase tracking-wider text-white">
+                  {i18n.language === 'ar' ? 'دفع آمن بالكامل SSL' : 'SSL Secure Checkout'}
+                </span>
+                <span className="text-[9px] text-white/40 font-semibold truncate">
+                  {i18n.language === 'ar' ? 'تشفير وحماية بياناتك' : '100% Encrypted transactions'}
+                </span>
               </div>
             </div>
           </div>

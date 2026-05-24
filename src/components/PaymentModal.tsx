@@ -15,6 +15,9 @@ import {
   Upload,
   Image as ImageIcon,
   Bitcoin,
+  Clock,
+  AlertTriangle,
+  Info,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "../StoreContext";
@@ -105,7 +108,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const isArabic = i18n.language === "ar";
 
   const [paymentMethod, setPaymentMethod] = useState<
-    "card" | "cod" | "googlepay" | "crypto" | "applepay" | "bank"
+    "card" | "cod" | "crypto" | "bank"
   >("card");
   const [selectedCountry, setSelectedCountry] = useState("SA"); // Default to SA for better payment coverage
   const [phonePrefix, setPhonePrefix] = useState("+966");
@@ -127,6 +130,32 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvv, setCardCvv] = useState("");
+
+  const [cryptoTimer, setCryptoTimer] = useState(1800); // 30 minutes in seconds
+
+  useEffect(() => {
+    if (paymentMethod === "crypto") {
+      setCryptoTimer(1800);
+    }
+  }, [paymentMethod]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (paymentMethod === "crypto" && cryptoTimer > 0) {
+      interval = setInterval(() => {
+        setCryptoTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [paymentMethod, cryptoTimer]);
+
+  const formatTimer = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
 
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, "");
@@ -168,6 +197,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         setSelectedProvider("al-waseet");
       } else {
         setSelectedProvider("standard");
+        // Reset payment method to card if COD was chosen for a non-Iraq country
+        if (paymentMethod === "cod") {
+          setPaymentMethod("card");
+        }
       }
 
       /* 
@@ -190,7 +223,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       localStorage.setItem('trendifi_currency_manual', 'true');
       */
     }
-  }, [selectedCountry, setCurrency]);
+  }, [selectedCountry, setCurrency, paymentMethod]);
 
   useEffect(() => {
     // Reset shipping fee and speed when country/provider changes
@@ -318,11 +351,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const handleSubmit = async (e?: React.FormEvent, cardholderName?: string) => {
     if (e) e.preventDefault();
 
-    if (!formData.name || !formData.address || !formData.phone) {
+    if (!formData.name || !formData.address || !formData.phone || !formData.email) {
       showAlert(
         isArabic
           ? "يرجى ملء جميع الحقول المطلوبة"
           : "Please fill all required fields",
+      );
+      return;
+    }
+
+    if (!formData.email.includes("@")) {
+      showAlert(
+        isArabic
+          ? "الرجاء إدخال عنوان بريد إلكتروني صالح"
+          : "Please enter a valid email address",
       );
       return;
     }
@@ -373,7 +415,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       }
 
       // If payment is Google Pay, we process it (Keep original logic if it was working via Stripe/other or simulate)
-      if (paymentMethod === "googlepay" && cardholderName) {
+      if ((paymentMethod as string) === "googlepay" && cardholderName) {
         // Logic for Google Pay...
       }
 
@@ -489,7 +531,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   const renderPaymentExecution = () => {
-    switch (paymentMethod) {
+    switch (paymentMethod as string) {
       case "card":
         const cardType = cardNumber.startsWith("4")
           ? "visa"
@@ -886,13 +928,31 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
 
             <div className="bg-black p-8 rounded-[2.5rem] text-center space-y-6 relative overflow-hidden shadow-2xl">
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <h3 className="text-white text-xl font-black">
                   {isArabic ? "إيداع USDT" : "DEPOSIT USDT"}
                 </h3>
-                <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em]">
+                <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] mb-3">
                   {isArabic ? "شبكة TRC20 فقط" : "TRC20 NETWORK ONLY"}
                 </p>
+
+                {/* Countdown Timer */}
+                <div className={`mx-auto max-w-xs py-2 px-3.5 rounded-xl border flex items-center justify-center gap-2 transition-all ${
+                  cryptoTimer <= 300 
+                    ? "bg-red-500/10 border-red-500/30 text-red-400 animate-pulse" 
+                    : "bg-brand-gold/10 border-brand-gold/20 text-brand-gold"
+                }`}>
+                  <Clock size={12} className="shrink-0" />
+                  <span className="text-[10px] font-black tracking-widest font-mono uppercase">
+                    {cryptoTimer > 0 ? (
+                      isArabic 
+                        ? `المهلة المتبقية: ${formatTimer(cryptoTimer)}` 
+                        : `TIME REMAINING: ${formatTimer(cryptoTimer)}`
+                    ) : (
+                      isArabic ? "انتهت صلاحية الجلسة!" : "SESSION EXPIRED!"
+                    )}
+                  </span>
+                </div>
               </div>
 
               <div className="flex justify-center">
@@ -911,11 +971,24 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
 
               <div className="space-y-4">
-                <p className="text-xs text-white/70 font-semibold leading-relaxed">
+                <p className="text-sm sm:text-base text-white/90 font-bold leading-relaxed">
                   {isArabic
                     ? `يرجى تحويل المعادل لـ (${formatPrice(total)}) إلى العنوان التالي:`
                     : `Please transfer (${formatPrice(total)}) to:`}
                 </p>
+
+                {/* Network Fees Reminder */}
+                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-2xl p-4 text-start leading-relaxed space-y-1 max-w-xs mx-auto">
+                  <div className="font-bold flex items-center gap-1.5 text-[11px] text-emerald-300">
+                    <Info size={13} className="shrink-0" />
+                    <span>{isArabic ? "تذكير برسوم الشبكة" : "Network Fees Notice"}</span>
+                  </div>
+                  <p className="text-[10px] text-white/70 leading-normal font-medium">
+                    {isArabic 
+                      ? "يرجى التأكد من إرسال كامل المبلغ المطلوب (بعد احتساب رسوم الشبكة). في حال إرسال مبلغ أقل، لن يتم معالجة طلبك بشكل تلقائي."
+                      : "Please ensure you send the full amount (after network fees). If you send less, the order will not be processed automatically."}
+                  </p>
+                </div>
 
                 <div
                   className="bg-brand-gold/10 py-6 px-4 rounded-3xl border-2 border-brand-gold/30 group cursor-pointer active:scale-95 transition-all hover:bg-brand-gold hover:text-white"
@@ -953,14 +1026,30 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               <div
                 className={`relative group transition-all ${receiptFile ? "border-[#f7931a]/20 bg-[#f7931a]/5" : "border-dashed border-2 border-brand-charcoal/10 bg-brand-charcoal/[0.02] hover:bg-brand-charcoal/[0.04]"} rounded-3xl p-6 text-center`}
               >
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
+                {cryptoTimer > 0 && (
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                )}
 
-                {receiptPreview ? (
+                {cryptoTimer === 0 ? (
+                  <div className="flex flex-col items-center gap-2 py-4">
+                    <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-2">
+                      <AlertTriangle size={24} />
+                    </div>
+                    <p className="text-xs font-bold text-red-500">
+                      {isArabic ? "انتهت صلاحية جلسة الدفع" : "Payment Session Expired"}
+                    </p>
+                    <p className="text-[10px] text-brand-charcoal/50 font-bold max-w-[280px] leading-relaxed mx-auto">
+                      {isArabic
+                        ? "انتهت مهلة الـ 30 دقيقة لحجز السعر. يرجى تجديد الطلب أو اختيار وسيلة دفع أخرى."
+                        : "The 30-minute window to complete the payment has closed. Please renew your session or choose another method."}
+                    </p>
+                  </div>
+                ) : receiptPreview ? (
                   <div className="flex flex-col items-center gap-3 relative z-20">
                     <div className="relative">
                       <img
@@ -1004,7 +1093,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
 
             <button
-              disabled={isProcessing || !receiptFile}
+              disabled={isProcessing || !receiptFile || cryptoTimer === 0}
               onClick={() => handleSubmit()}
               className="w-full bg-[#f7931a] text-white font-black text-xs py-6 rounded-2xl shadow-xl shadow-[#f7931a]/20 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed group"
             >
@@ -1013,6 +1102,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                   {texts.processing}
                 </span>
+              ) : cryptoTimer === 0 ? (
+                <span>{isArabic ? "انتهت صلاحية الجلسة" : "Session Expired"}</span>
               ) : (
                 <>
                   <Lock
@@ -1219,7 +1310,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           ? isArabic
             ? "عملات رقمية"
             : "Crypto"
-          : paymentMethod === "googlepay"
+          : (paymentMethod as string) === "googlepay"
             ? isArabic
               ? "جوجل باي"
               : "Google Pay"
@@ -1345,21 +1436,22 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 ) : (
                   <div className="space-y-8">
                     {/* Payment Selection Toggles */}
-                    <div className="grid grid-cols-3 sm:grid-cols-6 bg-brand-charcoal/[0.03] p-2 rounded-2xl gap-2 sm:gap-3 border border-brand-charcoal/5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 bg-brand-charcoal/[0.03] p-2 rounded-2xl gap-2 sm:gap-3 border border-brand-charcoal/5">
                       {(
                         [
                           "card",
                           "bank",
                           "crypto",
                           "cod",
-                          "googlepay",
-                          "applepay",
                         ] as const
                       ).map((method) => {
                         if (
                           method === "bank" &&
                           !settings.bankDetails.isAvailable
                         )
+                          return null;
+
+                        if (method === "cod" && selectedCountry !== "IQ")
                           return null;
 
                         return (
@@ -1434,7 +1526,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                     className="translate-y-0.5"
                                   />
                                 </div>
-                              ) : method === "googlepay" ? (
+                              ) : (method as string) === "googlepay" ? (
                                 <div className="flex flex-col items-center gap-1">
                                   <img
                                     src="https://upload.wikimedia.org/wikipedia/commons/c/c7/Google_Pay_Logo_%282020%29.svg"
@@ -1442,7 +1534,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                     alt="Google Pay"
                                   />
                                 </div>
-                              ) : method === "applepay" ? (
+                              ) : (method as string) === "applepay" ? (
                                 <div className="flex items-center gap-0.5">
                                   <img
                                     src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
@@ -1475,11 +1567,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                     : "",
                               }}
                             >
-                              {method === "googlepay"
+                              {(method as string) === "googlepay"
                                 ? isArabic
                                   ? "جوجل باي"
                                   : "Google Pay"
-                                : method === "applepay"
+                                : (method as string) === "applepay"
                                   ? isArabic
                                     ? "آبل باي"
                                     : "Apple Pay"
@@ -1654,6 +1746,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                 {t("checkout.email")}
                               </label>
                               <input
+                                required
                                 type="email"
                                 placeholder="email@example.com"
                                 className="w-full bg-brand-charcoal/[0.02] border-2 border-brand-charcoal/10 rounded-2xl px-6 py-5 focus:bg-white focus:border-brand-gold outline-none text-brand-charcoal font-bold transition-all shadow-sm"

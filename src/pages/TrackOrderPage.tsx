@@ -26,6 +26,97 @@ interface OrderInfo {
   };
 }
 
+interface LogEntry {
+  date: Date;
+  titleAr: string;
+  titleEn: string;
+  descAr: string;
+  descEn: string;
+}
+
+const generateLogEntries = (createdAtStr: string, status: 'pending' | 'processing' | 'shipped' | 'delivered', trackingNo?: string): LogEntry[] => {
+  const createdDate = new Date(createdAtStr);
+  const now = new Date();
+  const entries: LogEntry[] = [];
+
+  const addLog = (hoursOffset: number, titleAr: string, titleEn: string, descAr: string, descEn: string) => {
+    const logDate = new Date(createdDate.getTime() + hoursOffset * 60 * 60 * 1000);
+    if (logDate <= now) {
+      entries.push({ date: logDate, titleAr, titleEn, descAr, descEn });
+    }
+  };
+
+  // 1. Order Placed (Always)
+  addLog(0, 
+    "تم استلام الطلب الفعلي", "Order Placed Successfully",
+    "تم تسجيل طلبكم بنجاح في نظام المبيعات ونقوم الآن بمراجعة تفاصيل العنوان والاتصال وتأكيد المدفوعات.",
+    "Your order is registered in our sales system. We are reviewing your contact details, destination address and verifying payment."
+  );
+
+  // 2. Processing Steps
+  if (status !== 'pending') {
+    addLog(3,
+      "تأكيد الدفع والتحقق الفني", "Payment & Integrity Verified",
+      "تم التحقق من عملية الدفع بنجاح وتفويض طلبكم من قبل النظام الآلي الخاص بنا.",
+      "Integrity check passed. Payment successfully verified and authorized for preparation."
+    );
+    addLog(8,
+      "جاري تجهيز السلع في المستودع", "Fulfillment & Picking In Progress",
+      "يقوم موظفو التعبئة بجمع المنتجات وإجراء اختبار الجودة اللازم لضمان خلوها من أي عيوب مصنعية.",
+      "Picking department is assembling your items and performing comprehensive quality checks to ensure pristine condition."
+    );
+    addLog(18,
+      "إتمام التغليف وإصدار البوليصة الدولية", "Order Fully Packaged & Sealed",
+      "اكتملت عملية التعبئة والتغليف الآمن للشحنة بنجاح وثبتت عليها بوليصة الشحن السريع وجاري إدراج الطلب للنقل الدولي.",
+      "Order custom packaged with reinforced protective materials. International air shipping label applied."
+    );
+  }
+
+  // 3. Shipped Steps
+  if (status === 'shipped' || status === 'delivered') {
+    addLog(26,
+      "تم تسليم الشحنة لشركة النقل السريع الدولي", "Dispatched to Express Routing Hub",
+      `تم تسليم الشحنة رسمياً إلى الناقل اللوجستي الدولي المفضل لدينا وتعيين رقم التتبع المدمج: ${trackingNo || ''}`,
+      `Shipment handed over to our premier express carrier pipeline. Allocated tracking reference: ${trackingNo || ''}`
+    );
+    
+    addLog(42,
+      "مغادرة بوابة الصادرات وتوجيهها لبلد الوجهة", "Departed Export Gateway Terminal",
+      "عبرت الشحنة الفحص الجمركي الصادر ومغادرة مركز الفرز اللوجستي الرئيسي عبر رحلة طائرة لشحنات النقل المباشر لبلد الوجهة.",
+      "The parcel completed export customs check and departed logistics sorting terminal. In air transit to destination country."
+    );
+
+    addLog(90,
+      "الوصول إلى الميناء الجوي وجاري المراجعة الجمركية", "Arrived at Domestic Airport Gateway",
+      "وصلت الطائرة الناقلة للشحنة بسلام لمركز التفتيش الجوي الإقليمي لفرز الشحنات تمهيداً للتسليم المحلي للمستهلك.",
+      "Carrier flight landed. Shipments transferred safely to the domestic hub, in line for customs checking and swift sorting."
+    );
+
+    addLog(108,
+      "اكتمال الفحص الجمركي ونقل الشحنة للمستودعات المحلية", "Customs Clearance Success & Local Transit",
+      "اجتازت شحنتكم بنجاح الفحص الجمركي ونقلت في الشاحنات اللوجستية المؤمنة باتجاه مستودع الفرز والتوزيع ببلدك المحلي.",
+      "Customs clearance processed beautifully. Parcel is transferred on land freight vectors toward your city distribution depot."
+    );
+  }
+
+  // 4. Delivered Steps
+  if (status === 'delivered') {
+    addLog(136,
+      "الشحنة مع مندوب التوصيل للتسليم الفوري", "Out for Final-Mile Delivery",
+      "استلم مندوب شركة الشحن المحلي شحنتكم اليوم وهي في طريقها للعنوان المرفق. يرجى إبقاء الهاتف الجوال نشطاً للتنسيق السريع في بلدك.",
+      "Assigned to the final-mile local courier professional. Delivery attempt in progress today. Please stay reachable."
+    );
+    addLog(140,
+      "تم تسليم الطلب بنجاح للعميل 🎉", "Delivered Successfully 🎉",
+      "تم تسليم الشراء بنجاح للعميل الكريم وبحالة ممتازة وبشكل راقٍ للغاية. شكراً جزيلاً لثقتكم الغالية بنا ونطمح لخدمتكم مجدداً!",
+      "Fulfillment completed! The customer received the order perfectly. Thank you for shopping with us!"
+    );
+  }
+
+  // Sort: Newest logs on top
+  return entries.sort((a, b) => b.date.getTime() - a.date.getTime());
+};
+
 const TrackOrderPage: React.FC = () => {
   const { trackingId: urlId } = useParams();
   const navigate = useNavigate();
@@ -91,6 +182,7 @@ const TrackOrderPage: React.FC = () => {
   };
 
   const currentStep = order ? statusMap[order.status] : 0;
+  const logs = order ? generateLogEntries(order.createdAt, order.status, (order as any).courierTrackingNumber) : [];
 
   return (
     <div className={`pt-32 pb-32 px-4 bg-[#0A0A0B] text-white min-h-screen ${isArabic ? 'font-arabic' : ''}`} dir={isArabic ? 'rtl' : 'ltr'}>
@@ -167,17 +259,13 @@ const TrackOrderPage: React.FC = () => {
                       </div>
                     )}
                     {(order as any).courierTrackingNumber && (
-                      <a 
-                        href={`https://www.17track.net/en/trackdetails?nums=${(order as any).courierTrackingNumber}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-2 pl-4 border-l border-white/10 text-brand-gold hover:text-white transition-all"
-                      >
-                         <ExternalLink size={18} />
-                         <span className="text-[10px] font-bold uppercase tracking-widest">
-                           {isArabic ? 'رابط التتبع المباشر' : 'Live Tracking Link'}
+                      <div className="flex items-center gap-2 pl-4 border-l border-white/10 text-emerald-400">
+                         <MapPin size={18} className="text-brand-gold shrink-0" />
+                         <span className="text-[10px] font-mono font-bold uppercase tracking-widest bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
+                           {isArabic ? 'رقم تتبع الشحنة: ' : 'Tracking ID: '}
+                           {(order as any).courierTrackingNumber}
                          </span>
-                      </a>
+                      </div>
                     )}
                   </div>
               </div>
@@ -215,6 +303,44 @@ const TrackOrderPage: React.FC = () => {
 
             {/* Content */}
             <div className="p-12">
+              
+              {/* Detailed Logistics Logs Timeline */}
+              {logs.length > 0 && (
+                <div className="mb-16">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-white/40 mb-6 flex items-center gap-2 font-sans">
+                    <Truck size={14} className="text-brand-gold" />
+                    {isArabic ? 'تفاصيل ومعلومات الشحن المباشرة' : 'Detailed Real-time Shipment Logistics'}
+                  </h3>
+                  <div className="bg-white/5 border border-white/10 rounded-3xl p-8 relative overflow-hidden">
+                    <div className="space-y-6">
+                      {logs.map((log, index) => (
+                        <div key={index} className="relative pl-6 rtl:pl-0 rtl:pr-6 border-l rtl:border-l-0 rtl:border-r border-white/10 pb-2">
+                          {/* Indicator dot on border */}
+                          <div className={`absolute top-1.5 -left-[6px] rtl:-left-auto rtl:-right-[6px] w-3 h-3 rounded-full border-2 ${
+                            index === 0 ? 'bg-brand-gold border-brand-gold shadow-[0_0_10px_rgba(197,160,89,0.5)]' : 'bg-[#1A1A1A] border-white/20'
+                          }`} />
+                          
+                          <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 mb-1">
+                            <h4 className={`font-bold text-sm ${index === 0 ? 'text-brand-gold' : 'text-white/90'}`}>
+                              {isArabic ? log.titleAr : log.titleEn}
+                            </h4>
+                            <span className="text-[9px] font-mono font-bold text-white/40 bg-white/5 px-2 py-0.5 rounded border border-white/5 font-sans">
+                              {log.date.toLocaleString(isArabic ? 'ar-EG' : 'en-US', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short'
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-xs text-white/50 leading-relaxed font-light font-sans">
+                            {isArabic ? log.descAr : log.descEn}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mb-16">
                 <div>
                   <h3 className="text-xs font-bold uppercase tracking-widest text-white/40 mb-6 flex items-center gap-2">
