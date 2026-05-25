@@ -86,9 +86,9 @@ export const FortuneWheel: React.FC = () => {
   // Check local storage on mount to see if user has already won a code
   useEffect(() => {
     try {
-      const storedHasSpun = localStorage.getItem('trendifi_wheel_spun');
-      const storedWonCode = localStorage.getItem('trendifi_wheel_code');
-      const storedWonPercent = localStorage.getItem('trendifi_wheel_percent');
+      const storedHasSpun = localStorage.getItem('onxifi_wheel_spun') || localStorage.getItem('trendifi_wheel_spun');
+      const storedWonCode = localStorage.getItem('onxifi_wheel_code') || localStorage.getItem('trendifi_wheel_code');
+      const storedWonPercent = localStorage.getItem('onxifi_wheel_percent') || localStorage.getItem('trendifi_wheel_percent');
 
       if (storedHasSpun === 'true' && storedWonCode && storedWonPercent) {
         setHasSpun(true);
@@ -144,9 +144,9 @@ export const FortuneWheel: React.FC = () => {
 
       // Persist to prevent abuse & remember the code they got
       try {
-        localStorage.setItem('trendifi_wheel_spun', 'true');
-        localStorage.setItem('trendifi_wheel_code', targetSlice.code);
-        localStorage.setItem('trendifi_wheel_percent', targetSlice.percent.toString());
+        localStorage.setItem('onxifi_wheel_spun', 'true');
+        localStorage.setItem('onxifi_wheel_code', targetSlice.code);
+        localStorage.setItem('onxifi_wheel_percent', targetSlice.percent.toString());
       } catch {
         // Sandboxed storage exception
       }

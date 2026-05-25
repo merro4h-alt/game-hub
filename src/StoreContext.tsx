@@ -75,7 +75,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [products, setProducts] = useState<Product[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => {
     try {
-      const saved = localStorage.getItem('trendifi_wishlist');
+      const saved = localStorage.getItem('onxifi_wishlist') || localStorage.getItem('trendifi_wishlist');
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       return [];
@@ -84,13 +84,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     if (!user) {
-      localStorage.setItem('trendifi_wishlist', JSON.stringify(wishlist));
+      localStorage.setItem('onxifi_wishlist', JSON.stringify(wishlist));
     }
   }, [wishlist, user]);
 
   const [priceAlerts, setPriceAlerts] = useState<PriceAlertSubscription[]>(() => {
     try {
-      const saved = localStorage.getItem('trendifi_price_alerts');
+      const saved = localStorage.getItem('onxifi_price_alerts') || localStorage.getItem('trendifi_price_alerts');
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       return [];
@@ -99,7 +99,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     if (!user) {
-      localStorage.setItem('trendifi_price_alerts', JSON.stringify(priceAlerts));
+      localStorage.setItem('onxifi_price_alerts', JSON.stringify(priceAlerts));
     }
   }, [priceAlerts, user]);
   const [isLoading, setIsLoading] = useState(true);
@@ -107,7 +107,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Cart and other state from localStorage
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem('trendifi_cart');
+      const saved = localStorage.getItem('onxifi_cart') || localStorage.getItem('trendifi_cart');
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       return [];
@@ -116,7 +116,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; percent: number } | null>(() => {
     try {
-      const saved = localStorage.getItem('trendifi_discount');
+      const saved = localStorage.getItem('onxifi_discount') || localStorage.getItem('trendifi_discount');
       return saved ? JSON.parse(saved) : null;
     } catch (e) {
       return null;
@@ -124,7 +124,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [hasPurchased, setHasPurchased] = useState<boolean>(() => {
-    return localStorage.getItem('trendifi_has_purchased') === 'true';
+    return (localStorage.getItem('onxifi_has_purchased') || localStorage.getItem('trendifi_has_purchased')) === 'true';
   });
 
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
@@ -134,8 +134,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isEditMode, setIsEditMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currency, setCurrency] = useState(() => {
-    const saved = localStorage.getItem('trendifi_currency');
-    const manual = localStorage.getItem('trendifi_currency_manual') === 'true';
+    const saved = localStorage.getItem('onxifi_currency') || localStorage.getItem('trendifi_currency');
+    const manual = (localStorage.getItem('onxifi_currency_manual') || localStorage.getItem('trendifi_currency_manual')) === 'true';
     
     // If it was SAR, we force it back to USD as requested by the user.
     if (saved === 'SAR' && !manual) {
@@ -151,11 +151,38 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     // Aggressive reset to USD if the user is stuck in SAR
     // This handles cases where old auto-detection set SAR and the manual flag.
-    const saved = localStorage.getItem('trendifi_currency');
+    const saved = localStorage.getItem('onxifi_currency') || localStorage.getItem('trendifi_currency');
     if (saved === 'SAR' || currency === 'SAR') {
       setCurrency('USD');
-      localStorage.setItem('trendifi_currency', 'USD');
+      localStorage.setItem('onxifi_currency', 'USD');
+      localStorage.removeItem('onxifi_currency_manual');
       localStorage.removeItem('trendifi_currency_manual');
+    }
+  }, []);
+
+  // One-time initialization effect to automatically migrate any existing trendifi_ keys to onxifi_
+  useEffect(() => {
+    try {
+      const keys = [
+        'wishlist',
+        'price_alerts',
+        'cart',
+        'discount',
+        'has_purchased',
+        'currency',
+        'currency_manual',
+        'dark',
+        'viewed'
+      ];
+      keys.forEach(k => {
+        const oldValue = localStorage.getItem(`trendifi_${k}`);
+        const newValue = localStorage.getItem(`onxifi_${k}`);
+        if (oldValue !== null && newValue === null) {
+          localStorage.setItem(`onxifi_${k}`, oldValue);
+        }
+      });
+    } catch (e) {
+      console.warn("Storage migration error:", e);
     }
   }, []);
   const [exchangeRate, setExchangeRate] = useState(1);
@@ -263,7 +290,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   useEffect(() => {
-    localStorage.setItem('trendifi_currency', currency);
+    localStorage.setItem('onxifi_currency', currency);
     setExchangeRate(allRates[currency] || 1);
   }, [currency, allRates]);
 
@@ -305,7 +332,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('trendifi_dark');
+    const saved = localStorage.getItem('onxifi_dark') || localStorage.getItem('trendifi_dark');
     return saved === 'true' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
 
@@ -439,7 +466,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const { collection, onSnapshot, query, writeBatch, doc } = await import('firebase/firestore');
         
         // Merge guest wishlist with cloud wishlist if exists
-        const guestWishlist = JSON.parse(localStorage.getItem('trendifi_wishlist') || '[]');
+        const guestWishlist = JSON.parse(localStorage.getItem('onxifi_wishlist') || localStorage.getItem('trendifi_wishlist') || '[]');
         if (guestWishlist.length > 0) {
           const batch = writeBatch(db);
           guestWishlist.forEach((item: WishlistItem) => {
@@ -447,6 +474,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             batch.set(ref, item, { merge: true });
           });
           await batch.commit();
+          localStorage.removeItem('onxifi_wishlist');
           localStorage.removeItem('trendifi_wishlist');
         }
 
@@ -485,7 +513,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const { collection, onSnapshot, query, writeBatch, doc } = await import('firebase/firestore');
         
         // Merge guest price alerts with cloud price alerts if they exist
-        const guestAlerts = JSON.parse(localStorage.getItem('trendifi_price_alerts') || '[]');
+        const guestAlerts = JSON.parse(localStorage.getItem('onxifi_price_alerts') || localStorage.getItem('trendifi_price_alerts') || '[]');
         if (guestAlerts.length > 0) {
           const batch = writeBatch(db);
           guestAlerts.forEach((item: PriceAlertSubscription) => {
@@ -493,6 +521,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             batch.set(ref, item, { merge: true });
           });
           await batch.commit();
+          localStorage.removeItem('onxifi_price_alerts');
           localStorage.removeItem('trendifi_price_alerts');
         }
 
@@ -619,11 +648,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   useEffect(() => {
-    localStorage.setItem('trendifi_discount', JSON.stringify(appliedDiscount));
+    localStorage.setItem('onxifi_discount', JSON.stringify(appliedDiscount));
   }, [appliedDiscount]);
 
   useEffect(() => {
-    localStorage.setItem('trendifi_cart', JSON.stringify(cart));
+    localStorage.setItem('onxifi_cart', JSON.stringify(cart));
   }, [cart]);
 
   const applyDiscountCode = (code: string): { success: boolean; message: string } => {
@@ -680,7 +709,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       });
 
-      localStorage.setItem('trendifi_has_purchased', 'true');
+      localStorage.setItem('onxifi_has_purchased', 'true');
       setHasPurchased(true);
       setAppliedDiscount(null);
       clearCart();
@@ -843,7 +872,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const toggleDarkMode = () => {
     setIsDarkMode(prev => {
       const newVal = !prev;
-      localStorage.setItem('trendifi_dark', String(newVal));
+      localStorage.setItem('onxifi_dark', String(newVal));
       return newVal;
     });
   };
@@ -886,7 +915,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [isDarkMode]);
 
   const [recentlyViewed, setRecentlyViewed] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('trendifi_viewed');
+    const saved = localStorage.getItem('onxifi_viewed') || localStorage.getItem('trendifi_viewed');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -894,7 +923,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setRecentlyViewed(prev => {
       const filtered = prev.filter(p => p.id !== product.id);
       const updated = [product, ...filtered].slice(0, 10);
-      localStorage.setItem('trendifi_viewed', JSON.stringify(updated));
+      localStorage.setItem('onxifi_viewed', JSON.stringify(updated));
       return updated;
     });
   };

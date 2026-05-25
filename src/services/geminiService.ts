@@ -64,45 +64,20 @@ export const getBeautyAdvice = async (userMessage: string, products: any[], hist
 };
 
 export const extractProductFromUrl = async (url: string) => {
-  if (!ai) {
-    throw new Error("Gemini AI is not initialized");
-  }
-
   try {
-    // 1. Fetch content via our proxy
-    const proxyUrl = `/api/fetch-url?url=${encodeURIComponent(url)}`;
-    const res = await fetch(proxyUrl);
-    if (!res.ok) throw new Error("Failed to fetch page content");
-    const html = await res.text();
-
-    // 2. Extract key text from HTML to keep prompt size reasonable
-    // We'll just take the first 40k characters and some specific meta tags if found
-    const trimmedHtml = html.slice(0, 40000); 
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Extract product information from this HTML snippet from a marketplace (AliExpress/Amazon/etc). 
-      Return only a JSON object matching this schema:
-      {
-        "name": "string",
-        "price": number,
-        "description": "string (shortened summary)",
-        "image": "string (MUST be the absolute URL to the main product image. Ensure it starts with https://. Prefer ae01.alicdn.com for AliExpress or m.media-amazon.com for Amazon)",
-        "images": ["string (additional absolute image URLs starting with https://)"],
-        "colors": ["string"],
-        "sizes": ["string"]
-      }
-
-      Important: Ensure image URLs are valid, absolute, and publicly accessible. 
-      URL: ${url}
-      HTML Content:
-      ${trimmedHtml}`,
-      config: {
-        responseMimeType: "application/json",
+    const res = await fetch("/api/extract-product", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
       },
+      body: JSON.stringify({ url })
     });
-
-    return JSON.parse(response.text);
+    
+    if (!res.ok) {
+      throw new Error("Failed to extract product details from server");
+    }
+    
+    return await res.json();
   } catch (error) {
     console.error("Extraction error:", error);
     throw error;
