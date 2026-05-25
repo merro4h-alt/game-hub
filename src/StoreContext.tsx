@@ -744,6 +744,32 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const { doc, deleteDoc } = await import('firebase/firestore');
       
       console.log(`Deleting product with ID: ${productId}`);
+      
+      // Find associated campaigns on the slide area to delete them
+      const productToDelete = products.find(p => p.id === productId);
+      if (productToDelete) {
+        const associatedCampaigns = campaigns.filter(c => {
+          const linkMatches = c.link && c.link.includes(productId);
+          const imageMatches = c.image && (
+            c.image === productToDelete.image ||
+            (productToDelete.colorImages && Object.values(productToDelete.colorImages).filter(Boolean).includes(c.image))
+          );
+          return linkMatches || imageMatches;
+        });
+
+        if (associatedCampaigns.length > 0) {
+          console.log(`Found ${associatedCampaigns.length} campaigns/slides associated with product ${productId}. Deleting them...`);
+          for (const camp of associatedCampaigns) {
+            try {
+              await deleteDoc(doc(db, 'campaigns', camp.id));
+              console.log(`Deleted associated campaign: ${camp.id}`);
+            } catch (err) {
+              console.error(`Error deleting campaign ${camp.id} associated with product:`, err);
+            }
+          }
+        }
+      }
+
       await deleteDoc(doc(db, 'products', productId));
     } catch (error) {
       console.warn('Error deleting product:', error);

@@ -50,6 +50,25 @@ const HeroSlider: React.FC = () => {
     const now = new Date();
     const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
 
+    const isNightLight = (title?: string, link?: string, description?: string) => {
+      const t = (title || '').toLowerCase();
+      const l = (link || '').toLowerCase();
+      const d = (description || '').toLowerCase();
+      return (
+        t.includes('mini night light') ||
+        t.includes('night light') ||
+        t.includes('night-light') ||
+        t.includes('مصباح ليلي') ||
+        t.includes('مصباح ليلي صغير') ||
+        t.includes('مصباح ليلي ذكي') ||
+        l.includes('mini-night-light') ||
+        l.includes('night-light') ||
+        d.includes('mini night light') ||
+        d.includes('night light') ||
+        d.includes('مصباح ليلي')
+      );
+    };
+
     // Get active hero campaigns (including auto-generated for products)
     const activeCampaigns = campaigns
       .filter(c => {
@@ -59,6 +78,7 @@ const HeroSlider: React.FC = () => {
         const end = new Date(c.endDate);
         return isBasicActive && end > now;
       })
+      .filter(c => !isNightLight(c.title, c.link, c.description))
       .map(c => ({
         id: c.id,
         title: c.title,
@@ -80,6 +100,7 @@ const HeroSlider: React.FC = () => {
         
         return (now.getTime() - time) <= fiveDaysInMs;
       })
+      .filter(p => !isNightLight(p.name, `/product/${p.id}`, p.description))
       .filter(p => !activeCampaigns.some(c => c.link.includes(p.id))); // Avoid duplicates if already in campaigns
 
     if (recentProducts.length > 0 || activeCampaigns.length > 0) {
