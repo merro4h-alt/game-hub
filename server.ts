@@ -367,7 +367,22 @@ Total: $${total.toFixed(2)}
       });
       clearTimeout(timeoutId);
       
+      if (!response.ok) {
+        throw new Error(`HTTP_${response.status}`);
+      }
+      
       const html = await response.text();
+      const lowerHtml = html.toLowerCase();
+      if (
+        lowerHtml.includes("cloudflare") || 
+        lowerHtml.includes("security check") || 
+        lowerHtml.includes("verify you are human") || 
+        lowerHtml.includes("ddos protection") ||
+        lowerHtml.includes("please enable js")
+      ) {
+        throw new Error("E_BLOCKED_BY_CLOUDFLARE");
+      }
+      
       res.send(html);
     } catch (error: any) {
       console.error("Proxy fetch error:", error.message);

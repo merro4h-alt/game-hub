@@ -143,12 +143,24 @@ const AdminDashboard: React.FC = () => {
     setExtractionStatus(null);
     try {
       const extracted = await extractProductFromUrl(importUrl);
+      
+      // Strict validation of the extracted results to confirm we didn't get blocked
+      if (!extracted || !extracted.name || extracted.name.trim() === '' || extracted.name.length < 3) {
+        throw new Error('E_SCRAPER_BLOCKED');
+      }
+
       const newProd: Product = {
         ...extracted,
         id: 'p_' + Math.random().toString(36).substr(2, 9),
+        colors: extracted.colors && extracted.colors.length > 0 ? extracted.colors : ['Default'],
+        sizes: extracted.sizes && extracted.sizes.length > 0 ? extracted.sizes : ['One Size'],
+        image: extracted.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=800',
+        images: extracted.images && extracted.images.length > 0 ? extracted.images : [extracted.image || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=800'],
         supplierUrl: importUrl,
         supplierName: importUrl.includes('aliexpress') ? 'AliExpress' : (importUrl.includes('amazon') ? 'Amazon' : 'External'),
-        colorImages: {}
+        colorImages: {},
+        rating: 5,
+        reviews: []
       };
       setEditingProduct(newProd);
       setIsAddModalOpen(true);
@@ -158,14 +170,69 @@ const AdminDashboard: React.FC = () => {
         message: t('admin.importSuccess')
       });
     } catch (err: any) {
+      console.error('Magic import error details:', err);
       setExtractionStatus({
         type: 'error',
-        message: t('admin.importError')
+        message: i18n.language === 'ar' 
+          ? 'فشل استخراج المنتج تلقائياً بسبب حماية موقع المورد. يرجى استخدام الخيار اليدوي الذكي بالأسفل لتجاوز الحظر فوراً!' 
+          : 'Automatic product extraction failed due to supplier server blockade. Please use our smart manual option below to bypass instantly!'
       });
     } finally {
       setIsExtracting(false);
     }
   };
+
+  const downloadDsersCSV = () => {
+    try {
+      const headers = ['id', 'name', 'price', 'discountPrice', 'category', 'image', 'colors', 'sizes', 'supplierUrl'];
+      const csvRows = [headers.join(',')];
+      
+      const importedProducts = products.filter(p => p.supplierUrl);
+      if (importedProducts.length === 0) {
+        showAlert(
+          i18n.language === 'ar' 
+            ? 'لا توجد منتجات مستوردة حالياً لتصديرها! يرجى استيراد منتج باستخدام أداة الرابط الذكية أولاً.' 
+            : 'No imported products available to export! Please import a product using the smart link tool first.', 
+          'error'
+        );
+        return;
+      }
+
+      importedProducts.forEach(p => {
+        const row = [
+          p.id,
+          `"${p.name.replace(/"/g, '""')}"`,
+          p.price,
+          p.discountPrice || p.price,
+          p.category,
+          p.image,
+          `"${(p.colors || []).join('; ')}"`,
+          `"${(p.sizes || []).join('; ')}"`,
+          p.supplierUrl || ''
+        ];
+        csvRows.push(row.join(','));
+      });
+      
+      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `onxifi_dsers_import_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showAlert(
+        i18n.language === 'ar' 
+          ? 'تم استخراج المنتجات بنجاح وتحميل ملف الـ CSV المتوافق!' 
+          : 'Products successfully exported and CSV file downloaded!', 
+        'success'
+      );
+    } catch (e) {
+      console.error(e);
+      showAlert('Error exporting CSV', 'error');
+    }
+  };
+
   const [productSearch, setProductSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
@@ -520,6 +587,10 @@ const AdminDashboard: React.FC = () => {
       const matchesSearch = p.name.toLowerCase().includes(productSearch.toLowerCase());
       const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
       return matchesSearch && matchesCategory;
+  }).sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
   });
 
   const generateAdCopy = async (product: any) => {
@@ -1998,14 +2069,49 @@ const AdminDashboard: React.FC = () => {
 
                 {/* Magic Import Tool */}
                  <div className="bg-brand-gold/5 border border-brand-gold/20 p-8 rounded-[2.5rem] space-y-6">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-brand-gold rounded-xl flex items-center justify-center text-brand-charcoal">
-                            <Wand2 size={20} />
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-brand-gold rounded-xl flex items-center justify-center text-brand-charcoal">
+                                <Wand2 size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black uppercase tracking-tighter">{i18n.language === 'ar' ? 'الاستيراد السحري (AliExpress / Amazon)' : 'MAGIC IMPORT (ALIEXPRESS / AMAZON)'}</h3>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-brand-gold">{i18n.language === 'ar' ? 'أدخل رابط المنتج وسيتم استخراج جميع البيانات تلقائياً' : 'Enter product URL to extract all details automatically'}</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-lg font-black uppercase tracking-tighter">{i18n.language === 'ar' ? 'الاستيراد السحري (AliExpress / Amazon)' : 'MAGIC IMPORT (ALIEXPRESS / AMAZON)'}</h3>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-brand-gold">{i18n.language === 'ar' ? 'أدخل رابط المنتج وسيتم استخراج جميع البيانات تلقائياً' : 'Enter product URL to extract all details automatically'}</p>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setEditingProduct({
+                                    id: 'p_temp_' + Math.random().toString(36).substr(2, 9),
+                                    name: '',
+                                    description: '',
+                                    price: 0,
+                                    discountPrice: 0,
+                                    category: 'New',
+                                    image: '',
+                                    images: [] as string[],
+                                    colors: [] as string[],
+                                    sizes: [] as string[],
+                                    colorImages: {},
+                                    supplierUrl: importUrl || 'https://aliexpress.com',
+                                    stock: 100,
+                                    rating: 5,
+                                    reviews: []
+                                });
+                                setIsAddModalOpen(true);
+                                showAlert(
+                                    i18n.language === 'ar' 
+                                        ? 'تم فتح النموذج اليدوي بنجاح مع ربط عنوان المورد!' 
+                                        : 'Manual form opened! Supplier URL has been pre-plugged into your product.', 
+                                    'success'
+                                );
+                            }}
+                            className="bg-white/5 hover:bg-[#C5A05B] text-white hover:text-black hover:border-transparent px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-white/5 shrink-0 self-start sm:self-auto cursor-pointer flex items-center gap-1.5"
+                        >
+                            <Plus size={12} />
+                            {i18n.language === 'ar' ? 'إدخال يدوياً' : 'ENTER MANUALLY'}
+                        </button>
                     </div>
                     
                     <div className="flex flex-col sm:flex-row gap-4">
@@ -2036,12 +2142,175 @@ const AdminDashboard: React.FC = () => {
                     </div>
 
                     {extractionStatus && (
-                        <div className={`p-4 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${extractionStatus.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                            {extractionStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
-                            {extractionStatus.message}
+                        <div className="space-y-4">
+                            <div className={`p-4 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${extractionStatus.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                                {extractionStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
+                                {extractionStatus.message}
+                            </div>
+                            
+                            {extractionStatus.type === 'error' && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="bg-red-500/5 border border-red-500/10 p-6 rounded-2xl space-y-4 text-start"
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 shrink-0">
+                                            <AlertCircle size={16} />
+                                        </div>
+                                        <div className="space-y-1 border-none pb-0">
+                                            <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                                                {i18n.language === 'ar' ? 'فشل الاستخراج بسبب حماية موقع المصدر!' : 'Extraction blocked by the supplier website!'}
+                                            </h4>
+                                            <p className="text-[11px] text-white/50 leading-relaxed font-semibold">
+                                                {i18n.language === 'ar' 
+                                                    ? 'تقوم المواقع الخارجية (مثل علي إكسبريس) أحياناً بحظر الطلبات البرمجية المباشرة (عبر جدران الحماية مثل Cloudflare). لا تقلق! كحل بديل أسرع يضمن كسر هذا الانتظار والاستمرار بمرونة:' 
+                                                    : 'External sites frequently block automatic scraping bots via cloudfirewall blocks. We prepared a 100% bypass for you to prevent delays:'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] font-medium text-white/40 border-t border-white/5 pt-4">
+                                        <div className="space-y-1">
+                                            <span className="text-[#C5A05B] font-bold block">
+                                                {i18n.language === 'ar' ? '1. إدخال البيانات يدوياً بضغطة زر' : '1. Instantly input details manually'}
+                                            </span>
+                                            <span>
+                                                {i18n.language === 'ar' 
+                                                    ? 'سنقوم بفتح نموذج إضافة منتج جديد يدوياً، مع الاحتفاظ برابط المورد المُراد لربط طلبات الشحن لاحقاً بسلاسة.' 
+                                                    : 'We will pre-load our custom creation form and preserve your supplier address so you keep shipping sync alive.'}
+                                            </span>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-amber-400 font-bold block">
+                                                {i18n.language === 'ar' ? '2. تجاوز أي حظر والحفظ مباشرة ببياناتك' : '2. Complete details & add images'}
+                                            </span>
+                                            <span>
+                                                {i18n.language === 'ar' 
+                                                    ? 'يمكنك كتابة العنوان، السعر المستهدف، وإرفاق صور المنتج ثم الحفظ فوراً لتنشيطه بالمتجر.' 
+                                                    : 'Type target price, key in title, upload product photos physically, then publish and start dropshipping directly.'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-3 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setEditingProduct({
+                                                    id: 'p_temp_' + Math.random().toString(36).substr(2, 9),
+                                                    name: '',
+                                                    description: '',
+                                                    price: 0,
+                                                    discountPrice: 0,
+                                                    category: 'New',
+                                                    image: '',
+                                                    images: [] as string[],
+                                                    colors: [] as string[],
+                                                    sizes: [] as string[],
+                                                    colorImages: {},
+                                                    supplierUrl: importUrl || 'https://aliexpress.com',
+                                                    stock: 100,
+                                                    rating: 5,
+                                                    reviews: []
+                                                });
+                                                setIsAddModalOpen(true);
+                                                showAlert(
+                                                    i18n.language === 'ar' 
+                                                        ? 'تم فتح النموذج اليدوي بنجاح مع ربط عنوان المورد!' 
+                                                        : 'Manual form opened! Supplier URL has been pre-plugged into your product.', 
+                                                    'success'
+                                                );
+                                            }}
+                                            className="bg-brand-gold hover:bg-white text-black px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all duration-300 shadow-lg active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                                        >
+                                            <Plus size={14} />
+                                            {i18n.language === 'ar' ? 'إدخال تفاصيل المنتج يدوياً الآن' : 'ENTER DETAILS MANUALLY NOW'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setEditingProduct(null);
+                                                setIsAddModalOpen(true);
+                                            }}
+                                            className="bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all duration-300 active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                                        >
+                                            <Wand2 size={14} />
+                                            {i18n.language === 'ar' ? 'نموذج فارغ تماماً' : 'START FROM BLANK FORM'}
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
                         </div>
                     )}
                  </div>
+
+                 {/* DSers Integration Advisor & Exporter */}
+                 <div className="bg-amber-500/5 border border-amber-500/20 p-8 rounded-[2.5rem] space-y-6">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center shrink-0 border border-amber-500/20">
+                          <Clock size={20} className="animate-spin text-amber-400" style={{ animationDuration: '8s' }} />
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="text-lg font-black text-amber-500 uppercase tracking-tight">
+                            {i18n.language === 'ar' ? 'هل مراجعة متجر DSers مُعلّقة أو تستغرق وقتاً؟' : 'DSers Store Approval Taking Too Long? (7-15 Days Delay)'}
+                          </h3>
+                          <p className="text-xs text-white/60 leading-relaxed font-semibold">
+                            {i18n.language === 'ar' 
+                              ? 'لقد جهزنا لك هذا الحل والإرشاد الذكي لمتابعة بناء وتجربة متجرك فوراً دون أي انتظار!' 
+                              : 'We have prepared this smart workaround so you can keep building and testing your dropshipping flow instantly!'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={downloadDsersCSV}
+                        className="bg-[#2E2514] text-brand-gold border border-brand-gold/30 hover:bg-[#C5A05B] hover:text-brand-charcoal px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shrink-0 self-stretch sm:self-auto cursor-pointer"
+                      >
+                        <Download size={14} />
+                        {i18n.language === 'ar' ? 'تحميل ملف المنتجات المستوردة (CSV)' : 'Export Imported Products (CSV)'}
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-white/5">
+                      <div className="bg-black/30 p-6 rounded-2xl border border-white/5 space-y-3">
+                        <div className="flex items-center gap-2 text-brand-gold">
+                          <span className="w-5 h-5 rounded-full bg-brand-gold/10 text-[10px] font-black flex items-center justify-center border border-brand-gold/25">1</span>
+                          <span className="text-xs font-black uppercase tracking-wider">{i18n.language === 'ar' ? 'تجاوز الانتظار بالذكاء الاصطناعي' : 'Direct AI Importer Bypass'}</span>
+                        </div>
+                        <p className="text-[11px] text-white/40 leading-relaxed font-medium">
+                          {i18n.language === 'ar'
+                            ? 'أداة الاستيراد السحرية بالأعلى تستخدم الذكاء الاصطناعي لسحب وتوليد كل تفاصيل وصور المنتج من علي إكسبريس مباشرة وحفظه داخل قاعدة بيانات متجرك بلمح البصر، بدون الحاجة لربط واجهة البرمجة (API).'
+                            : 'Our Magic AI Importer above uses Gemini to parse, translate and write titles, media, colors, and pricing from AliExpress straight into your store instantly without requiring an API code.'}
+                        </p>
+                      </div>
+
+                      <div className="bg-black/30 p-6 rounded-2xl border border-white/5 space-y-3">
+                        <div className="flex items-center gap-2 text-teal-400">
+                          <span className="w-5 h-5 rounded-full bg-teal-500/10 text-[10px] font-black flex items-center justify-center border border-teal-500/25">2</span>
+                          <span className="text-xs font-black uppercase tracking-wider">{i18n.language === 'ar' ? 'الرفع المجمّع عبر ملف CSV' : 'Bulk Import via CSV'}</span>
+                        </div>
+                        <p className="text-[11px] text-white/40 leading-relaxed font-medium">
+                          {i18n.language === 'ar'
+                            ? 'اضغط على زر التصدير لتحميل ورقة عمل CSV مرتبة بجميع منتجاتك المستحوذ عليها. يمكنك رفع هذا الملف مباشرة في لوحة تحكم DSers أو أي منصة شحن يدوياً دون الحاجة لربط API.'
+                            : 'Click the Export button to save all products inside a tidy spreadsheet. You can upload this directly inside DSers Bulk Upload tab to line items immediately.'}
+                        </p>
+                      </div>
+
+                      <div className="bg-black/30 p-6 rounded-2xl border border-white/5 space-y-3">
+                        <div className="flex items-center gap-2 text-indigo-400">
+                          <span className="w-5 h-5 rounded-full bg-indigo-500/10 text-[10px] font-black flex items-center justify-center border border-indigo-500/25">3</span>
+                          <span className="text-xs font-black uppercase tracking-wider">{i18n.language === 'ar' ? 'استخدم إضافة Chrome مباشرة' : 'DSers Chrome Extension'}</span>
+                        </div>
+                        <p className="text-[11px] text-white/40 leading-relaxed font-medium">
+                          {i18n.language === 'ar'
+                            ? 'يمكنك تثبيت إضافة DSers الرسمية للمتصفح وإضافة أي منتج من علي إكسبريس مباشرة إلى قائمة المنتجات واستعراضه في حسابك وتعديل معلومات تسعيره وهوامش ربحك يدوياً ريثما ينتهي فحص متجرك.'
+                            : 'Install the DSers extensions for Chrome. It lets you scrape products locally, set customizable price profit markup, and manage draft imports while store review operates.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
                  {/* Imported List */}
                  <div className="bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-white/5">

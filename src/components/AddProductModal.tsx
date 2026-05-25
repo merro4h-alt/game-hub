@@ -17,10 +17,13 @@ interface AddProductModalProps {
 
 const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, editingProduct }) => {
   const { t, i18n } = useTranslation();
-  const { addToProducts, updateProduct, addCampaign } = useStore();
+  const { addToProducts, updateProduct, addCampaign, products } = useStore();
   const { user } = useAuth();
   const { showAlert } = useAlert();
   const isArabic = i18n.language?.startsWith('ar') || false;
+
+  const isExistingProduct = !!(editingProduct && products.some(p => p.id === editingProduct.id));
+  const isImportedDraft = !!(editingProduct && !isExistingProduct);
 
   useEffect(() => {
     if (isOpen) {
@@ -55,7 +58,19 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [showVideoPreview, setShowVideoPreview] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsgState] = useState<string | null>(null);
+  const setErrorMsg = (msg: string | null) => {
+    setErrorMsgState(msg);
+    if (msg) {
+      showAlert(msg, 'error');
+      setTimeout(() => {
+        const container = document.getElementById('add-product-modal-container');
+        if (container) {
+          container.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 50);
+    }
+  };
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -440,7 +455,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
       if (!productData.videoUrl) delete productData.videoUrl;
       if (!productData.colorImages || Object.keys(productData.colorImages).length === 0) delete productData.colorImages;
 
-      if (editingProduct) {
+      if (isExistingProduct) {
         await updateProduct(productData);
         setSuccessMsg(isArabic ? 'تم تحديث المنتج بنجاح!' : 'Product updated successfully!');
       } else {
@@ -469,9 +484,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
       }
       
       console.log('Firestore save successful');
-      setTimeout(() => {
-        onClose();
-      }, 1500);
+      setIsProcessing(false);
     } catch (error: any) {
       console.warn('Error saving product in handleSumbit:', error);
       
@@ -521,6 +534,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-brand-charcoal/40 backdrop-blur-md" onClick={onClose} />
           <motion.div
+            id="add-product-modal-container"
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -528,11 +542,21 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
           >
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-3xl font-black tracking-tighter text-brand-charcoal uppercase">
-                {editingProduct 
+                {isExistingProduct 
                   ? (isArabic ? 'تعديل المنتج' : 'Edit Product') 
-                  : (isArabic ? 'إضافة منتج جديد' : 'Add New Product')}
-                {!isArabic && !editingProduct && <span className="block text-[10px] text-brand-gold mt-1 tracking-[0.3em]">Fresh Inventory</span>}
-                {isArabic && !editingProduct && <span className="block text-[10px] text-brand-gold mt-1 tracking-[0.3em] font-sans">ADD NEW PRODUCT</span>}
+                  : isImportedDraft
+                    ? (isArabic ? 'تأكيد إضافة منتج مستورد' : 'Confirm Imported Product')
+                    : (isArabic ? 'إضافة منتج جديد' : 'Add New Product')}
+                {!isArabic && !isExistingProduct && (
+                  <span className="block text-[10px] text-brand-gold mt-1 tracking-[0.3em]">
+                    {isImportedDraft ? 'REVIEW IMPORT DRAFT' : 'Fresh Inventory'}
+                  </span>
+                )}
+                {isArabic && !isExistingProduct && (
+                  <span className="block text-[10px] text-brand-gold mt-1 tracking-[0.3em] font-sans">
+                    {isImportedDraft ? 'مراجعة مسودة الاستيراد' : 'ADD NEW PRODUCT'}
+                  </span>
+                )}
               </h2>
               <button 
                 onClick={onClose} 
@@ -544,6 +568,22 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
             </div>
 
             <div className="space-y-6">
+              {isImportedDraft && (
+                <div className="p-4 bg-brand-gold/10 border border-brand-gold/20 rounded-2xl flex items-start gap-3 shadow-sm">
+                  <Sparkles className="text-brand-gold shrink-0 mt-0.5 animate-pulse" size={16} />
+                  <div className="space-y-1">
+                    <p className="text-xs font-black text-brand-charcoal uppercase tracking-wider">
+                      {isArabic ? 'مراجعة بيانات الاستيراد بالذكاء الاصطناعي ✨' : 'Review AI-Imported Details ✨'}
+                    </p>
+                    <p className="text-[10px] text-brand-charcoal/70 leading-relaxed font-bold">
+                      {isArabic 
+                        ? 'لقد استخرج الذكاء الاصطناعي تفاصيل المنتج بنجاح. يرجى مراجعة الخصائص والتعديل عليها إذا لزم الأمر، ثم اضغط على "تأكيد استيراد وإضافة المنتج" بالأسفل لحفظه في متجرك.'
+                        : 'AI has successfully extracted the product details. Please review and customize the fields below, then click "Confirm Import & Add Product" at the bottom to save it to your store.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Admin Status Indicator */}
               <div className="flex items-center justify-between p-4 bg-brand-gold/5 rounded-2xl border border-brand-gold/10">
                 <div className="flex items-center gap-2">
@@ -974,10 +1014,33 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                             <div className="w-5 h-5 rounded-full border border-brand-charcoal/10" style={{ backgroundColor: color }} />
                             <label className="text-[11px] font-black uppercase text-brand-charcoal truncate">{t(`colors.${color}`, color)}</label>
                           </div>
-                          {(formData.colorImages[color] || formData.colorPrices[color] || formData.colorDiscountPrices[color]) && (
+                          <div className="flex items-center gap-3">
+                            {(formData.colorImages[color] || formData.colorPrices[color] || formData.colorDiscountPrices[color]) && (
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  const newColorImages = { ...formData.colorImages };
+                                  const newColorPrices = { ...formData.colorPrices };
+                                  const newColorDiscountPrices = { ...formData.colorDiscountPrices };
+                                  delete newColorImages[color];
+                                  delete newColorPrices[color];
+                                  delete newColorDiscountPrices[color];
+                                  setFormData({ 
+                                    ...formData, 
+                                    colorImages: newColorImages,
+                                    colorPrices: newColorPrices,
+                                    colorDiscountPrices: newColorDiscountPrices
+                                  });
+                                }}
+                                className="text-[10px] text-brand-charcoal/40 font-black uppercase hover:underline hover:text-brand-charcoal transition-colors bg-brand-charcoal/5 px-2 py-1 rounded"
+                              >
+                                {isArabic ? 'مسح التعديلات' : 'Clear Settings'}
+                              </button>
+                            )}
                             <button 
                               type="button"
                               onClick={() => {
+                                const newColors = formData.colors.filter(c => c !== color);
                                 const newColorImages = { ...formData.colorImages };
                                 const newColorPrices = { ...formData.colorPrices };
                                 const newColorDiscountPrices = { ...formData.colorDiscountPrices };
@@ -986,16 +1049,18 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                                 delete newColorDiscountPrices[color];
                                 setFormData({ 
                                   ...formData, 
+                                  colors: newColors,
                                   colorImages: newColorImages,
                                   colorPrices: newColorPrices,
                                   colorDiscountPrices: newColorDiscountPrices
                                 });
                               }}
-                              className="text-[10px] text-red-600 font-black uppercase hover:underline hover:text-red-700 transition-colors"
+                              className="text-[10px] text-red-600 font-black uppercase hover:underline hover:text-red-700 transition-colors flex items-center gap-1 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded border border-red-200"
                             >
-                              {isArabic ? 'مسح التعديلات' : 'Clear Settings'}
+                              <X size={10} className="stroke-[3]" />
+                              {isArabic ? 'إلغاء اللون' : 'Remove Color'}
                             </button>
-                          )}
+                          </div>
                         </div>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1083,31 +1148,49 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
               </div>
 
               <div className="pt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    console.log('Add/Save button clicked in modal. Current isProcessing:', isProcessing);
-                    if (isProcessing || successMsg) return;
-                    handleSubmit();
-                  }}
-                  disabled={isProcessing || !!successMsg}
-                  className={`w-full bg-brand-gold text-white font-bold py-4 rounded-2xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 ${(isProcessing || successMsg) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-charcoal'}`}
-                >
-                  {isProcessing ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : successMsg ? (
-                    <CheckCircle className="w-5 h-5" />
-                  ) : (
-                    editingProduct ? <Save size={20} /> : <Plus size={20} />
-                  )}
-                  {isProcessing 
-                    ? (isArabic ? 'جاري الحفظ...' : 'Saving...') 
-                    : successMsg
-                      ? successMsg
-                      : (editingProduct 
+                {successMsg ? (
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <CheckCircle size={20} />
+                      {isArabic ? 'حسناً، إغلاق الصفحة' : 'OK, Close Page'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSuccessMsg(null)}
+                      className="w-full bg-brand-charcoal/5 hover:bg-brand-charcoal/10 text-brand-charcoal font-bold py-3 rounded-2xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer"
+                    >
+                      {isArabic ? 'البقاء في هذه الصفحة لمزيد من التعديل' : 'Stay on this page to edit more'}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      console.log('Add/Save button clicked in modal. Current isProcessing:', isProcessing);
+                      if (isProcessing) return;
+                      handleSubmit();
+                    }}
+                    disabled={isProcessing}
+                    className={`w-full bg-brand-gold text-white font-bold py-4 rounded-2xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 cursor-pointer ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-charcoal'}`}
+                  >
+                    {isProcessing ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      isExistingProduct ? <Save size={20} /> : <Plus size={20} />
+                    )}
+                    {isProcessing 
+                      ? (isArabic ? 'جاري الحفظ والرفع...' : 'Saving & Uploading...') 
+                      : isExistingProduct 
                         ? (isArabic ? 'حفظ التغييرات' : 'Save Changes') 
-                        : (isArabic ? 'إضافة منتج' : 'Add Product'))}
-                </button>
+                        : isImportedDraft
+                          ? (isArabic ? 'تأكيد استيراد وإضافة المنتج' : 'Confirm Import & Add Product')
+                          : (isArabic ? 'إضافة المنتج للمتجر' : 'Add Product to Store')}
+                  </button>
+                )}
               </div>
               </div>
           </motion.div>

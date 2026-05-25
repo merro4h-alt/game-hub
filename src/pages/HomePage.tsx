@@ -184,8 +184,12 @@ const HomePage: React.FC = () => {
     }
   };
   const featuredProducts = useMemo(() => {
-    // Show a mix of categories including the newest ones
-    return [...products].reverse().slice(0, 4);
+    // Sort by creation date descending so newest additions are shown first
+    return [...products].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    }).slice(0, 4);
   }, [products]);
 
   const promoProduct = useMemo(() => {

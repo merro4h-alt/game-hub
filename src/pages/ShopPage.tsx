@@ -87,6 +87,14 @@ const ShopPage: React.FC = () => {
       case 'rating':
         result.sort((a, b) => b.rating - a.rating);
         break;
+      default:
+        // Default sort: newest additions first
+        result.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA;
+        });
+        break;
     }
 
     return result;
