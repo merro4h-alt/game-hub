@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Star, ShoppingCart, Check, Edit2, Trash2, X, AlertTriangle, ArrowUpRight, Sparkles, Eye, Heart } from 'lucide-react';
 import { Product } from '../types';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../StoreContext';
 import { useAuth } from '../AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -14,9 +14,10 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }) => {
-  const { addToCart, deleteProduct, setEditingProduct, setIsAddModalOpen, formatPrice, setQuickViewProduct, toggleWishlist, isInWishlist } = useStore();
+  const { addToCart, deleteProduct, setEditingProduct, setIsAddModalOpen, formatPrice, setQuickViewProduct, toggleWishlist, isInWishlist, setLightboxInfo } = useStore();
   const { isAdmin } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const [selectedColor, setSelectedColor] = useState(product.colors[0]);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -134,20 +135,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
             )}
           </AnimatePresence>
           
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-6 z-10">
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                addToCart(product, selectedColor, product.sizes[0]);
-              }}
-              className="w-full bg-white text-brand-charcoal h-12 rounded-full font-black uppercase tracking-[0.1em] text-[8px] sm:text-[10px] flex items-center justify-center gap-2 hover:bg-brand-gold hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0 duration-500 shadow-xl active:scale-95"
-              title={t('shop.addToCart')}
-            >
-              <ShoppingCart size={14} className="sm:size-4" />
-              <span>{t('shop.addToCart')}</span>
-            </button>
-          </div>
+
           <div className="absolute top-5 left-5 z-20 flex flex-col gap-2.5">
             <button 
               onClick={(e) => {
@@ -175,17 +163,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
             )}
           </div>
 
-          <button 
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setQuickViewProduct(product);
-            }}
-            className="absolute bottom-6 right-6 z-20 opacity-0 group-hover:opacity-100 p-3 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl text-brand-gold hover:bg-brand-gold hover:text-white transition-all transform translate-y-4 group-hover:translate-y-0 duration-500 delay-150 shadow-xl active:scale-95 cursor-pointer"
-            title={t('shop.quickView')}
-          >
-            <Eye size={20} />
-          </button>
+
 
         </div>
       </Link>
@@ -297,17 +275,31 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
           )}
         </div>
 
-        <button 
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            addToCart(product, selectedColor, product.sizes[0]);
-          }}
-          className="w-full mt-4 py-4 bg-brand-gold text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em] hover:bg-brand-charcoal transition-all duration-300 md:hidden flex items-center justify-center gap-3 shadow-lg shadow-brand-gold/20 active:scale-[0.98]"
-        >
-          <ShoppingCart size={16} />
-          {t('shop.addToCart')}
-        </button>
+        <div className="flex items-center gap-2 mt-4">
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              addToCart(product, selectedColor, product.sizes[0]);
+            }}
+            className="flex-1 py-3.5 bg-brand-gold hover:bg-white text-brand-charcoal rounded-2xl text-[11px] font-black uppercase tracking-[0.1em] transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-brand-gold/20 active:scale-[0.98] cursor-pointer"
+          >
+            <ShoppingCart size={15} />
+            <span>{t('shop.addToCart')}</span>
+          </button>
+          
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              navigate(`/product/${product.id}`);
+            }}
+            className="p-3.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl border border-white/10 transition-all duration-300 flex items-center justify-center hover:text-brand-gold hover:border-brand-gold/30 active:scale-[0.98] cursor-pointer"
+            title={i18n.language === 'ar' ? 'عرض تفاصيل المنتج' : 'View Product Details'}
+          >
+            <Eye size={18} />
+          </button>
+        </div>
       </div>
     </motion.div>
   );

@@ -45,6 +45,25 @@ const ProductDetailPage: React.FC = () => {
   const product = useMemo(() => products.find(p => p.id === productId), [products, productId]);
   
   const [selectedColor, setSelectedColor] = useState<string>('');
+  
+  const isShoe = useMemo(() => {
+    if (!product) return false;
+    const searchTerms = /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker|nike|adidas|puma|reebok|boot|sandals|running/i;
+    return (
+      product.category === 'Sports' || 
+      searchTerms.test(product.name || '') || 
+      searchTerms.test(product.description || '')
+    );
+  }, [product]);
+
+  const effectiveSizes = useMemo(() => {
+    if (!product) return [];
+    if (isShoe) {
+      return ['39', '40', '41', '42', '43', '44', '45'];
+    }
+    return product.sizes || [];
+  }, [product, isShoe]);
+
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -74,8 +93,10 @@ const ProductDetailPage: React.FC = () => {
         if (p.colors && p.colors.length > 0) {
           initialColors[p.id] = p.colors[0];
         }
-        if (p.sizes && p.sizes.length > 0) {
-          initialSizes[p.id] = p.sizes[0];
+        const pIsShoe = p.category === 'Sports' || /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker|nike|adidas|puma|reebok|boot|sandals|running/i.test(p.name || '') || /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker|nike|adidas|puma|reebok|boot|sandals|running/i.test(p.description || '');
+        const pSizes = pIsShoe ? ['39', '40', '41', '42', '43', '44', '45'] : (p.sizes || []);
+        if (pSizes && pSizes.length > 0) {
+          initialSizes[p.id] = pSizes[0];
         }
       });
 
@@ -107,11 +128,11 @@ const ProductDetailPage: React.FC = () => {
   useEffect(() => {
     if (product) {
       setSelectedColor(product.colors[0]);
-      setSelectedSize(product.sizes[0]);
+      setSelectedSize(effectiveSizes[0] || product.sizes[0] || 'Standard');
       // Track recently viewed
       addToRecentlyViewed(product);
     }
-  }, [product, productId]); // Added productId to ensure it re-runs when URL changes
+  }, [product, productId, effectiveSizes]); // Added productId to ensure it re-runs when URL changes
 
   if (!product) {
     return (
@@ -348,6 +369,37 @@ const ProductDetailPage: React.FC = () => {
               })()}
             </div>
 
+            {/* Stock Availability Indicator */}
+            <div className="flex items-center gap-3 mb-6 bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3 w-fit">
+              <span className="relative flex h-3 w-3">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                  (product.stock || 0) <= 0 ? 'bg-red-500' : (product.stock || 0) <= 5 ? 'bg-orange-500' : 'bg-green-500'
+                }`}></span>
+                <span className={`relative inline-flex rounded-full h-3 w-3 ${
+                  (product.stock || 0) <= 0 ? 'bg-red-500' : (product.stock || 0) <= 5 ? 'bg-orange-500' : 'bg-green-500'
+                }`}></span>
+              </span>
+              <span className="text-sm font-bold text-white/95">
+                {(product.stock || 0) <= 0 ? (
+                  <span className="text-red-500 font-extrabold text-sm uppercase">
+                    {i18n.language === 'ar' ? 'نفدت الكمية من المخزن' : 'Out of Stock'}
+                  </span>
+                ) : (product.stock || 0) <= 5 ? (
+                  <span className="text-orange-400 font-extrabold animate-pulse text-sm">
+                    {i18n.language === 'ar' 
+                      ? `بقي ${product.stock} قطع فقط في المخزن!` 
+                      : `Only ${product.stock} items left in stock!`}
+                  </span>
+                ) : (
+                  <span className="text-green-400 font-bold text-sm">
+                    {i18n.language === 'ar' 
+                      ? `الكمية المتوفرة في المخزن: ${product.stock} قطعة` 
+                      : `Available stock: ${product.stock} items`}
+                  </span>
+                )}
+              </span>
+            </div>
+
             <p className="text-white/80 leading-relaxed text-lg mb-8">
               {product.description}
             </p>
@@ -388,7 +440,7 @@ const ProductDetailPage: React.FC = () => {
           )}
 
           {/* Size Selection - Improved */}
-          {product.sizes.length > 0 && (
+          {effectiveSizes.length > 0 && (
             <div className="mb-10">
               <div className="flex justify-between items-center mb-4">
                 <span className="text-sm font-black uppercase tracking-[0.2em] text-white/40">{t('shop.size')}</span>
@@ -401,7 +453,7 @@ const ProductDetailPage: React.FC = () => {
                 </button>
               </div>
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                {product.sizes.map((size) => (
+                {effectiveSizes.map((size) => (
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
@@ -708,7 +760,9 @@ const ProductDetailPage: React.FC = () => {
                 {recommendedProducts.map((p, idx) => {
                   const isChecked = !!checkedPromo[p.id];
                   const chosenColor = selectedPromoColors[p.id] || p.colors[0] || '';
-                  const chosenSize = selectedPromoSizes[p.id] || p.sizes[0] || '';
+                  const pIsShoe = p.category === 'Sports' || /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker|nike|adidas|puma|reebok|boot|sandals|running/i.test(p.name || '') || /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker|nike|adidas|puma|reebok|boot|sandals|running/i.test(p.description || '');
+                  const pEffectiveSizes = pIsShoe ? ['39', '40', '41', '42', '43', '44', '45'] : (p.sizes || []);
+                  const chosenSize = selectedPromoSizes[p.id] || pEffectiveSizes[0] || '';
                   const basePrice = p.colorDiscountPrices?.[chosenColor] ?? p.discountPrice ?? p.colorPrices?.[chosenColor] ?? p.price;
                   const discountedPromoPrice = basePrice * 0.8; // 20% discount on cross-sell items!
 
@@ -783,13 +837,13 @@ const ProductDetailPage: React.FC = () => {
                             )}
 
                             {/* Size selection */}
-                            {p.sizes.length > 1 && (
+                            {pEffectiveSizes.length > 0 && (
                               <div>
                                 <span className="text-[9px] font-black uppercase tracking-wider text-white/30 block mb-1">
                                   {i18n.language === 'ar' ? 'المقاس' : 'Size'}
                                 </span>
                                 <div className="flex flex-wrap gap-1">
-                                  {p.sizes.map(sz => (
+                                  {pEffectiveSizes.map(sz => (
                                     <button
                                       key={sz}
                                       onClick={() => setSelectedPromoSizes(prev => ({ ...prev, [p.id]: sz }))}
@@ -956,37 +1010,80 @@ const ProductDetailPage: React.FC = () => {
                 </div>
                 
                 <div className="space-y-6 text-sm">
-                  <p className="text-brand-charcoal/60 leading-relaxed">
-                    استخدم هذا الدليل للعثور على مقاسك المثالي. جميع القياسات مدرجة بالسنتيمتر.
+                  <p className="text-brand-charcoal/60 leading-relaxed font-sans font-medium text-center md:text-left rtl:md:text-right">
+                    {isShoe ? (
+                      i18n.language === 'ar' 
+                        ? 'استخدم هذا الدليل للعثور على مقاس حذائك الرياضي المثالي. مليمترات أو سنتيمترات تقريبية لطول القدم.' 
+                        : 'Use this guide to find your perfect athletic shoe size. Approximate foot length in centimeters.'
+                    ) : (
+                      i18n.language === 'ar'
+                        ? 'استخدم هذا الدليل للعثور على مقاسك المثالي. جميع القياسات مدرجة بالسنتيمتر.'
+                        : 'Use this guide to find your perfect size. All measurements are listed in centimeters.'
+                    )}
                   </p>
                   
-                  <div className="overflow-x-auto rounded-3xl border border-brand-charcoal/5">
-                    <table className="w-full text-left rtl:text-right border-collapse">
-                      <thead>
-                        <tr className="bg-brand-charcoal/5">
-                          <th className="p-4 font-black uppercase tracking-widest text-[10px]">المقاس</th>
-                          <th className="p-4 font-black uppercase tracking-widest text-[10px]">الصدر</th>
-                          <th className="p-4 font-black uppercase tracking-widest text-[10px]">الخصر</th>
-                          <th className="p-4 font-black uppercase tracking-widest text-[10px]">الأكتاف</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-brand-charcoal/5">
-                        {[
-                          { s: 'S', b: '92-96', w: '78-82', sh: '44' },
-                          { s: 'M', b: '96-100', w: '82-86', sh: '46' },
-                          { s: 'L', b: '100-104', w: '86-90', sh: '48' },
-                          { s: 'XL', b: '104-108', w: '90-94', sh: '50' }
-                        ].map((row) => (
-                          <tr key={row.s} className="hover:bg-indigo-50/30 transition-colors">
-                            <td className="p-4 font-bold">{row.s}</td>
-                            <td className="p-4 text-brand-charcoal/60 font-mono">{row.b} cm</td>
-                            <td className="p-4 text-brand-charcoal/60 font-mono">{row.w} cm</td>
-                            <td className="p-4 text-brand-charcoal/60 font-mono">{row.sh} cm</td>
+                  {isShoe ? (
+                    <div className="overflow-x-auto rounded-3xl border border-brand-charcoal/5">
+                      <table className="w-full text-center border-collapse">
+                        <thead>
+                          <tr className="bg-brand-charcoal/5 border-b border-brand-charcoal/5">
+                            <th className="p-4 font-black uppercase tracking-widest text-[10px] text-brand-charcoal">{i18n.language === 'ar' ? 'المقاس (EU)' : 'Size (EU)'}</th>
+                            <th className="p-4 font-black uppercase tracking-widest text-[10px] text-brand-charcoal">{i18n.language === 'ar' ? 'طول القدم' : 'Foot Length'}</th>
+                            <th className="p-4 font-black uppercase tracking-widest text-[10px] text-brand-charcoal">US (Men)</th>
+                            <th className="p-4 font-black uppercase tracking-widest text-[10px] text-brand-charcoal">US (Women)</th>
+                            <th className="p-4 font-black uppercase tracking-widest text-[10px] text-brand-charcoal">UK</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="divide-y divide-brand-charcoal/5 font-semibold text-brand-charcoal/80">
+                          {[
+                            { eu: '39', cm: '24.5', usm: '6.5', usw: '8.0', uk: '5.5' },
+                            { eu: '40', cm: '25.0', usm: '7.5', usw: '9.0', uk: '6.5' },
+                            { eu: '41', cm: '26.0', usm: '8.0', usw: '9.5', uk: '7.0' },
+                            { eu: '42', cm: '26.5', usm: '8.5', usw: '10.0', uk: '7.5' },
+                            { eu: '43', cm: '27.5', usm: '9.5', usw: '11.0', uk: '8.5' },
+                            { eu: '44', cm: '28.0', usm: '10.0', usw: '11.5', uk: '9.0' },
+                            { eu: '45', cm: '29.0', usm: '11.0', usw: '12.5', uk: '10.0' }
+                          ].map((row) => (
+                            <tr key={row.eu} className="hover:bg-brand-gold/5 transition-colors">
+                              <td className="p-4 font-black text-brand-charcoal text-xs">{row.eu}</td>
+                              <td className="p-4 text-brand-charcoal/60 font-mono text-xs">{row.cm} cm</td>
+                              <td className="p-4 text-brand-charcoal/60 font-mono text-xs">{row.usm}</td>
+                              <td className="p-4 text-brand-charcoal/60 font-mono text-xs">{row.usw}</td>
+                              <td className="p-4 text-brand-charcoal/60 font-mono text-xs">{row.uk}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-3xl border border-brand-charcoal/5">
+                      <table className="w-full text-left rtl:text-right border-collapse">
+                        <thead>
+                          <tr className="bg-brand-charcoal/5">
+                            <th className="p-4 font-black uppercase tracking-widest text-[10px]">المقاس</th>
+                            <th className="p-4 font-black uppercase tracking-widest text-[10px]">الصدر</th>
+                            <th className="p-4 font-black uppercase tracking-widest text-[10px]">الخصر</th>
+                            <th className="p-4 font-black uppercase tracking-widest text-[10px]">الأكتاف</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-brand-charcoal/5">
+                          {[
+                            { s: 'S', b: '92-96', w: '78-82', sh: '44' },
+                            { s: 'M', b: '96-100', w: '82-86', sh: '46' },
+                            { s: 'L', b: '100-104', w: '86-90', sh: '48' },
+                            { s: 'XL', b: '104-108', w: '90-94', sh: '50' }
+                          ].map((row) => (
+                            <tr key={row.s} className="hover:bg-indigo-50/30 transition-colors">
+                              <td className="p-4 font-bold">{row.s}</td>
+                              <td className="p-4 text-brand-charcoal/60 font-mono">{row.b} cm</td>
+                              <td className="p-4 text-brand-charcoal/60 font-mono">{row.w} cm</td>
+                              <td className="p-4 text-brand-charcoal/60 font-mono">{row.sh} cm</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-10 pt-8 border-t border-brand-charcoal/5">
@@ -1020,7 +1117,7 @@ const ProductDetailPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 sm:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 sm:gap-8">
             {products
               .filter(p => p.id !== product.id && p.category === product.category)
               .slice(0, 4)
@@ -1031,7 +1128,7 @@ const ProductDetailPage: React.FC = () => {
         </section>
       )}
       {/* Recently Viewed Section */}
-      {recentlyViewed.filter(p => p.id !== product.id).length > 0 && (
+      {false && recentlyViewed.filter(p => p.id !== product.id).length > 0 && (
         <section className="mt-20 pt-20 border-t border-white/10">
           <div className="mb-12">
             <span className="text-white/40 text-xs font-black uppercase tracking-[0.4em] mb-4 block">Based on your activity</span>

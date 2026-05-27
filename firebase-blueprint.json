@@ -57,6 +57,21 @@
       },
       "required": ["productId", "addedPrice", "createdAt"]
     },
+    "PriceAlertSubscription": {
+      "title": "PriceAlertSubscription",
+      "description": "Subscription for price drops",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "targetPrice": { "type": "number" },
+        "initialPrice": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["productId", "productName", "userEmail", "targetPrice", "initialPrice", "createdAt", "active"]
+    },
     "Setting": {
       "title": "Setting",
       "description": "Store-wide configuration",
@@ -102,6 +117,10 @@
     "/users/{userId}/wishlist/{productId}": {
       "schema": "WishlistItem",
       "description": "User's saved products"
+    },
+    "/users/{userId}/priceAlerts/{productId}": {
+      "schema": "PriceAlertSubscription",
+      "description": "User's price drop notification subscriptions"
     },
     "/products/{productId}": {
       "schema": "Product",

@@ -24,6 +24,32 @@ async function startServer() {
   // Simulated database for orders
   const orders: any[] = [];
 
+  // Memory log of sent emails for developer testing/previewing
+  const sentEmailsLogs: any[] = [];
+
+  const logSentEmail = (to: string, subject: string, html: string, status: string = "Sent") => {
+    sentEmailsLogs.unshift({
+      id: "mail-" + Math.random().toString(36).substring(2, 9),
+      to,
+      subject,
+      html,
+      status,
+      timestamp: new Date().toISOString()
+    });
+    if (sentEmailsLogs.length > 50) {
+      sentEmailsLogs.pop();
+    }
+  };
+
+  app.get("/api/admin/emails", (req, res) => {
+    res.json(sentEmailsLogs);
+  });
+
+  app.delete("/api/admin/emails", (req, res) => {
+    sentEmailsLogs.length = 0;
+    res.json({ success: true });
+  });
+
   // AutoDS Integration Simulation
   const autoDS = {
     syncOrder: (order: any) => {
@@ -278,42 +304,54 @@ Total: $${total.toFixed(2)}
 
       // 1. Try sending Email
       let emailSent = false;
-      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-        const mailOptions = {
-          from: `"AMEER ALI Store" <${process.env.EMAIL_USER || 'noreply@ahstore.shop'}>`,
-          to: emailTo || 'merro4h@gmail.com',
-          subject: `New Order #${trackingId} from ${name} - AMEER ALI Store`,
-          text: orderSummary,
-          html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee;">
-              <h1 style="color: #c5a059;">Order Confirmed!</h1>
-              <p>You have a new "Cash on Delivery" order.</p>
-              <div style="background: #c5a059; color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
-                <h2 style="margin: 0; font-size: 14px; text-transform: uppercase;">Tracking Number</h2>
-                <div style="font-size: 32px; font-weight: bold; border: 2px dashed rgba(255,255,255,0.3); margin-top: 10px; padding: 10px;">${trackingId}</div>
-                <a href="${trackingLink}" style="display: inline-block; margin-top: 15px; background: white; color: #c5a059; padding: 10px 20px; border-radius: 4px; text-decoration: none; font-weight: bold;">Track Your Order</a>
-              </div>
-              
-              <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <h2 style="margin-top: 0;">Customer Details</h2>
-                <p><strong>Name:</strong> ${name}</p>
-                <p><strong>Phone:</strong> ${phone}</p>
-                <p><strong>Address:</strong> ${address}</p>
-              </div>
+      const htmlBody = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee;">
+          <h1 style="color: #c5a059;">Order Confirmed!</h1>
+          <p>You have a new "Cash on Delivery" order.</p>
+          <div style="background: #c5a059; color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            <h2 style="margin: 0; font-size: 14px; text-transform: uppercase;">Tracking Number</h2>
+            <div style="font-size: 32px; font-weight: bold; border: 2px dashed rgba(255,255,255,0.3); margin-top: 10px; padding: 10px;">${trackingId}</div>
+            <a href="${trackingLink}" style="display: inline-block; margin-top: 15px; background: white; color: #c5a059; padding: 10px 20px; border-radius: 4px; text-decoration: none; font-weight: bold;">Track Your Order</a>
+          </div>
+          
+          <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h2 style="margin-top: 0;">Customer Details</h2>
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Phone:</strong> ${phone}</p>
+            <p><strong>Address:</strong> ${address}</p>
+          </div>
 
-              <div style="margin: 20px 0;">
-                <h2>Order Summary</h2>
-                <ul>
-                  ${items.map((item: any) => `<li><strong>${item.name}</strong> - ${item.quantity} x $${item.price.toFixed(2)}</li>`).join("")}
-                </ul>
-                <h3 style="border-top: 1px solid #eee; padding-top: 10px;">Total: $${total.toFixed(2)}</h3>
-              </div>
-            </div>
-          `
-        };
-        await transporter.sendMail(mailOptions);
-        emailSent = true;
-        console.log("Order confirmation email sent.");
+          <div style="margin: 20px 0;">
+            <h2>Order Summary</h2>
+            <ul>
+              ${items.map((item: any) => `<li><strong>${item.name}</strong> - ${item.quantity} x $${item.price.toFixed(2)}</li>`).join("")}
+            </ul>
+            <h3 style="border-top: 1px solid #eee; padding-top: 10px;">Total: $${total.toFixed(2)}</h3>
+          </div>
+        </div>
+      `;
+
+      const mailOptions = {
+        from: `"AMEER ALI Store" <${process.env.EMAIL_USER || 'noreply@ahstore.shop'}>`,
+        to: emailTo || 'merro4h@gmail.com',
+        subject: `New Order #${trackingId} from ${name} - AMEER ALI Store`,
+        text: orderSummary,
+        html: htmlBody
+      };
+
+      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        try {
+          await transporter.sendMail(mailOptions);
+          emailSent = true;
+          logSentEmail(mailOptions.to, mailOptions.subject, mailOptions.html, "Sent (SMTP)");
+          console.log("Order confirmation email sent.");
+        } catch (smtpErr: any) {
+          console.error("SMTP Delivery error:", smtpErr);
+          logSentEmail(mailOptions.to, mailOptions.subject, mailOptions.html, `SMTP Failed: ${smtpErr.message || smtpErr}`);
+        }
+      } else {
+        logSentEmail(mailOptions.to, mailOptions.subject, mailOptions.html, "Simulated Inbox");
+        console.log("Logged simulated order email successfully.");
       }
 
       // 2. Try sending WhatsApp via Twilio
@@ -346,6 +384,206 @@ Total: $${total.toFixed(2)}
     } catch (error) {
       console.error("Error processing order notifications:", error);
       res.status(500).json({ success: false, error: "Failed to send notifications." });
+    }
+  });
+
+  app.post("/api/price-alert/subscribe", async (req, res) => {
+    const { productId, productName, email, targetPrice, initialPrice } = req.body;
+    
+    if (!email || !productName || !targetPrice) {
+      return res.status(400).json({ error: "Required fields are missing: email, productName, targetPrice" });
+    }
+
+    try {
+      const nodemailer = await import("nodemailer");
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER || 'your-email@gmail.com',
+          pass: process.env.EMAIL_PASS || 'your-app-password'
+        }
+      });
+
+      let emailSent = false;
+      const htmlBody = `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e5e7eb; border-radius: 20px; background-color: #ffffff; color: #1f2937; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: right; direction: rtl;">
+          <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid #C5A037; padding-bottom: 15px;">
+            <span style="font-size: 26px; font-weight: 900; letter-spacing: 2px; color: #121212;">ONXIFI <span style="color: #C5A037;">STORE</span></span>
+          </div>
+          
+          <div style="background-color: #FDFBF7; border: 1px solid rgba(197, 160, 55, 0.2); border-radius: 16px; padding: 25px; text-align: center; margin-bottom: 25px;">
+            <div style="font-size: 45px; margin-bottom: 10px;">🔔</div>
+            <h1 style="color: #121212; font-size: 22px; font-weight: 900; margin: 0 0 10px 0; line-height: 1.4;">
+              تم تفعيل تنبيه انخفاض السعر بنجاح!
+            </h1>
+            <p style="color: #6b7280; font-size: 14px; margin: 0; line-height: 1.6;">
+              سنقوم بإرسال إشعار فوري وتنبيه على هذا البريد بمجرد أن ينخفض سعر المنتج إلى القيمة المستهدفة التي اخترتها أو أقل.
+            </p>
+          </div>
+
+          <div style="background-color: #fafafa; border-radius: 16px; padding: 20px; margin-bottom: 25px; border: 1px solid #f0f0f0;">
+            <h3 style="color: #C5A037; font-size: 15px; margin: 0 0 15px 0; font-weight: 800; border-bottom: 1px solid #eaeaea; padding-bottom: 8px;">
+              تفاصيل الاشتراك بالتنبيه
+            </h3>
+            <table style="width: 100%; font-size: 14px; border-collapse: collapse; text-align: right;" dir="rtl">
+              <tr>
+                <td style="padding: 10px 0; color: #6b7280; width: 40%;">المنتج:</td>
+                <td style="padding: 10px 0; font-weight: 700; color: #121212;">${productName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; color: #6b7280;">السعر الحالي:</td>
+                <td style="padding: 10px 0; font-weight: 700; color: #ef4444; font-family: monospace;">$${initialPrice}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; color: #6b7280;">السعر المطلوب للتنبيه:</td>
+                <td style="padding: 10px 0; font-weight: 800; color: #10b981; font-family: monospace; font-size: 16px;">$${targetPrice} 🎯</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; color: #6b7280;">بريد التنبيهات:</td>
+                <td style="padding: 10px 0; font-weight: 700; color: #121212; font-family: monospace; text-align: left;" dir="ltr">${email}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="text-align: center; margin-top: 10px; font-size: 13px; color: #4b5563; border-top: 1px solid #f3f4f6; padding-top: 20px; direction: ltr;" dir="ltr">
+            <p style="margin: 0; font-weight: bold; color: #121212;">Price alert is set up successfully for <strong>${productName}</strong>.</p>
+            <p style="margin: 5px 0 0 0; font-size: 12px; color: #9ca3af;">We will email you immediately at <strong>${email}</strong> when the price drops to <strong>$${targetPrice}</strong> or below.</p>
+          </div>
+
+          <div style="text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px solid #f3f4f6; padding-top: 20px; margin-top: 20px;">
+            هذا البريد تم إرساله تلقائياً لأنك اشتركت في خدمة تنبيهات الأسعار لمتجر ONXIFI.<br/>
+            This is an automated email sent because you subscribed to ONXIFI price drop alerts.
+          </div>
+        </div>
+      `;
+
+      const mailOptions = {
+        from: `"ONXIFI Store" <${process.env.EMAIL_USER || 'noreply@onxifi.shop'}>`,
+        to: email,
+        subject: `🔔 تم تفعيل تنبيه السعر: ${productName} - ONXIFI Store`,
+        html: htmlBody
+      };
+
+      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        try {
+          await transporter.sendMail(mailOptions);
+          emailSent = true;
+          logSentEmail(mailOptions.to, mailOptions.subject, mailOptions.html, "Sent (SMTP)");
+          console.log("Price subscription confirmation email sent to:", email);
+        } catch (smtpErr: any) {
+          console.error("SMTP Subscribe Delivery error:", smtpErr);
+          logSentEmail(mailOptions.to, mailOptions.subject, mailOptions.html, `SMTP Failed: ${smtpErr.message || smtpErr}`);
+        }
+      } else {
+        logSentEmail(mailOptions.to, mailOptions.subject, mailOptions.html, "Simulated Inbox");
+        console.log("Logged simulated subscribe email successfully.");
+      }
+
+      res.json({ success: true, emailSent });
+    } catch (e: any) {
+      console.error("Error sending subscription email:", e);
+      res.status(500).json({ success: false, error: e.message || "Failed to send subscription confirmation email." });
+    }
+  });
+
+  app.post("/api/price-alert/trigger", async (req, res) => {
+    const { productId, productName, email, targetPrice, currentPrice } = req.body;
+    
+    if (!email || !productName || !targetPrice || !currentPrice) {
+      return res.status(400).json({ error: "Required fields are missing: email, productName, targetPrice, currentPrice" });
+    }
+
+    try {
+      const nodemailer = await import("nodemailer");
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER || 'your-email@gmail.com',
+          pass: process.env.EMAIL_PASS || 'your-app-password'
+        }
+      });
+
+      let emailSent = false;
+      const htmlBody = `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e5e7eb; border-radius: 20px; background-color: #ffffff; color: #1f2937; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: right; direction: rtl;">
+          <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid #C5A037; padding-bottom: 15px;">
+            <span style="font-size: 26px; font-weight: 900; letter-spacing: 2px; color: #121212;">ONXIFI <span style="color: #C5A037;">STORE</span></span>
+          </div>
+          
+          <div style="background-color: #ecfdf5; border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 16px; padding: 25px; text-align: center; margin-bottom: 25px;">
+            <div style="font-size: 45px; margin-bottom: 10px;">🔥</div>
+            <h1 style="color: #065f46; font-size: 24px; font-weight: 950; margin: 0 0 10px 0; line-height: 1.4;">
+              انخفض السعر الآن! لاتفوت الفرصة 😍
+            </h1>
+            <p style="color: #047857; font-size: 15px; margin: 0; line-height: 1.6; font-weight: bold;">
+              لقد انخفض سعر المنتج الذي تتابعه إلى السعر المطلوب أو أقل من ذلك بكثير!
+            </p>
+          </div>
+
+          <div style="background-color: #fafafa; border-radius: 16px; padding: 20px; margin-bottom: 25px; border: 1px solid #f0f0f0;">
+            <h3 style="color: #C5A037; font-size: 15px; margin: 0 0 15px 0; font-weight: 800; border-bottom: 1px solid #eaeaea; padding-bottom: 8px;">
+              تفاصيل العرض الحالي
+            </h3>
+            <table style="width: 100%; font-size: 14px; border-collapse: collapse; text-align: right;" dir="rtl">
+              <tr>
+                <td style="padding: 10px 0; color: #6b7280; width: 40%;">المنتج:</td>
+                <td style="padding: 10px 0; font-weight: 700; color: #121212;">${productName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; color: #6b7280;">سعرك المستهدف:</td>
+                <td style="padding: 10px 0; font-weight: 700; color: #4b5563; font-family: monospace;">$${targetPrice}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; color: #6b7280;">السعر الحالي الآن:</td>
+                <td style="padding: 10px 0; font-weight: 900; color: #10b981; font-family: monospace; font-size: 22px;">$${currentPrice} 💸</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="text-align: center; margin: 25px 0 10px 0;">
+            <a href="https://onxifi.shop" style="display: inline-block; background-color: #121212; color: #ffffff; font-weight: 900; border: 2px solid #C5A037; border-radius: 30px; padding: 14px 40px; text-decoration: none; text-transform: uppercase; letter-spacing: 1px; font-size: 13px; box-shadow: 0 4px 10px rgba(197, 160, 55, 0.2);">
+              تسوق الآن واشتري المنتج / SHOP CURRENT NOW
+            </a>
+          </div>
+
+          <div style="text-align: center; margin-top: 25px; font-size: 13px; color: #4b5563; border-top: 1px solid #f3f4f6; padding-top: 20px; direction: ltr;" dir="ltr">
+            <p style="margin: 0; font-weight: bold; color: #121212;">Great news! <strong>${productName}</strong> has dropped to <strong>$${currentPrice}</strong>.</p>
+            <p style="margin: 5px 0 0 0; font-size: 12px; color: #9ca3af;">You set a target of <strong>$${targetPrice}</strong>, so don't miss out on this amazing deal!</p>
+          </div>
+
+          <div style="text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px solid #f3f4f6; padding-top: 20px; margin-top: 20px;">
+            هذا البريد الإلكتروني أرسل إليك بناءً على رغبتك في الاشتراك بخدمة تنبيه السعر لمتجر ONXIFI.<br/>
+            You are receiving this because you signed up for price alerts on this item.
+          </div>
+        </div>
+      `;
+
+      const mailOptions = {
+        from: `"ONXIFI Store" <${process.env.EMAIL_USER || 'noreply@onxifi.shop'}>`,
+        to: email,
+        subject: `🔥 انخفض السعر الآن! لاتفوت الفرصة: ${productName} بسعر جديد - ONXIFI Store`,
+        html: htmlBody
+      };
+
+      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        try {
+          await transporter.sendMail(mailOptions);
+          emailSent = true;
+          logSentEmail(mailOptions.to, mailOptions.subject, mailOptions.html, "Sent (SMTP)");
+          console.log("Price alert drop email trigger notification sent to:", email);
+        } catch (smtpErr: any) {
+          console.error("SMTP Trigger Delivery error:", smtpErr);
+          logSentEmail(mailOptions.to, mailOptions.subject, mailOptions.html, `SMTP Failed: ${smtpErr.message || smtpErr}`);
+        }
+      } else {
+        logSentEmail(mailOptions.to, mailOptions.subject, mailOptions.html, "Simulated Inbox");
+        console.log("Logged simulated price alert drop successfully.");
+      }
+
+      res.json({ success: true, emailSent });
+    } catch (e: any) {
+      console.error("Error triggering price alert email:", e);
+      res.status(500).json({ success: false, error: e.message || "Failed to send price alert notification email." });
     }
   });
 

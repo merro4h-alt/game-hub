@@ -59,8 +59,8 @@ export const CartDrawer: React.FC = () => {
     .slice(0, 2);
 
   const texts = {
-    title: isRtl ? 'سلة التسوق' : 'Shopping Bag',
-    emptyTitle: isRtl ? 'سلتك فارغة تماماً' : 'Your Bag is Empty',
+    title: isRtl ? 'سلة التسوق' : 'Cart',
+    emptyTitle: isRtl ? 'سلة التسوق فارغة تماماً' : 'Your Cart is Empty',
     emptyDesc: isRtl ? 'لم تقم بإضافة أي منتج حتى الآن.' : 'You haven\'t added any items yet.',
     startShopping: isRtl ? 'ابدأ التسوق' : 'Start Shopping',
     item: isRtl ? 'منتج' : 'item',
@@ -111,7 +111,7 @@ export const CartDrawer: React.FC = () => {
                 <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-[#FDFBF7]">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-brand-gold/10 flex items-center justify-center text-brand-gold">
-                      <ShoppingBag size={20} />
+                      <ShoppingCart size={20} />
                     </div>
                     <div>
                       <h2 className="text-lg font-black tracking-tight text-brand-charcoal">{texts.title}</h2>
@@ -159,7 +159,7 @@ export const CartDrawer: React.FC = () => {
                   {cart.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-center space-y-5">
                       <div className="w-24 h-24 rounded-[2rem] bg-brand-charcoal/[0.02] flex items-center justify-center border border-brand-charcoal/5">
-                        <ShoppingBag size={36} className="text-brand-charcoal/20" />
+                        <ShoppingCart size={36} className="text-brand-charcoal/20" />
                       </div>
                       <div className="space-y-1">
                         <h3 className="text-base font-black text-brand-charcoal">{texts.emptyTitle}</h3>

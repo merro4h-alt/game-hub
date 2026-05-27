@@ -25,8 +25,14 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language === 'ar';
   
+  const isShoe = product.category === 'Sports' || 
+    /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker|nike|adidas|puma|reebok|boot|sandals|running/i.test(product.name || '') || 
+    /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker|nike|adidas|puma|reebok|boot|sandals|running/i.test(product.description || '');
+
+  const effectiveSizes = isShoe ? ['39', '40', '41', '42', '43', '44', '45'] : (product.sizes || []);
+
   const [selectedColor, setSelectedColor] = useState<string>(product.colors[0]);
-  const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0]);
+  const [selectedSize, setSelectedSize] = useState<string>(effectiveSizes[0] || product.sizes[0] || 'Standard');
   const [quantity, setQuantity] = useState(1);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isShowingVideo, setIsShowingVideo] = useState(false);
@@ -216,11 +222,11 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
               )}
 
               {/* Size Selector */}
-              {product.sizes.length > 0 && (
+              {effectiveSizes.length > 0 && (
                 <div className="space-y-3">
                   <span className="text-[10px] font-black uppercase tracking-widest text-white/40">{t('shop.size')}</span>
                   <div className="grid grid-cols-5 gap-2">
-                    {product.sizes.map(size => (
+                    {effectiveSizes.map(size => (
                       <button
                         key={size}
                         onClick={() => setSelectedSize(size)}

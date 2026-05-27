@@ -64,6 +64,8 @@ interface StoreContextType {
   subscribeToPriceAlert: (productId: string, productName: string, email: string, targetPrice: number) => Promise<void>;
   unsubscribeFromPriceAlert: (productId: string) => Promise<void>;
   isSubscribedToPriceAlert: (productId: string) => boolean;
+  lightboxInfo: { imageUrl: string; title: string; allImages?: string[] } | null;
+  setLightboxInfo: (info: { imageUrl: string; title: string; allImages?: string[] } | null) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -128,6 +130,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [lightboxInfo, setLightboxInfo] = useState<{ imageUrl: string; title: string; allImages?: string[] } | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -590,6 +593,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 );
               }, 0);
               sessionStorage.setItem(alertKey, 'true');
+
+              // Dispatch real email alert notification to backend API
+              fetch('/api/price-alert/trigger', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  productId: alert.productId,
+                  productName: product.name,
+                  email: alert.userEmail,
+                  targetPrice: alert.targetPrice,
+                  currentPrice: currentPrice
+                })
+              }).catch(err => console.warn('Error triggering price alert email:', err));
             }
           }
         }
@@ -943,6 +959,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       active: true
     };
 
+    // Send direct API request to backend to send an immediate confirmation email
+    try {
+      fetch('/api/price-alert/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId,
+          productName,
+          email,
+          targetPrice,
+          initialPrice
+        })
+      }).then(res => res.json())
+        .then(data => {
+          if (data.success && data.emailSent) {
+            console.log('Price alert confirmation email sent successfully!');
+          }
+        })
+        .catch(err => console.warn('Error invoking price alert subscription email api:', err));
+    } catch (e) {
+      console.warn('Subscription confirmation email trigger skipped/failed:', e);
+    }
+
     if (!user) {
       // Offline guest alert
       setPriceAlerts(prev => {
@@ -951,8 +990,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
       showAlert(
         i18n.language === 'ar' 
-          ? 'تم الاشتراك بنجاح لتنبيهات السعر!' 
-          : 'Successfully subscribed to price alerts!',
+          ? 'تم الاشتراك بنجاح لتنبيهات السعر! تم إرسال تأكيد لبريدك الإلكتروني.' 
+          : 'Successfully subscribed to price alerts! Confirmation has been sent to your email.',
         'success'
       );
       return;
@@ -967,8 +1006,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       showAlert(
         i18n.language === 'ar' 
-          ? 'تم حفظ الاشتراك في حسابك بنجاح!' 
-          : 'Price alert successfully saved to your account!',
+          ? 'تم تفعيل تنبيه السعر وإرسال رسالة تأكيد لبريدك الإلكتروني!' 
+          : 'Price alert successfully saved! Confirmation sent to your email.',
         'success'
       );
     } catch (e) {
@@ -1041,7 +1080,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       isDarkMode, toggleDarkMode,
       settings, updateSettings,
       campaigns, addCampaign, updateCampaign, deleteCampaign,
-      priceAlerts, subscribeToPriceAlert, unsubscribeFromPriceAlert, isSubscribedToPriceAlert
+      priceAlerts, subscribeToPriceAlert, unsubscribeFromPriceAlert, isSubscribedToPriceAlert,
+      lightboxInfo, setLightboxInfo
     }}>
       {children}
     </StoreContext.Provider>

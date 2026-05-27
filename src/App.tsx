@@ -28,6 +28,7 @@ import PoliciesPage from './pages/PoliciesPage';
 import GiftAdvisorPage from './pages/GiftAdvisorPage';
 import AddProductModal from './components/AddProductModal';
 import QuickViewModal from './components/QuickViewModal';
+import { ImageLightboxModal } from './components/ImageLightboxModal';
 import { ChatWidget } from './components/ChatWidget';
 import { FortuneWheel } from './components/FortuneWheel';
 import { CartDrawer } from './components/CartDrawer';
@@ -59,6 +60,7 @@ const GlobalModals = () => {
           />
         )}
       </AnimatePresence>
+      <ImageLightboxModal />
       <CartDrawer />
     </>
   );

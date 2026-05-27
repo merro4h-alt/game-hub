@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
-import { ShoppingBag, Menu, X, Search, Globe, ChevronDown, User as UserIcon, LogOut, ShieldCheck, Package, LayoutDashboard, Sparkles, Heart, ArrowRight, Plus, Truck } from 'lucide-react';
+import { ShoppingBag, Menu, X, Search, Globe, ChevronDown, User as UserIcon, LogOut, ShieldCheck, Package, LayoutDashboard, Sparkles, Heart, ArrowRight, Plus, Truck, ShoppingCart } from 'lucide-react';
 import { useStore } from '../StoreContext';
 import Logo from './Logo';
 import { useAuth } from '../AuthContext';
@@ -173,24 +173,29 @@ const Navbar: React.FC = () => {
 
               <button 
                 onClick={() => setIsCartOpen(true)} 
-                className="relative text-brand-charcoal/70 hover:text-brand-charcoal transition-colors flex-shrink-0 p-1 sm:p-2 hover:bg-white rounded-xl cursor-pointer" 
+                className="relative text-brand-charcoal/70 hover:text-[#C5A037] transition-all flex-shrink-0 p-1.5 sm:p-2 hover:bg-white rounded-xl cursor-pointer flex items-center gap-1.5 border border-transparent hover:border-brand-gold/10" 
                 title={t('common.cart')}
               >
-                <ShoppingBag size={18} />
-                <AnimatePresence>
-                  {totalItems > 0 && (
-                    <motion.span 
-                      key={totalItems}
-                      initial={{ scale: 0.5, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.5, opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                      className="absolute top-0 right-0 bg-[#4F46E5] text-white text-[7px] w-3.5 h-3.5 flex items-center justify-center rounded-full font-black"
-                    >
-                      {totalItems}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+                <div className="relative">
+                  <ShoppingCart size={18} />
+                  <AnimatePresence>
+                    {totalItems > 0 && (
+                      <motion.span 
+                        key={totalItems}
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.5, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                        className="absolute -top-1.5 -right-1.5 bg-brand-gold text-brand-charcoal text-[7px] w-3.5 h-3.5 flex items-center justify-center rounded-full font-black border border-white"
+                      >
+                        {totalItems}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+                <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest">
+                  {i18n.language === 'ar' ? 'السلة' : 'Cart'}
+                </span>
               </button>
             </div>
 

@@ -97,6 +97,49 @@ const paymentMethodColors: Record<string, string> = {
   bank: "#3b82f6", // blue-500
 };
 
+// Elegant locally simulated brand logos for bulletproof loading with no raw wikimedia dependency
+const InlineVisaLogo = () => (
+  <span className="text-[9px] font-black italic text-[#1A1F71] bg-sky-50 px-1 py-0.5 rounded tracking-widest leading-none border border-sky-200/40 select-none shadow-[0_1px_1px_rgba(0,0,0,0.03)] font-sans">
+    VISA
+  </span>
+);
+
+const InlineMastercardLogo = () => (
+  <span className="flex items-center gap-0.5 bg-[#FFF9F5] px-1 py-0.5 rounded border border-orange-200/40 text-[9px] font-black text-[#1F1F1F] leading-none select-none shadow-[0_1px_1px_rgba(0,0,0,0.03)] font-sans">
+    <span className="flex -space-x-1 items-center">
+      <span className="w-2.5 h-2.5 rounded-full bg-[#EB001B] opacity-90" />
+      <span className="w-2.5 h-2.5 rounded-full bg-[#F79E1B] opacity-90 -ml-1" />
+    </span>
+    <span className="translate-y-[0.5px]">MC</span>
+  </span>
+);
+
+const InlineMadaLogo = () => (
+  <span className="text-[9px] font-black text-[#5C2D91] bg-purple-50 px-1 py-0.5 rounded tracking-tighter leading-none border border-purple-200/40 select-none shadow-[0_1px_1px_rgba(0,0,0,0.03)] font-sans">
+    mada
+  </span>
+);
+
+const GoogleIconSvg = ({ isSelected }: { isSelected: boolean }) => (
+  <svg viewBox="0 0 24 24" className={`w-5.5 h-5.5 transition-all duration-300 ${isSelected ? "brightness-110 drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.25)]" : ""}`} xmlns="http://www.w3.org/2000/svg">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.85z" fill="#FBBC05" />
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.85c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+  </svg>
+);
+
+const AppleIconSvg = ({ className }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 170 170" 
+    className={className} 
+    fill="currentColor"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.34.13-9.13-1.92-14.34-6.15-3.04-2.51-6.83-7.07-11.38-13.68-4.75-6.84-8.81-14.88-12.18-24.12-3.37-9.25-5.06-18.06-5.06-26.43 0-11.89 2.85-21.72 8.56-29.5 5.71-7.78 13.06-11.66 22.04-11.66 4.34 0 9.07 1.25 14.19 3.74 5.12 2.5 8.35 3.74 9.69 3.74 1.12 0 4.41-1.24 9.87-3.74 5.46-2.5 9.82-3.67 13.09-3.5 11.22.42 19.8 4.54 25.75 12.35-9.15 5.56-13.65 13.2-13.52 22.9.13 7.82 2.91 14.39 8.35 19.68 5.44 5.3 12.03 8.16 19.78 8.56.26-1.12.32-2.19.16-3.21zm-28.79-114.6c0-6.9 2.45-13.15 7.35-18.75 4.9-5.6 10.9-8.54 18-8.81.13 7.21-2.28 13.59-7.24 19.16-4.96 5.56-11.05 8.4-18.25 8.5-.13-.35-.23-.72-.34-1.1z"/>
+  </svg>
+);
+
 const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
@@ -108,7 +151,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const isArabic = i18n.language === "ar";
 
   const [paymentMethod, setPaymentMethod] = useState<
-    "card" | "cod" | "crypto" | "bank"
+    "card" | "cod" | "crypto" | "bank" | "googlepay" | "applepay"
   >("card");
   const [selectedCountry, setSelectedCountry] = useState("SA"); // Default to SA for better payment coverage
   const [phonePrefix, setPhonePrefix] = useState("+966");
@@ -1339,38 +1382,30 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           >
             <div className="flex flex-col flex-1 overflow-hidden">
               {/* Header */}
-              <div
-                className="p-4 text-white flex-shrink-0 relative transition-colors duration-500"
-                style={{
-                  backgroundColor:
-                    paymentMethodColors[paymentMethod] || "#000000",
-                }}
-              >
+              <div className="p-5 text-white flex-shrink-0 relative bg-[#121212] border-b border-[#C5A037]/25">
                 <div className="flex items-center justify-between">
                   <button
                     onClick={onClose}
-                    className="text-[10px] font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
+                    type="button"
+                    className="text-[10px] font-black uppercase tracking-widest hover:text-brand-gold transition-colors bg-white/5 hover:bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10"
                   >
                     {t("checkout.cancel")}
                   </button>
-                  <h2 className="text-sm font-bold absolute left-1/2 -translate-x-1/2 uppercase tracking-widest">
-                    {isArabic ? "طرق الدفع" : "Payment Methods"}
+                  <h2 className="text-sm font-black uppercase tracking-widest text-[#FFF8EB] flex items-center gap-1.5 absolute left-1/2 -translate-x-1/2">
+                    <ShieldCheck size={16} className="text-[#C5A037]" />
+                    {isArabic ? "بوابة الدفع" : "PAYMENT METHODS"}
                   </h2>
                   <div className="w-10"></div>
                 </div>
               </div>
 
               {/* Order Summary */}
-              <div
-                className="p-4 border-b border-brand-charcoal/5 flex justify-between items-center transition-colors duration-500"
-                style={{
-                  backgroundColor: `${paymentMethodColors[paymentMethod]}08`,
-                }}
-              >
-                <span className="text-brand-charcoal/80 font-bold text-xs uppercase tracking-wider">
+              <div className="py-4 px-6 border-b border-brand-charcoal/[0.04] flex justify-between items-center bg-[#FDFBF7]">
+                <span className="text-brand-charcoal/80 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse"></span>
                   {t("checkout.orderTotal")}
                 </span>
-                <span className="text-xl font-bold text-[#b12704]">
+                <span className="text-xl font-mono font-black text-[#b12704] tracking-tight">
                   {formatPrice(finalTotal)}
                 </span>
               </div>
@@ -1436,12 +1471,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 ) : (
                   <div className="space-y-8">
                     {/* Payment Selection Toggles */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 bg-brand-charcoal/[0.03] p-2 rounded-2xl gap-2 sm:gap-3 border border-brand-charcoal/5">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 bg-[#FDFBF7]/90 p-4 rounded-[32px] gap-3.5 border border-[#C5A037]/15 shadow-sm">
                       {(
                         [
                           "card",
-                          "bank",
                           "crypto",
+                          "applepay",
+                          "bank",
+                          "googlepay",
                           "cod",
                         ] as const
                       ).map((method) => {
@@ -1454,103 +1491,91 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                         if (method === "cod" && selectedCountry !== "IQ")
                           return null;
 
+                        const isSelected = paymentMethod === method;
+
+                        let containerClass = `flex items-center justify-center h-14 w-14 rounded-2xl transition-all duration-300 select-none ${
+                          isSelected
+                            ? "scale-110 shadow-md text-white"
+                            : "bg-brand-charcoal/[0.03] text-brand-charcoal/70 group-hover:bg-brand-charcoal/5 group-hover:text-brand-charcoal"
+                        }`;
+
+                        if (isSelected) {
+                          if (method === "card") {
+                            containerClass += " bg-gradient-to-br from-[#D4AF37] via-[#EBC053] to-[#A37E20] shadow-brand-gold/25";
+                          } else if (method === "googlepay") {
+                            containerClass += " bg-gradient-to-br from-[#151515] to-[#252525] shadow-black/20";
+                          } else if (method === "applepay") {
+                            containerClass += " bg-gradient-to-br from-[#27272A] to-[#09090B] shadow-black/35";
+                          } else if (method === "crypto") {
+                            containerClass += " bg-gradient-to-br from-[#F7931A] to-[#E85C0F] shadow-orange-500/25";
+                          } else if (method === "cod") {
+                            containerClass += " bg-gradient-to-br from-[#059669] to-[#047857] shadow-emerald-500/25";
+                          } else if (method === "bank") {
+                            containerClass += " bg-gradient-to-br from-[#C5A037] to-[#8C6F23] shadow-neutral-500/15";
+                          }
+                        }
+
                         return (
                           <button
                             key={method}
                             type="button"
                             onClick={() => setPaymentMethod(method)}
-                            className={`py-4 px-1 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all border-2 relative ${
-                              paymentMethod === method
-                                ? "bg-white text-brand-charcoal border-brand-gold shadow-lg shadow-brand-gold/10 scale-[1.02] z-10"
-                                : "bg-white/40 text-brand-charcoal/30 border-transparent hover:border-brand-gold/10 hover:bg-white/60"
+                            className={`p-4 rounded-[26px] flex flex-col items-center justify-center gap-3 transition-all border-2 relative select-none cursor-pointer duration-500 group ${
+                              isSelected
+                                ? "bg-white text-[#C5A037] border-[#C5A037] shadow-xl shadow-[#C5A037]/10 scale-[1.03] z-10"
+                                : "bg-white/40 text-brand-charcoal/40 border-transparent hover:border-[#C5A037]/20 hover:bg-white/90 hover:scale-[1.01]"
                             }`}
                           >
-                            {paymentMethod === method && (
-                              <div className="absolute -top-2 -right-2 bg-brand-gold text-white rounded-full p-1 shadow-lg z-20">
-                                <ShieldCheck size={12} fill="currentColor" />
+                            {isSelected && (
+                              <div className="absolute top-2.5 right-2.5 bg-[#C5A037] text-white rounded-full p-0.5 shadow-md z-20 animate-in fade-in zoom-in-50 duration-200">
+                                <ShieldCheck size={11} fill="currentColor" />
                               </div>
                             )}
-                            <div
-                              className={`flex items-center justify-center h-12 w-12 rounded-2xl transition-all shadow-sm ${
-                                paymentMethod === method
-                                  ? "rotate-3 scale-110 shadow-lg"
-                                  : "bg-brand-charcoal/5 hover:bg-brand-charcoal/10"
-                              }`}
-                              style={{
-                                backgroundColor:
-                                  paymentMethod === method
-                                    ? paymentMethodColors[method]
-                                    : "transparent",
-                                color:
-                                  paymentMethod === method
-                                    ? "white"
-                                    : "inherit",
-                              }}
-                            >
+                            
+                            <div className={containerClass}>
                               {method === "card" ? (
-                                <div className="flex flex-col items-center gap-0.5">
-                                  <CreditCard
-                                    size={20}
-                                    strokeWidth={2.5}
-                                    className={
-                                      paymentMethod === method
-                                        ? "text-white"
-                                        : "text-[#2563eb]"
-                                    }
-                                  />
-                                  <div className="flex gap-0.5 scale-75 opacity-100">
-                                    <img
-                                      src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg"
-                                      className={`h-1.5 w-auto ${paymentMethod === method ? "brightness-0 invert" : ""}`}
-                                      alt="Visa"
+                                <div className="flex flex-col items-center justify-center w-full h-full relative p-1">
+                                  <div className="relative">
+                                    <CreditCard
+                                      size={24}
+                                      strokeWidth={1.8}
+                                      className={
+                                        isSelected
+                                          ? "text-white drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.15)]"
+                                          : "text-[#C5A037]"
+                                      }
                                     />
-                                    <img
-                                      src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg"
-                                      className={`h-1.5 w-auto ${paymentMethod === method ? "brightness-0 invert" : ""}`}
-                                      alt="MC"
-                                    />
+                                    {/* Beautiful simulated gold microchip */}
+                                    <div className={`absolute top-1 left-0.5 w-2 h-1.5 rounded-[1.5px] transition-all duration-300 ${isSelected ? "bg-[#FFEFA6] shadow-sm animate-pulse" : "bg-[#C5A037]/40"}`} />
                                   </div>
                                 </div>
                               ) : method === "bank" ? (
-                                <div className="flex flex-col items-center">
-                                  <Building2 size={22} strokeWidth={2.5} />
+                                <div className="flex flex-col items-center justify-center">
+                                  <Building2 size={24} strokeWidth={1.8} className={isSelected ? "text-white" : "text-[#4B5563]"} />
                                 </div>
                               ) : method === "cod" ? (
                                 <div
-                                  className={`flex flex-col items-center -space-y-1 ${paymentMethod === method ? "text-white" : "text-[#059669]"}`}
+                                  className={`flex flex-col items-center justify-center -space-y-0.5 ${isSelected ? "text-white" : "text-[#059669]"}`}
                                 >
-                                  <Truck size={22} strokeWidth={2.5} />
+                                  <Truck size={22} strokeWidth={1.8} />
                                   <Banknote
                                     size={12}
-                                    strokeWidth={3}
+                                    strokeWidth={2}
                                     className="translate-y-0.5"
                                   />
                                 </div>
                               ) : (method as string) === "googlepay" ? (
-                                <div className="flex flex-col items-center gap-1">
-                                  <img
-                                    src="https://upload.wikimedia.org/wikipedia/commons/c/c7/Google_Pay_Logo_%282020%29.svg"
-                                    className={`h-5 w-auto ${paymentMethod === method ? "brightness-0 invert" : ""}`}
-                                    alt="Google Pay"
-                                  />
+                                <div className="flex flex-col items-center justify-center w-full h-full p-1 gap-1">
+                                  <GoogleIconSvg isSelected={isSelected} />
                                 </div>
                               ) : (method as string) === "applepay" ? (
-                                <div className="flex items-center gap-0.5">
-                                  <img
-                                    src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
-                                    className={`h-4 w-auto ${paymentMethod === method ? "brightness-0 invert" : ""}`}
-                                    alt="Apple"
-                                  />
-                                  <span
-                                    className={`text-[10px] font-black tracking-tighter ${paymentMethod === method ? "text-white" : "text-brand-charcoal"}`}
-                                  >
-                                    Pay
-                                  </span>
+                                <div className="flex items-center justify-center gap-0.5 w-full h-full">
+                                  <AppleIconSvg className={`h-6.5 w-auto ${isSelected ? "text-white" : "text-brand-charcoal"}`} />
                                 </div>
                               ) : method === "crypto" ? (
-                                <div className="flex items-center justify-center bg-white rounded-full w-8 h-8">
+                                <div className="flex items-center justify-center bg-white rounded-full w-9 h-9 shadow-sm">
                                   <Bitcoin
-                                    size={20}
+                                    size={22}
                                     className="text-[#f7931a]"
                                   />
                                 </div>
@@ -1558,14 +1583,52 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                 <Banknote size={24} />
                               )}
                             </div>
+
+                            {/* Enhanced brand subtitles & labels below the button's action circle */}
+                            {method === "card" && (
+                              <div className="flex gap-1 select-none items-center justify-center scale-[0.85] opacity-95">
+                                <InlineVisaLogo />
+                                <InlineMastercardLogo />
+                                <InlineMadaLogo />
+                              </div>
+                            )}
+
+                            {method === "crypto" && (
+                              <div className="text-[8px] font-mono font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/30">
+                                BTC / USDT
+                              </div>
+                            )}
+
+                            {method === "googlepay" && (
+                              <div className="text-[8px] font-sans font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/20">
+                                G PAY
+                              </div>
+                            )}
+
+                            {method === "applepay" && (
+                              <div className="text-[8px] font-sans font-black text-zinc-800 bg-zinc-50 px-1.5 py-0.5 rounded border border-zinc-200/20">
+                                APPLE PAY
+                              </div>
+                            )}
+
+                            {method === "bank" && (
+                              <div className="text-[8px] font-mono font-black text-[#C5A037] bg-amber-50/50 px-1.5 py-0.5 rounded border border-amber-200/20">
+                                IBAN DIRECT
+                              </div>
+                            )}
+
+                            {method === "cod" && (
+                              <div className="text-[8px] font-sans font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/20">
+                                {isArabic ? "نقدي" : "HAND CASH"}
+                              </div>
+                            )}
+                            
                             <span
-                              className={`text-[9px] font-black uppercase tracking-wider whitespace-nowrap text-center transition-all ${paymentMethod === method ? "" : "text-brand-charcoal/40"}`}
-                              style={{
-                                color:
-                                  paymentMethod === method
-                                    ? paymentMethodColors[method]
-                                    : "",
-                              }}
+                              className={`text-[10.5px] font-black uppercase tracking-wider whitespace-nowrap text-center transition-all ${
+                                isSelected 
+                                  ? "text-brand-charcoal font-black scale-105" 
+                                  : "text-brand-charcoal/50 group-hover:text-brand-charcoal/80"
+                              }`}
                             >
                               {(method as string) === "googlepay"
                                 ? isArabic
