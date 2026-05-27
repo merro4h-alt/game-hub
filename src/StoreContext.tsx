@@ -762,7 +762,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateProduct = async (updatedProduct: Product) => {
     try {
       const { db, handleFirestoreError, OperationType } = await import('./lib/firebase');
-      const { doc, setDoc } = await import('firebase/firestore');
+      const { doc, setDoc, deleteField } = await import('firebase/firestore');
       
       console.log(`Attempting to update product ${updatedProduct.id} in Firestore`);
       
@@ -771,7 +771,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         throw new Error("Product data missing name or price");
       }
 
-      await setDoc(doc(db, 'products', updatedProduct.id), updatedProduct, { merge: true });
+      // Convert missing or empty optional fields to deleteField() so they are properly deleted from Firestore
+      const updateData: any = { ...updatedProduct };
+      const optionalFields = [
+        'discountPrice',
+        'colorPrices',
+        'colorDiscountPrices',
+        'colorImages',
+        'supplierFormCompleted',
+        'supplierName',
+        'supplierUrl',
+        'videoUrl',
+        'variantId'
+      ];
+      
+      optionalFields.forEach(field => {
+        if (
+          updateData[field] === undefined || 
+          updateData[field] === null || 
+          (typeof updateData[field] === 'object' && !Array.isArray(updateData[field]) && Object.keys(updateData[field]).length === 0)
+        ) {
+          updateData[field] = deleteField();
+        }
+      });
+
+      await setDoc(doc(db, 'products', updatedProduct.id), updateData, { merge: true });
       console.log(`Successfully updated product ${updatedProduct.id} in Firestore`);
       showAlert(i18n.language === 'ar' ? 'تم تحديث المنتج بنجاح!' : 'Product updated successfully!', 'success');
     } catch (error: any) {
