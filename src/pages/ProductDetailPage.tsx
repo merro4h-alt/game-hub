@@ -21,22 +21,18 @@ import {
   Sparkles,
   Gift,
   CheckCircle2,
-  Bell,
-  BellRing
 } from 'lucide-react';
 import { useStore } from '../StoreContext';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { Product } from '../types';
 import ProductCard from '../components/ProductCard';
-import { useAuth } from '../AuthContext';
 import { useAlert } from '../contexts/AlertContext';
 
 const ProductDetailPage: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
   const { 
-    products, addToCart, recentlyViewed, addToRecentlyViewed, formatPrice, toggleWishlist, isInWishlist,
-    priceAlerts, subscribeToPriceAlert, unsubscribeFromPriceAlert, isSubscribedToPriceAlert
+    products, addToCart, recentlyViewed, addToRecentlyViewed, formatPrice, toggleWishlist, isInWishlist
   } = useStore();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -106,24 +102,7 @@ const ProductDetailPage: React.FC = () => {
     }
   }, [product, recommendedProducts]);
 
-  const { user } = useAuth();
-  const [alertEmail, setAlertEmail] = useState('');
-  const [alertTargetPrice, setAlertTargetPrice] = useState('');
 
-  // Pre-fill target price and email when product status or user changes
-  useEffect(() => {
-    if (product) {
-      const activePrice = product.colorDiscountPrices?.[selectedColor] ?? product.discountPrice ?? product.colorPrices?.[selectedColor] ?? product.price;
-      // Default price alert to a 10% lower price than current
-      setAlertTargetPrice(String(Math.round(activePrice * 0.9)));
-    }
-  }, [product, selectedColor]);
-
-  useEffect(() => {
-    if (user?.email) {
-      setAlertEmail(user.email);
-    }
-  }, [user]);
 
   useEffect(() => {
     if (product) {
@@ -502,134 +481,8 @@ const ProductDetailPage: React.FC = () => {
             </button>
           </div>
 
-          {/* Price Alert Subscription Card */}
-          <div className="mb-8 p-6 rounded-3xl bg-white/5 border border-white/10 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-brand-gold/5 rounded-full blur-3xl pointer-events-none" />
-            
-            {isSubscribedToPriceAlert(product.id) ? (
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-3 text-brand-gold">
-                  <div className="w-10 h-10 rounded-2xl bg-brand-gold/10 flex items-center justify-center">
-                    <BellRing size={20} className="animate-pulse text-brand-gold" />
-                  </div>
-                  <div>
-                    <h4 className="font-black uppercase tracking-wider text-xs">
-                      {i18n.language === 'ar' ? 'تنبيه انخفاض السعر مفعل!' : 'Price Drop Alert Active!'}
-                    </h4>
-                    <p className="text-[11px] text-white/40">
-                      {i18n.language === 'ar' ? 'نحن نراقب التحديثات لك' : 'We are monitoring price changes for you'}
-                    </p>
-                  </div>
-                </div>
 
-                {(() => {
-                  const sub = priceAlerts.find(a => a.productId === product.id);
-                  return (
-                    <div className="text-xs text-white/70 space-y-1.5 leading-relaxed bg-white/5 p-4 rounded-2xl border border-white/5">
-                      <p className="flex justify-between items-center gap-2">
-                        <span className="text-white/40">{i18n.language === 'ar' ? 'البريد المستهدف:' : 'Alert email:'}</span>
-                        <strong className="text-white font-mono break-all">{sub?.userEmail}</strong>
-                      </p>
-                      <p className="flex justify-between items-center gap-2">
-                        <span className="text-white/40">{i18n.language === 'ar' ? 'السعر المستهدف:' : 'Target Price:'}</span>
-                        <strong className="text-brand-gold font-mono">{formatPrice(sub?.targetPrice ?? 0)}</strong>
-                      </p>
-                    </div>
-                  );
-                })()}
 
-                <button
-                  onClick={() => unsubscribeFromPriceAlert(product.id)}
-                  className="w-full py-3 bg-red-950/20 text-red-400 hover:bg-red-900/40 border border-red-900/30 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all"
-                >
-                  {i18n.language === 'ar' ? 'إلغاء تنبيه السعر' : 'Cancel Price Alert'}
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-3 text-brand-gold">
-                  <div className="w-10 h-10 rounded-2xl bg-brand-gold/10 flex items-center justify-center">
-                    <Bell size={20} className="text-brand-gold" />
-                  </div>
-                  <div>
-                    <h4 className="font-black text-white text-sm">
-                      {i18n.language === 'ar' ? 'اشتراك تنبيه الأسعار' : 'Price Alert Subscription'}
-                    </h4>
-                    <p className="text-[10px] text-white/40 uppercase tracking-widest font-black">
-                      {i18n.language === 'ar' ? 'اشترك لتنبيهك فور انخفاض السعر' : 'Get instant alerts when the price drops'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Target Price Selector */}
-                <div className="grid grid-cols-3 gap-2">
-                  {[10, 20, 30].map((percent) => {
-                    const activePrice = product.colorDiscountPrices?.[selectedColor] ?? product.discountPrice ?? product.colorPrices?.[selectedColor] ?? product.price;
-                    const calculatedTarget = Math.round(activePrice * (1 - percent / 100));
-                    return (
-                      <button
-                        key={percent}
-                        type="button"
-                        onClick={() => setAlertTargetPrice(String(calculatedTarget))}
-                        className={`py-2 px-1 rounded-xl text-[10px] font-mono font-black transition-all border flex flex-col items-center gap-0.5 ${
-                          alertTargetPrice === String(calculatedTarget)
-                            ? 'bg-brand-gold/20 text-brand-gold border-brand-gold/50'
-                            : 'bg-white/5 text-white/60 border-white/5 hover:border-white/20'
-                        }`}
-                      >
-                        <span>-{percent}%</span>
-                        <span className="text-white font-bold">{formatPrice(calculatedTarget)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Custom price input or manual target check */}
-                <div className="space-y-3">
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-white/30 tracking-wider pointer-events-none">
-                      {i18n.language === 'ar' ? 'السعر المستهدف' : 'Target Price'}
-                    </span>
-                    <input
-                      type="number"
-                      value={alertTargetPrice}
-                      onChange={(e) => setAlertTargetPrice(e.target.value)}
-                      placeholder="0"
-                      className="w-full text-right bg-white/5 border border-white/10 rounded-2xl py-3 pl-24 pr-4 font-mono font-bold text-xs text-brand-gold focus:outline-none focus:ring-1 focus:ring-brand-gold/30 focus:border-brand-gold/40"
-                    />
-                  </div>
-
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-white/30 tracking-wider pointer-events-none">
-                      {i18n.language === 'ar' ? 'البريد الإلكتروني' : 'Your Email'}
-                    </span>
-                    <input
-                      type="email"
-                      value={alertEmail}
-                      onChange={(e) => setAlertEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="w-full text-right bg-white/5 border border-white/10 rounded-2xl py-3 pl-24 pr-4 font-sans text-xs text-white focus:outline-none focus:ring-1 focus:ring-brand-gold/30 focus:border-brand-gold/40"
-                    />
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      if (!alertEmail) {
-                        return;
-                      }
-                      if (!alertTargetPrice || parseFloat(alertTargetPrice) <= 0) {
-                        return;
-                      }
-                      subscribeToPriceAlert(product.id, product.name, alertEmail, parseFloat(alertTargetPrice));
-                    }}
-                    className="w-full py-4 bg-brand-gold text-white hover:bg-white hover:text-black rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95"
-                  >
-                    {i18n.language === 'ar' ? 'اشترك الآن مجاناً' : 'Subscribe Free Now'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Social Proof & Urgency */}
           <div className="mb-10 p-6 rounded-3xl bg-brand-gold/5 border border-brand-gold/10 flex items-start gap-4">

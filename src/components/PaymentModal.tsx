@@ -20,6 +20,7 @@ import {
   Info,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { useStore } from "../StoreContext";
 import { useAlert } from "../contexts/AlertContext";
 import { db, auth } from "../lib/firebase";
@@ -145,6 +146,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   onClose,
   total,
 }) => {
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { clearCart, cart, formatPrice, setCurrency, settings } = useStore();
   const { showAlert } = useAlert();
@@ -1458,9 +1460,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                           </span>
                         </div>
                         <button
-                          onClick={() =>
-                            (window.location.href = `/track/${orderInfo.trackingId}`)
-                          }
+                          onClick={() => {
+                            navigate(`/track/${orderInfo.trackingId}`);
+                            onClose();
+                          }}
                           className="w-full bg-brand-charcoal text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-brand-gold transition-all shadow-lg active:scale-95"
                         >
                           <MapPin size={18} /> {texts.trackNow}
