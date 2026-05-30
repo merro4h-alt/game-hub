@@ -2,13 +2,14 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from './contexts/AlertContext';
-import { auth, checkIfAdmin, loginWithGoogle, logout, onAuthStateListener } from './lib/firebase';
+import { auth, checkIfAdmin, loginWithGoogle, loginWithEmail as signInWithEmail, logout, onAuthStateListener } from './lib/firebase';
 
 interface AuthContextType {
   user: User | null;
   isAdmin: boolean;
   loading: boolean;
   login: () => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
   signout: () => Promise<void>;
 }
 
@@ -35,6 +36,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const adminStatus = await checkIfAdmin(currentUser);
           console.log("Admin status for", currentUser.email, ":", adminStatus);
+          
+          // If logged in via email/password, verify that they are an admin
+          const isEmailProvider = currentUser.providerData?.some(p => p.providerId === 'password');
+          if (isEmailProvider && !adminStatus) {
+            console.warn("Non-admin user signed in using email provider, logging out...");
+            if (isMounted) {
+              setUser(null);
+              setIsAdmin(false);
+              setLoading(false);
+            }
+            await logout();
+            showAlert(i18n.language === 'ar' 
+              ? 'تسجيل الدخول بالبريد الإلكتروني مخصص للمشرفين فقط.' 
+              : 'Email sign-in is restricted to administrators only.', 'error');
+            return;
+          }
+
           if (isMounted) setIsAdmin(adminStatus);
         } catch (error) {
           console.warn("Auth check failed", error);
@@ -77,6 +95,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         : `This domain (${currentDomain}) is not authorized in Firebase.\n\nPlease open your project in Firebase Console and add this domain:\nhttps://console.firebase.google.com/project/${projectId}/authentication/settings`);
     } else if (errorCode === 'auth/network-request-failed') {
       showAlert(i18n.language === 'ar' ? 'خطأ في الاتصال بالإنترنت.' : 'Network error. Check your connection.');
+    } else if (errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
+      showAlert(i18n.language === 'ar'
+        ? 'بيانات الاعتماد غير صالحة. يرجى التحقق من البريد الإلكتروني وكلمة المرور.'
+        : 'Invalid credentials. Please verify your email and password.');
+    } else if (errorCode === 'auth/user-not-found') {
+      showAlert(i18n.language === 'ar'
+        ? 'البريد الإلكتروني المدخل غير مسجل.'
+        : 'The entered email is not registered.');
+    } else if (errorCode === 'auth/invalid-email') {
+      showAlert(i18n.language === 'ar'
+        ? 'البريد الإلكتروني غير صالح.'
+        : 'Invalid email address.');
+    } else if (errorCode === 'auth/too-many-requests') {
+      showAlert(i18n.language === 'ar'
+        ? 'تم حظر الوصول إلى هذا الحساب مؤقتًا بسبب كثرة محاولات تسجيل الدخول الفاشلة.'
+        : 'Too many failed login attempts. Access to this account has been temporarily blocked.');
     } else {
       showAlert(`${errorPrefix}${error.message || errorCode}`);
     }
@@ -96,6 +130,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginWithEmail = async (email: string, password: string) => {
+    try {
+      console.log("Initiating email login process for:", email);
+      const loggedUser = await signInWithEmail(email, password);
+      if (loggedUser) {
+        console.log("Logged in with email, UID:", loggedUser.uid);
+        const adminStatus = await checkIfAdmin(loggedUser);
+        if (!adminStatus) {
+          console.warn("Non-admin user tried to sign in using email provider inside loginWithEmail. Signing out...");
+          await logout();
+          showAlert(i18n.language === 'ar' 
+            ? 'تسجيل الدخول بالبريد الإلكتروني مخصص للمشرفين فقط.' 
+            : 'Email sign-in is restricted to administrators only.', 'error');
+          throw new Error(i18n.language === 'ar' 
+            ? 'هذا الحساب ليس له صلاحيات المسؤول.' 
+            : 'This account does not have admin privileges.');
+        }
+      }
+    } catch (error: any) {
+      handleLoginError(error);
+      throw error;
+    }
+  };
+
   const signout = async () => {
     try {
       await logout();
@@ -105,7 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, loading, login, signout }}>
+    <AuthContext.Provider value={{ user, isAdmin, loading, login, loginWithEmail, signout }}>
       {children}
     </AuthContext.Provider>
   );

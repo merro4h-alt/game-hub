@@ -264,7 +264,7 @@ const resources = {
         "manualFulfillment": "Manual fulfillment",
         "stepsToFixAccess": "Steps to Fix Access",
         "authorizedDomains": "Authorized Domains",
-        "howToFixLoginDesc": "If login fails or shows an error, you must add your domains (like ahstore.shop) to the Firebase whitelist in your console settings.",
+        "howToFixLoginDesc": "If login fails or shows an error, you must add your domains (like onxifi.com) to the Firebase whitelist in your console settings.",
         "welcomeAdmin": "Welcome back, {{name}}",
         "inventory": "Inventory",
         "stats": {
@@ -641,7 +641,7 @@ const resources = {
         "manualFulfillment": "تنفيذ يدوي",
         "stepsToFixAccess": "خطوات إصلاح الوصول",
         "authorizedDomains": "النطاقات المصرح بها",
-        "howToFixLoginDesc": "إذا فشل تسجيل الدخول أو ظهر خطأ، يجب عليك إضافة النطاقات الخاصة بك (مثل ahstore.shop) إلى القائمة البيضاء في إعدادات Firebase.",
+        "howToFixLoginDesc": "إذا فشل تسجيل الدخول أو ظهر خطأ، يجب عليك إضافة النطاقات الخاصة بك (مثل onxifi.com) إلى القائمة البيضاء في إعدادات Firebase.",
         "welcomeAdmin": "مرحباً بك مجدداً، {{name}}",
         "inventory": "المخزون",
         "stats": {

@@ -332,9 +332,9 @@ Total: $${total.toFixed(2)}
       `;
 
       const mailOptions = {
-        from: `"AMEER ALI Store" <${process.env.EMAIL_USER || 'noreply@ahstore.shop'}>`,
+        from: `"ONXIFI Store" <${process.env.EMAIL_USER || 'noreply@onxifi.com'}>`,
         to: emailTo || 'merro4h@gmail.com',
-        subject: `New Order #${trackingId} from ${name} - AMEER ALI Store`,
+        subject: `New Order #${trackingId} from ${name} - ONXIFI Store`,
         text: orderSummary,
         html: htmlBody
       };
@@ -364,7 +364,7 @@ Total: $${total.toFixed(2)}
       if (accountSid && authToken && fromWhatsApp) {
         const client = twilio(accountSid, authToken);
         await client.messages.create({
-          body: `*AMEER ALI Store - New Order #${trackingId}*\n\nTrack here: ${trackingLink}\n\n${orderSummary}`,
+          body: `*ONXIFI Store - New Order #${trackingId}*\n\nTrack here: ${trackingLink}\n\n${orderSummary}`,
           from: fromWhatsApp,
           to: toWhatsApp
         });

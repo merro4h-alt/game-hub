@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import HeroSlider from '../components/HeroSlider';
 import ProductCard from '../components/ProductCard';
+import { ProductStories } from '../components/ProductStories';
 import { useStore } from '../StoreContext';
 import { INITIAL_PRODUCTS } from '../constants';
 import { ListingSkeleton } from '../components/ProductSkeleton';
@@ -210,6 +211,8 @@ const HomePage: React.FC = () => {
   return (
     <div className="bg-[#0A0A0B] text-white min-h-screen">
       <HeroSlider />
+      
+      <ProductStories />
 
       {/* Elegant Swipeable Category Slider */}
       <div className="relative max-w-7xl mx-auto px-4 md:px-8 py-8 z-20 group/slider">
@@ -374,39 +377,7 @@ const HomePage: React.FC = () => {
 
       <ShopTheLook />
 
-      {/* AI Gift Advisor Section Callout */}
-      <section className="py-24 relative overflow-hidden bg-black/40 border-t border-b border-white/5">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-gold/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="bg-gradient-to-br from-[#121213] to-[#1A1A1E] p-10 md:p-16 rounded-[3rem] border border-white/5 flex flex-col md:flex-row items-center justify-between gap-12 shadow-2xl">
-            <div className="max-w-2xl space-y-6 text-left rtl:text-right">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand-gold/15 text-[#EAD8B1] border border-brand-gold/20 rounded-full text-[10px] font-black uppercase tracking-widest leading-none">
-                <Sparkles size={12} className="text-[#C5A031]" />
-                {i18n.language === 'ar' ? 'مستشار الهدايا الذكي' : 'AI Smart Concept'}
-              </span>
-              <h3 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-                {i18n.language === 'ar' ? 'مستشار الهدايا الذكي والانتقاء الفوري' : 'Confused About What Gift to Buy?'} <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C5A05B] to-[#EAD8B1] italic font-serif">
-                  {i18n.language === 'ar' ? 'دع الذكاء الاصطناعي ينتقيها لك' : 'Let AI Choose from our catalog'}
-                </span>
-              </h3>
-              <p className="text-white/55 text-base font-light leading-relaxed">
-                {i18n.language === 'ar'
-                  ? 'أجب عن بضعة أسئلة بسيطة وسيرشح لك مستشار الهدايا تفاصيل كروت الإهداء الملائمة وأجود المنتجات لميزانيتك بدعم من نماذج Gemini.'
-                  : 'Answer simple questions and let our Gemini-guided model suggest the finest products from our lifestyle inventory with custom greetings and packaging guides.'}
-              </p>
-            </div>
-            
-            <Link 
-              to="/gift-advisor" 
-              className="px-10 py-5 bg-[#C5A05B] hover:bg-[#EAD8B1] text-[#0A0A0B] font-black uppercase text-xs tracking-widest rounded-2xl transition-all shadow-xl shadow-brand-gold/15 flex items-center gap-2 flex-shrink-0 cursor-pointer"
-            >
-              <Gift size={16} />
-              {i18n.language === 'ar' ? 'جرّب الانتقاء الذكي الآن' : 'Try Smart Advisor'}
-            </Link>
-          </div>
-        </div>
-      </section>
+
 
       {/* 100% Secure & Golden Guarantees Section */}
       <section id="trust-guarantees-section" className="py-24 relative overflow-hidden bg-gradient-to-b from-black/20 to-black/80 border-b border-white/5">

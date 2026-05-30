@@ -24,6 +24,10 @@ export const FortuneWheel: React.FC = () => {
   const [wonSlice, setWonSlice] = useState<Slice | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // 24 hours cooldown limit states
+  const [lastSpinTime, setLastSpinTime] = useState<number | null>(null);
+  const [cooldownTimeLeft, setCooldownTimeLeft] = useState<number>(0);
+
   // Define the five discount slices specified by the user (5%, 10%, 15%, 20%, 25%)
   const slices: Slice[] = useMemo(() => [
     { percent: 5, code: 'LUCKY5', color: '#FFFFFF', bgColor: '#1A1A1A', labelAr: 'خصم 5%', labelEn: '5% OFF' },
@@ -83,22 +87,98 @@ export const FortuneWheel: React.FC = () => {
     }
   };
 
-  // Check local storage on mount to see if user has already won a code
+  // Check local storage on mount to see if user has already won a code and if 24 hours has passed
   useEffect(() => {
     try {
-      const storedHasSpun = localStorage.getItem('onxifi_wheel_spun') || localStorage.getItem('trendifi_wheel_spun');
+      const storedLastSpin = localStorage.getItem('onxifi_wheel_last_spin');
       const storedWonCode = localStorage.getItem('onxifi_wheel_code') || localStorage.getItem('trendifi_wheel_code');
       const storedWonPercent = localStorage.getItem('onxifi_wheel_percent') || localStorage.getItem('trendifi_wheel_percent');
 
-      if (storedHasSpun === 'true' && storedWonCode && storedWonPercent) {
-        setHasSpun(true);
-        const matched = slices.find(s => s.code === storedWonCode) || slices[2];
-        setWonSlice(matched);
+      if (storedLastSpin) {
+        const lastTime = parseInt(storedLastSpin, 10);
+        const elapsed = Date.now() - lastTime;
+        const cooldown = 24 * 60 * 60 * 1000; // 24 hours
+
+        if (elapsed < cooldown) {
+          setHasSpun(true);
+          setLastSpinTime(lastTime);
+          setCooldownTimeLeft(cooldown - elapsed);
+          
+          if (storedWonCode && storedWonPercent) {
+            const matched = slices.find(s => s.code === storedWonCode) || slices[2];
+            setWonSlice(matched);
+          }
+        } else {
+          // Cooldown has expired, reset the state
+          setHasSpun(false);
+          setWonSlice(null);
+          setLastSpinTime(null);
+          setCooldownTimeLeft(0);
+          localStorage.removeItem('onxifi_wheel_spun');
+          localStorage.removeItem('onxifi_wheel_last_spin');
+          localStorage.removeItem('onxifi_wheel_code');
+          localStorage.removeItem('onxifi_wheel_percent');
+        }
+      } else {
+        // Fallback for legacy "onxifi_wheel_spun" flag
+        const legacySpun = localStorage.getItem('onxifi_wheel_spun') || localStorage.getItem('trendifi_wheel_spun');
+        if (legacySpun === 'true') {
+          // Treat as if spun 12 hours ago
+          const approxLastTime = Date.now() - (12 * 60 * 60 * 1000);
+          localStorage.setItem('onxifi_wheel_last_spin', approxLastTime.toString());
+          setHasSpun(true);
+          setLastSpinTime(approxLastTime);
+          setCooldownTimeLeft(12 * 60 * 60 * 1000);
+          if (storedWonCode) {
+            const matched = slices.find(s => s.code === storedWonCode) || slices[2];
+            setWonSlice(matched);
+          }
+        }
       }
     } catch {
-      // Local storage sandbox exception
+      // Local storage exception
     }
   }, [slices]);
+
+  // Handle the active cooldown timer decrement
+  useEffect(() => {
+    if (cooldownTimeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setCooldownTimeLeft((prev) => {
+        if (prev <= 1000) {
+          clearInterval(timer);
+          setHasSpun(false);
+          setWonSlice(null);
+          setLastSpinTime(null);
+          try {
+            localStorage.removeItem('onxifi_wheel_spun');
+            localStorage.removeItem('onxifi_wheel_last_spin');
+            localStorage.removeItem('onxifi_wheel_code');
+            localStorage.removeItem('onxifi_wheel_percent');
+          } catch {}
+          return 0;
+        }
+        return prev - 1000;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [cooldownTimeLeft]);
+
+  const formatCooldown = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const pad = (n: number) => n.toString().padStart(2, '0');
+
+    if (isRtl) {
+      return `${hours} ساعة و ${minutes} دقيقة و ${seconds} ثانية`;
+    }
+    return `${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
+  };
 
   // Handle the interactive dynamic spin
   const handleSpin = () => {
@@ -142,9 +222,14 @@ export const FortuneWheel: React.FC = () => {
       setWonSlice(targetSlice);
       playWinSound();
 
+      const now = Date.now();
+      setLastSpinTime(now);
+      setCooldownTimeLeft(24 * 60 * 60 * 1000);
+
       // Persist to prevent abuse & remember the code they got
       try {
         localStorage.setItem('onxifi_wheel_spun', 'true');
+        localStorage.setItem('onxifi_wheel_last_spin', now.toString());
         localStorage.setItem('onxifi_wheel_code', targetSlice.code);
         localStorage.setItem('onxifi_wheel_percent', targetSlice.percent.toString());
       } catch {
@@ -425,6 +510,17 @@ export const FortuneWheel: React.FC = () => {
                         {isRtl ? 'إغلاق' : 'Close'}
                       </button>
                     </div>
+
+                    {cooldownTimeLeft > 0 && (
+                      <div className="bg-amber-500/5 border border-[#C5A05B]/10 rounded-2xl p-2.5 text-center my-2">
+                        <span className="text-[9px] font-black text-brand-gold block uppercase mb-1">
+                          {isRtl ? 'يمكنك تدوير العجلة مرة أخرى بعد:' : 'Next Spin Available In:'}
+                        </span>
+                        <span className="font-mono text-xs font-black text-brand-gold block animate-pulse">
+                          {formatCooldown(cooldownTimeLeft)}
+                        </span>
+                      </div>
+                    )}
 
                     <p className="text-[8px] text-brand-charcoal/30 font-bold">
                       {langText.terms}

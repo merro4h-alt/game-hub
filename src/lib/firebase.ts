@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, User, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, doc, getDoc, getDocFromServer, collection, getDocs, updateDoc, deleteDoc, setDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, Timestamp } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -108,6 +108,40 @@ export const loginWithGoogle = async () => {
     return result.user;
   } catch (error) {
     console.warn("Login error in helper:", error);
+    throw error;
+  }
+};
+
+// Login with email/password helper
+export const loginWithEmail = async (email: string, password: string) => {
+  if (isMock) {
+    throw new Error("Firebase is not correctly configured. Please check your setup.");
+  }
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    return result.user;
+  } catch (error: any) {
+    console.warn("Email login failed, checking if we should auto-register this admin:", error);
+    
+    const whitelistedEmails = ['kmerro25@gmail.com', 'merro4h@gmail.com'];
+    const isAdminEmail = whitelistedEmails.some(e => e.toLowerCase() === email.toLowerCase());
+    
+    // If it's a whitelisted admin and they get a credential/not-found/wrong-password error for first sign in, try auto-registering
+    if (isAdminEmail && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')) {
+      try {
+        console.log("Admin email not registered as password credential. Attempting to create user...");
+        const createResult = await createUserWithEmailAndPassword(auth, email, password);
+        console.log("Successfully created admin email password account:", createResult.user.uid);
+        return createResult.user;
+      } catch (createError: any) {
+        console.error("Auto-registration of admin failed:", createError);
+        if (createError.code === 'auth/email-already-in-use') {
+          // If the email is in use, it means a password account exists but they typed the wrong password
+          throw error; // throw the original error
+        }
+        throw createError;
+      }
+    }
     throw error;
   }
 };

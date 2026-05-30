@@ -17,7 +17,7 @@ import {
   Clock, CheckCircle, Truck, AlertCircle, ArrowUpRight,
   Plus, Edit, Trash2, Search as SearchIcon, Filter, ExternalLink,
   ChevronRight, ChevronDown, Wand2, Loader2, Sparkles, Save, Clipboard, Settings,
-  Image as ImageIcon, MessageCircle, Mail, Download, Award, Percent, Globe
+  Image as ImageIcon, MessageCircle, Mail, Download, Award, Percent, Globe, Lock
 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
@@ -28,7 +28,23 @@ const AdminDashboard: React.FC = () => {
     campaigns, updateCampaign, deleteCampaign 
   } = useStore();
   const { showAlert } = useAlert();
-  const { user, isAdmin, login, signout } = useAuth();
+  const { user, isAdmin, login, loginWithEmail, signout } = useAuth();
+  const [adminEmail, setAdminEmail] = useState('kmerro25@gmail.com');
+  const [adminPassword, setAdminPassword] = useState('9j6yZ6677.');
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
+
+  const handleAdminEmailLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminEmail || !adminPassword) return;
+    setIsLoginLoading(true);
+    try {
+      await loginWithEmail(adminEmail, adminPassword);
+    } catch (err) {
+      console.error("Dashboard email auth failed", err);
+    } finally {
+      setIsLoginLoading(false);
+    }
+  };
   const [orders, setOrders] = useState<Order[]>([]);
   const [visits, setVisits] = useState<any[]>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
@@ -305,19 +321,82 @@ const AdminDashboard: React.FC = () => {
           </p>
         </div>
         
-        <div className="bg-white/5 p-6 rounded-[2rem] border border-white/10 space-y-4">
+        <div className="bg-white/5 p-8 rounded-[2rem] border border-white/10 space-y-6 max-w-md mx-auto">
           {!user ? (
-            <button 
-              onClick={() => login()}
-              className="w-full bg-brand-gold text-brand-charcoal py-5 rounded-2xl font-black text-lg hover:bg-brand-gold/80 transition-all shadow-2xl shadow-brand-gold/40 hover:-translate-y-1"
-            >
-              {t('admin.loginWithGoogle')}
-            </button>
+            <>
+              <button 
+                onClick={() => login()}
+                className="w-full bg-brand-gold text-brand-charcoal py-4 rounded-2xl font-black text-base hover:bg-brand-gold/80 transition-all shadow-2xl shadow-brand-gold/40 hover:-translate-y-1 block cursor-pointer"
+              >
+                {t('admin.loginWithGoogle')}
+              </button>
+
+              <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-white/10"></div>
+                <span className="flex-shrink mx-4 text-white/30 text-xs font-black uppercase">
+                  {i18n.language === 'ar' ? 'أو بالبريد الإلكتروني' : 'OR WITH EMAIL'}
+                </span>
+                <div className="flex-grow border-t border-white/10"></div>
+              </div>
+
+              <form onSubmit={handleAdminEmailLoginSubmit} className="space-y-4 text-left">
+                <div className="space-y-1">
+                  <label className="text-xs font-black text-white/60 block rtl:text-right">
+                    {i18n.language === 'ar' ? 'البريد الإلكتروني للمسؤول' : 'Admin Email Address'}
+                  </label>
+                  <div className="relative">
+                    <Mail size={16} className="absolute left-4 top-3.5 text-white/30 rtl:right-4 rtl:left-auto" />
+                    <input
+                      type="email"
+                      placeholder="admin@example.com"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      className="w-full bg-white/5 pl-11 pr-4 rtl:pr-11 rtl:pl-4 py-3 rounded-xl border border-white/10 focus:border-brand-gold focus:outline-none text-white text-sm transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-black text-white/60 block rtl:text-right">
+                    {i18n.language === 'ar' ? 'كلمة المرور' : 'Password'}
+                  </label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-4 top-3.5 text-white/30 rtl:right-4 rtl:left-auto" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      className="w-full bg-white/5 pl-11 pr-4 rtl:pr-11 rtl:pl-4 py-3 rounded-xl border border-white/10 focus:border-brand-gold focus:outline-none text-white text-sm transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoginLoading}
+                  className="w-full bg-[#4F46E5] hover:bg-[#4F46E5]/90 text-white py-3.5 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isLoginLoading ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                      className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                    />
+                  ) : null}
+                  {isLoginLoading 
+                    ? (i18n.language === 'ar' ? 'جاري التحقق...' : 'Verifying...') 
+                    : (i18n.language === 'ar' ? 'تسجيل دخول كمسؤول' : 'Admin Sign In')}
+                </button>
+              </form>
+            </>
           ) : (
             <div className="space-y-4">
                 <button 
                 onClick={() => signout()}
-                className="w-full bg-white/10 text-white py-5 rounded-2xl font-black text-lg hover:bg-white/20 transition-all border border-white/10"
+                className="w-full bg-white/10 text-white py-5 rounded-2xl font-black text-lg hover:bg-white/20 transition-all border border-white/10 cursor-pointer"
                 >
                 {t('admin.logout')}
                 </button>
@@ -1772,7 +1851,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
 
                     <div className="text-[10px] text-white/30 text-center mt-5 uppercase tracking-widest font-mono">
-                      AHSTORE Smart Engine v1.1
+                      ONXIFI Smart Engine v1.1
                     </div>
                   </div>
                 </div>

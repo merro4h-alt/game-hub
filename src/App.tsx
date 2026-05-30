@@ -25,7 +25,7 @@ import ProductDetailPage from './pages/ProductDetailPage';
 import AdminDashboard from './pages/AdminDashboard';
 import DropShippingPage from './pages/DropShippingPage';
 import PoliciesPage from './pages/PoliciesPage';
-import GiftAdvisorPage from './pages/GiftAdvisorPage';
+import { DailyBoxChallenge } from './components/DailyBoxChallenge';
 import AddProductModal from './components/AddProductModal';
 import QuickViewModal from './components/QuickViewModal';
 import { ImageLightboxModal } from './components/ImageLightboxModal';
@@ -217,7 +217,6 @@ function AppContent() {
           <Route path="/drop-shipping" element={<DropShippingPage />} />
           <Route path="/policies" element={<PoliciesPage />} />
           <Route path="/product/:productId" element={<ProductDetailPage />} />
-          <Route path="/gift-advisor" element={<GiftAdvisorPage />} />
         </Routes>
       </main>
       <Footer />
@@ -226,6 +225,7 @@ function AppContent() {
       <FortuneWheel />
       <NewsletterPopup />
       <ScrollProgress />
+      <DailyBoxChallenge />
     </>
   );
 }

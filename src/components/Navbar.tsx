@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
-import { ShoppingBag, Menu, X, Search, Globe, ChevronDown, User as UserIcon, LogOut, ShieldCheck, Package, LayoutDashboard, Sparkles, Heart, ArrowRight, Plus, Truck, ShoppingCart } from 'lucide-react';
+import { ShoppingBag, Menu, X, Search, Globe, ChevronDown, User as UserIcon, LogOut, ShieldCheck, Mail, Lock, Package, LayoutDashboard, Sparkles, Heart, ArrowRight, Plus, Truck, ShoppingCart } from 'lucide-react';
 import { useStore } from '../StoreContext';
 import Logo from './Logo';
 import { useAuth } from '../AuthContext';
@@ -27,8 +27,11 @@ const Navbar: React.FC = () => {
     wishlist,
     setIsCartOpen
   } = useStore();
-  const { user, isAdmin, login, signout } = useAuth();
+  const { user, isAdmin, login, loginWithEmail, signout } = useAuth();
   const [isLoginLoading, setIsLoginLoading] = useState(false);
+  const [isAdminEmailLogin, setIsAdminEmailLogin] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('kmerro25@gmail.com');
+  const [adminPassword, setAdminPassword] = useState('9j6yZ6677.');
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -39,6 +42,23 @@ const Navbar: React.FC = () => {
     } finally {
       setIsLoginLoading(false);
       setIsProfileOpen(false);
+    }
+  };
+
+  const handleEmailLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminEmail || !adminPassword) return;
+    setIsLoginLoading(true);
+    try {
+      await loginWithEmail(adminEmail, adminPassword);
+      setIsProfileOpen(false);
+      setIsAdminEmailLogin(false);
+      setAdminEmail('');
+      setAdminPassword('');
+    } catch (err) {
+      console.error("Email login failed", err);
+    } finally {
+      setIsLoginLoading(false);
     }
   };
 
@@ -63,7 +83,6 @@ const Navbar: React.FC = () => {
   const navLinks = [
     { name: i18n.language === 'ar' ? 'الرئيسية' : 'HOME', path: '/' },
     { name: i18n.language === 'ar' ? 'المتجر' : 'SHOP', path: '/shop' },
-    { name: i18n.language === 'ar' ? 'مستشار الهدايا' : 'GIFT ADVISOR', path: '/gift-advisor' },
     { name: i18n.language === 'ar' ? 'بوابة الموردين' : 'SUPPLIER PORTAL', path: '/drop-shipping' },
     { name: i18n.language === 'ar' ? 'تتبع الطلب' : 'TRACK ORDER', path: '/track' },
     { name: i18n.language === 'ar' ? 'من نحن' : 'ABOUT US', path: '/about' },
@@ -303,7 +322,7 @@ const Navbar: React.FC = () => {
                             disabled={isLoginLoading}
                             className="w-full py-3 bg-brand-charcoal text-white rounded-xl flex items-center justify-center gap-2 transition-all font-black text-sm shadow-lg shadow-brand-charcoal/20 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                           >
-                            {isLoginLoading ? (
+                            {isLoginLoading && !isAdminEmailLogin ? (
                               <motion.div
                                 animate={{ rotate: 360 }}
                                 transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
@@ -312,8 +331,61 @@ const Navbar: React.FC = () => {
                             ) : (
                               <UserIcon size={18} />
                             )}
-                            {isLoginLoading ? t('common.loading') : t('common.login')}
+                            {isLoginLoading && !isAdminEmailLogin ? t('common.loading') : t('common.login')}
                           </button>
+
+                          {/* Admin email login toggle */}
+                          <button
+                            onClick={() => setIsAdminEmailLogin(!isAdminEmailLogin)}
+                            className="w-full text-center mt-3 text-[10px] text-brand-charcoal/60 hover:text-[#4F46E5] transition-colors font-black underline cursor-pointer"
+                          >
+                            {isAdminEmailLogin 
+                              ? (isRtl ? 'تسجيل الدخول العادي' : 'Standard Sign In') 
+                              : (isRtl ? 'تسجيل دخول المشرفين بالبريد' : 'Admin Email Login')}
+                          </button>
+
+                          {isAdminEmailLogin && (
+                            <form onSubmit={handleEmailLoginSubmit} className="mt-3 space-y-2 border-t border-brand-charcoal/5 pt-3">
+                              <div className="relative">
+                                <Mail size={14} className="absolute left-3 top-2.5 text-brand-charcoal/40 rtl:right-3 rtl:left-auto" />
+                                <input
+                                  type="email"
+                                  placeholder={isRtl ? 'بريد المشرف' : 'Admin Email'}
+                                  value={adminEmail}
+                                  onChange={(e) => setAdminEmail(e.target.value)}
+                                  className="w-full pl-9 pr-3 rtl:pr-9 rtl:pl-3 py-2 text-xs bg-brand-charcoal/5 focus:bg-white rounded-lg border border-transparent focus:border-brand-charcoal/20 focus:outline-none transition-all font-semibold"
+                                  required
+                                />
+                              </div>
+                              <div className="relative">
+                                <Lock size={14} className="absolute left-3 top-2.5 text-brand-charcoal/40 rtl:right-3 rtl:left-auto" />
+                                <input
+                                  type="password"
+                                  placeholder={isRtl ? 'كلمة المرور' : 'Password'}
+                                  value={adminPassword}
+                                  onChange={(e) => setAdminPassword(e.target.value)}
+                                  className="w-full pl-9 pr-3 rtl:pr-9 rtl:pl-3 py-2 text-xs bg-brand-charcoal/5 focus:bg-white rounded-lg border border-transparent focus:border-brand-charcoal/20 focus:outline-none transition-all font-semibold"
+                                  required
+                                />
+                              </div>
+                              <button
+                                type="submit"
+                                disabled={isLoginLoading}
+                                className="w-full py-2 bg-[#4F46E5] text-white rounded-lg transition-all font-black text-xs shadow-md shadow-[#4F46E5]/20 hover:bg-[#4F46E5]/90 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                              >
+                                {isLoginLoading ? (
+                                  <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                                    className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"
+                                  />
+                                ) : (
+                                  <ShieldCheck size={14} />
+                                )}
+                                {isLoginLoading ? (isRtl ? 'جاري الدخول...' : 'Signing in...') : (isRtl ? 'تسجيل دخول المسؤول' : 'Admin Authentication')}
+                              </button>
+                            </form>
+                          )}
 
                           {/* Language in Profile Dropdown for Guests */}
                           <div className="mt-3 flex gap-1 p-1 bg-brand-charcoal/5 rounded-lg">
