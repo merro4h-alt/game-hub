@@ -157,6 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signout = async () => {
     try {
       await logout();
+      window.location.href = '/';
     } catch (error) {
       console.warn("Logout failed", error);
     }

@@ -574,43 +574,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
     }
 
-    // 2. Custom Price Alerts Subscription Logic
-    if (priceAlerts.length > 0) {
-      priceAlerts.forEach(alert => {
-        if (!alert.active) return;
-        const product = products.find(p => p.id === alert.productId);
-        if (product) {
-          const currentPrice = product.discountPrice ?? product.price;
-          if (currentPrice <= alert.targetPrice) {
-            const alertKey = `price_alert_triggered_${alert.productId}_${currentPrice}`;
-            if (!sessionStorage.getItem(alertKey)) {
-              setTimeout(() => {
-                showAlert(
-                  i18n.language === 'ar' 
-                    ? `تنبيه السعر! انخفض سعر ${product.name} إلى ${formatPrice(currentPrice)} (هدفك كان ${formatPrice(alert.targetPrice)})`
-                    : `Price Alert! ${product.name} dropped to ${formatPrice(currentPrice)} (your target was ${formatPrice(alert.targetPrice)})`,
-                  'success'
-                );
-              }, 0);
-              sessionStorage.setItem(alertKey, 'true');
+    // 2. Custom Price Alerts Subscription Logic logic disabled as the feature is removed
 
-              // Dispatch real email alert notification to backend API
-              fetch('/api/price-alert/trigger', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  productId: alert.productId,
-                  productName: product.name,
-                  email: alert.userEmail,
-                  targetPrice: alert.targetPrice,
-                  currentPrice: currentPrice
-                })
-              }).catch(err => console.warn('Error triggering price alert email:', err));
-            }
-          }
-        }
-      });
-    }
   }, [products, wishlist, priceAlerts, t, i18n.language, showAlert]);
 
   const toggleWishlist = async (productId: string) => {
