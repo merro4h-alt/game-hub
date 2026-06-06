@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import HeroSlider from '../components/HeroSlider';
 import ProductCard from '../components/ProductCard';
-import { ProductStories } from '../components/ProductStories';
 import { useStore } from '../StoreContext';
 import { INITIAL_PRODUCTS } from '../constants';
 import { ListingSkeleton } from '../components/ProductSkeleton';
@@ -211,101 +210,6 @@ const HomePage: React.FC = () => {
   return (
     <div className="bg-[#0A0A0B] text-white min-h-screen">
       <HeroSlider />
-      
-      <ProductStories />
-
-      {/* Elegant Swipeable Category Slider */}
-      <div className="relative max-w-7xl mx-auto px-4 md:px-8 py-8 z-20 group/slider">
-        {/* Left Arrow (visible on mobile and desktop) */}
-        <button
-          onClick={() => scroll('left')}
-          className="absolute left-2 md:left-10 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-full bg-brand-charcoal/90 hover:bg-[#4F46E5] text-white border border-white/10 hover:border-transparent opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg cursor-pointer"
-          aria-label="Previous Category"
-        >
-          <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
-        </button>
-
-        {/* Swipeable container with touch & mouse drag support */}
-        <div 
-          ref={scrollRef}
-          onMouseDown={(e) => {
-            const ele = scrollRef.current;
-            if (!ele) return;
-            const startX = e.pageX - ele.offsetLeft;
-            const scrollLeft = ele.scrollLeft;
-            
-            const handleMouseMove = (le: MouseEvent) => {
-              const x = le.pageX - ele.offsetLeft;
-              const walk = (x - startX) * 1.5; // scroll-speed
-              ele.scrollLeft = scrollLeft - walk;
-            };
-            
-            const handleMouseUp = () => {
-              document.removeEventListener('mousemove', handleMouseMove);
-              document.removeEventListener('mouseup', handleMouseUp);
-            };
-            
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-          }}
-          className="flex whitespace-nowrap overflow-x-auto no-scrollbar scroll-smooth gap-3 md:gap-4 py-4 px-2 relative touch-pan-x select-none cursor-grab active:cursor-grabbing"
-        >
-          {categories.map((cat, index) => (
-            <motion.div
-              key={cat.key}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 + index * 0.08, type: "spring", stiffness: 150 }}
-              className="shrink-0"
-            >
-              <Link
-                to={`/shop?category=${encodeURIComponent(cat.category)}`}
-                className="group px-4 py-3 md:px-6 md:py-4 bg-[#0F0F11]/90 hover:bg-[#151518] border border-white/5 hover:border-[#4F46E5]/50 rounded-2xl hover:shadow-2xl hover:shadow-[#4F46E5]/15 hover:-translate-y-1 transition-all duration-300 flex items-center gap-3 md:gap-4.5 pointer-events-auto"
-                draggable="false"
-              >
-                <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-xl bg-white/5 group-hover:bg-[#4F46E5]/12 text-[#4F46E5] group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-inner shrink-0">
-                  {cat.icon}
-                </div>
-                <div className="flex flex-col text-start">
-                  <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] md:tracking-[0.15em] text-white transition-colors group-hover:text-[#4F46E5]">
-                    {cat.label}
-                  </span>
-                  <span className="text-[7px] md:text-[8px] text-white/40 group-hover:text-white/60 transition-colors uppercase font-mono tracking-widest mt-1">
-                    {i18n.language === 'ar' ? 'تصفح الآن' : 'EXPLORE'}
-                  </span>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Right Arrow (visible on mobile and desktop) */}
-        <button
-          onClick={() => scroll('right')}
-          className="absolute right-2 md:right-10 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-full bg-brand-charcoal/90 hover:bg-[#4F46E5] text-white border border-white/10 hover:border-transparent opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg cursor-pointer"
-          aria-label="Next Category"
-        >
-          <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
-        </button>
-
-        {/* Modern Dot Scroll indicator for mobile */}
-        <div className="flex justify-center gap-1.5 mt-2 md:hidden">
-          {categories.map((cat, idx) => {
-            const activeIdx = Math.min(
-              categories.length - 1,
-              Math.max(0, Math.floor(scrollProgress * (categories.length - 1) + 0.5))
-            );
-            return (
-              <div
-                key={cat.key}
-                className={`h-1 rounded-full transition-all duration-300 ${
-                  activeIdx === idx ? 'w-4 bg-[#4F46E5]' : 'w-1 bg-white/20'
-                }`}
-              />
-            );
-          })}
-        </div>
-      </div>
 
       {/* Shiny Storefront Welcome badge */}
       <div id="storefront-welcome" className="relative z-20 mb-12 flex justify-center px-4">
@@ -335,7 +239,7 @@ const HomePage: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="flex flex-col items-center text-center mb-20 gap-8"
+            className="flex flex-col items-center text-center mb-12 gap-8"
           >
             <div className="flex flex-col items-center">
               <span className="text-[#4F46E5] font-black uppercase tracking-[0.3em] text-xs mb-4 block">{t('home.selection')}</span>
@@ -357,6 +261,99 @@ const HomePage: React.FC = () => {
               </div>
             </Link>
           </motion.div>
+
+          {/* Elegant Swipeable Category Slider (Moved here below "Discover Products") */}
+          <div className="relative max-w-7xl mx-auto py-4 mb-16 z-20 group/slider">
+            {/* Left Arrow (visible on mobile and desktop) */}
+            <button
+              onClick={() => scroll('left')}
+              className="absolute left-2 md:left-10 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-full bg-brand-charcoal/90 hover:bg-[#4F46E5] text-white border border-white/10 hover:border-transparent opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg cursor-pointer"
+              aria-label="Previous Category"
+            >
+              <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
+            </button>
+
+            {/* Swipeable container with touch & mouse drag support */}
+            <div 
+              ref={scrollRef}
+              onMouseDown={(e) => {
+                const ele = scrollRef.current;
+                if (!ele) return;
+                const startX = e.pageX - ele.offsetLeft;
+                const scrollLeft = ele.scrollLeft;
+                
+                const handleMouseMove = (le: MouseEvent) => {
+                  const x = le.pageX - ele.offsetLeft;
+                  const walk = (x - startX) * 1.5; // scroll-speed
+                  ele.scrollLeft = scrollLeft - walk;
+                };
+                
+                const handleMouseUp = () => {
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              }}
+              className="flex whitespace-nowrap overflow-x-auto no-scrollbar scroll-smooth gap-3 md:gap-4 py-4 px-2 relative touch-pan-x select-none cursor-grab active:cursor-grabbing"
+            >
+              {categories.map((cat, index) => (
+                <motion.div
+                  key={cat.key}
+                  initial={{ opacity: 0, x: 50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 + index * 0.08, type: "spring", stiffness: 150 }}
+                  className="shrink-0"
+                >
+                  <Link
+                    to={`/shop?category=${encodeURIComponent(cat.category)}`}
+                    className="group px-4 py-3 md:px-6 md:py-4 bg-[#0F0F11]/90 hover:bg-[#151518] border border-white/5 hover:border-[#4F46E5]/50 rounded-2xl hover:shadow-2xl hover:shadow-[#4F46E5]/15 hover:-translate-y-1 transition-all duration-300 flex items-center gap-3 md:gap-4.5 pointer-events-auto"
+                    draggable="false"
+                  >
+                    <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-xl bg-white/5 group-hover:bg-[#4F46E5]/12 text-[#4F46E5] group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-inner shrink-0">
+                      {cat.icon}
+                    </div>
+                    <div className="flex flex-col text-start">
+                      <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] md:tracking-[0.15em] text-white transition-colors group-hover:text-[#4F46E5]">
+                        {cat.label}
+                      </span>
+                      <span className="text-[7px] md:text-[8px] text-white/40 group-hover:text-white/60 transition-colors uppercase font-mono tracking-widest mt-1">
+                        {i18n.language === 'ar' ? 'تصفح الآن' : 'EXPLORE'}
+                      </span>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Right Arrow (visible on mobile and desktop) */}
+            <button
+              onClick={() => scroll('right')}
+              className="absolute right-2 md:right-10 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-full bg-brand-charcoal/90 hover:bg-[#4F46E5] text-white border border-white/10 hover:border-transparent opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg cursor-pointer"
+              aria-label="Next Category"
+            >
+              <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+            </button>
+
+            {/* Modern Dot Scroll indicator for mobile */}
+            <div className="flex justify-center gap-1.5 mt-2 md:hidden">
+              {categories.map((cat, idx) => {
+                const activeIdx = Math.min(
+                  categories.length - 1,
+                  Math.max(0, Math.floor(scrollProgress * (categories.length - 1) + 0.5))
+                );
+                return (
+                  <div
+                    key={cat.key}
+                    className={`h-1 rounded-full transition-all duration-300 ${
+                      activeIdx === idx ? 'w-4 bg-[#4F46E5]' : 'w-1 bg-white/20'
+                    }`}
+                  />
+                );
+              })}
+            </div>
+          </div>
 
           {/* Products Container */}
           {isLoading ? (

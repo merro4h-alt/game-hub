@@ -28,6 +28,8 @@ import { Helmet } from 'react-helmet-async';
 import { Product } from '../types';
 import ProductCard from '../components/ProductCard';
 import { useAlert } from '../contexts/AlertContext';
+import { Product360Viewer } from '../components/Product360Viewer';
+import { Compass } from 'lucide-react';
 
 const ProductDetailPage: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
@@ -64,6 +66,7 @@ const ProductDetailPage: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isShowingVideo, setIsShowingVideo] = useState(false);
+  const [is360Active, setIs360Active] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -181,8 +184,46 @@ const ProductDetailPage: React.FC = () => {
         
         {/* Advanced Gallery Section */}
         <div className="space-y-6">
+          {/* Futuristic 3D / 2D Gallery Mode Selector Switcher */}
+          <div className="flex gap-2 justify-center sm:justify-start bg-white/[0.02] p-1 rounded-2xl border border-white/5 w-fit select-none">
+            <button 
+              onClick={() => {
+                setIs360Active(false);
+                setIsShowingVideo(false);
+              }}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black tracking-wider uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+                !is360Active && !isShowingVideo
+                  ? 'bg-gradient-to-r from-stone-800 to-stone-900 border border-white/10 text-brand-gold shadow-md' 
+                  : 'bg-transparent text-white/50 hover:text-white border border-transparent'
+              }`}
+            >
+              <Maximize2 size={12} />
+              <span>{i18n.language === 'ar' ? 'عرض معرض الصور' : 'Detailed Photos'}</span>
+            </button>
+            <button 
+              onClick={() => {
+                setIs360Active(true);
+                setIsShowingVideo(false);
+              }}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black tracking-wider uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+                is360Active 
+                  ? 'bg-gradient-to-r from-indigo-950 to-purple-950 border border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.25)]' 
+                  : 'bg-transparent text-white/50 hover:text-indigo-400 border border-transparent'
+              }`}
+            >
+              <Compass size={12} className={is360Active ? 'animate-spin' : ''} style={{ animationDuration: '6s' }} />
+              <span>{i18n.language === 'ar' ? 'العرض التفاعلي مجسم ٣٦٠° ⚡' : 'Interactive 360° View ⚡'}</span>
+            </button>
+          </div>
+
           <div className="relative group rounded-[2.5rem] overflow-hidden bg-white/5 border border-white/5 aspect-square">
-            {isShowingVideo && product.videoUrl ? (
+            {is360Active ? (
+              <Product360Viewer 
+                product={product} 
+                isArabic={i18n.language === 'ar'} 
+                onClose={() => setIs360Active(false)} 
+              />
+            ) : isShowingVideo && product.videoUrl ? (
               <div className="w-full h-full relative bg-black">
                 <video 
                   src={product.videoUrl} 
@@ -238,38 +279,49 @@ const ProductDetailPage: React.FC = () => {
             )}
 
             {/* Gallery Navigation Arrows */}
-            {allImages.length > 1 && (
+            {allImages.length > 1 && !is360Active && (
               <>
                 <button 
-                  onClick={() => setActiveImageIndex(prev => prev === 0 ? allImages.length - 1 : prev - 1)}
+                  onClick={() => {
+                    setActiveImageIndex(prev => prev === 0 ? allImages.length - 1 : prev - 1);
+                    setIsShowingVideo(false);
+                  }}
                   className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/80 backdrop-blur-md shadow-lg hover:bg-white transition-all z-20 opacity-0 group-hover:opacity-100"
                 >
                   <ChevronLeft size={20} />
                 </button>
                 <button 
-                  onClick={() => setActiveImageIndex(prev => prev === allImages.length - 1 ? 0 : prev + 1)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/80 backdrop-blur-md shadow-lg hover:bg-white transition-all z-20 opacity-0 group-hover:opacity-100"
+                  onClick={() => {
+                    setActiveImageIndex(prev => prev === allImages.length - 1 ? 0 : prev + 1);
+                    setIsShowingVideo(false);
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/80 backdrop-blur-md shadow-lg hover:bg-white transition-all z-20 opacity-0 group-hover:opacity-100 relative"
                 >
                   <ChevronRight size={20} />
                 </button>
               </>
             )}
             
-            <button 
-              onClick={() => toggleWishlist(product.id)}
-              className={`absolute top-6 right-6 p-4 rounded-2xl backdrop-blur-md shadow-sm transition-all z-20 group/heart ${
-                isInWishlist(product.id) ? 'bg-red-500 text-white' : 'bg-white/80 text-brand-charcoal hover:text-red-500'
-              }`}
-            >
-              <Heart size={20} className={isInWishlist(product.id) ? "fill-current" : "group-hover/heart:fill-current"} />
-            </button>
+            {!is360Active && (
+              <button 
+                onClick={() => toggleWishlist(product.id)}
+                className={`absolute top-6 right-6 p-4 rounded-2xl backdrop-blur-md shadow-sm transition-all z-20 group/heart ${
+                  isInWishlist(product.id) ? 'bg-red-500 text-white' : 'bg-white/80 text-brand-charcoal hover:text-red-500'
+                }`}
+              >
+                <Heart size={20} className={isInWishlist(product.id) ? "fill-current" : "group-hover/heart:fill-current"} />
+              </button>
+            )}
           </div>
 
           {/* Thumbnails */}
           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
             {product.videoUrl && (
               <button
-                onClick={() => setIsShowingVideo(true)}
+                onClick={() => {
+                  setIsShowingVideo(true);
+                  setIs360Active(false);
+                }}
                 className={`relative w-20 h-24 rounded-2xl overflow-hidden border-2 transition-all flex-shrink-0 bg-brand-gold/10 flex items-center justify-center group ${
                   isShowingVideo ? 'border-brand-gold scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
                 }`}
@@ -290,9 +342,10 @@ const ProductDetailPage: React.FC = () => {
                 onClick={() => {
                   setActiveImageIndex(idx);
                   setIsShowingVideo(false);
+                  setIs360Active(false);
                 }}
                 className={`relative w-20 h-24 rounded-2xl overflow-hidden border-2 transition-all flex-shrink-0 ${
-                  activeImageIndex === idx && !isShowingVideo ? 'border-brand-gold scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
+                  activeImageIndex === idx && !isShowingVideo && !is360Active ? 'border-brand-gold scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
                 }`}
               >
                 <img 
@@ -307,6 +360,24 @@ const ProductDetailPage: React.FC = () => {
                 />
               </button>
             ))}
+
+            {/* Interactive 360 Thumbnail Quick Activation Option */}
+            <button
+              onClick={() => {
+                setIs360Active(true);
+                setIsShowingVideo(false);
+              }}
+              className={`relative w-20 h-24 rounded-2xl border-2 transition-all flex-shrink-0 flex flex-col items-center justify-center p-2 gap-1.5 cursor-pointer ${
+                is360Active 
+                  ? 'border-indigo-500 bg-indigo-950/40 scale-105 shadow-md text-indigo-400' 
+                  : 'border-white/5 bg-stone-900/40 text-stone-400 hover:text-indigo-400 hover:border-indigo-500/20 opacity-70 hover:opacity-100'
+              }`}
+            >
+              <Compass size={22} className={is360Active ? 'animate-spin' : ''} style={{ animationDuration: '6s' }} />
+              <span className="text-[10px] font-black tracking-tighter uppercase whitespace-nowrap">
+                {i18n.language === 'ar' ? '٣٦٠° تفاعلي' : '360° SPIN'}
+              </span>
+            </button>
           </div>
         </div>
 
