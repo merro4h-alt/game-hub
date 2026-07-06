@@ -30,11 +30,11 @@ export const FortuneWheel: React.FC = () => {
 
   // Define the five discount slices specified by the user (5%, 10%, 15%, 20%, 25%)
   const slices: Slice[] = useMemo(() => [
-    { percent: 5, code: 'LUCKY5', color: '#FFFFFF', bgColor: '#1A1A1A', labelAr: 'خصم 5%', labelEn: '5% OFF' },
-    { percent: 20, code: 'LUCKY20', color: '#1A1A1A', bgColor: '#F5E6CA', labelAr: 'خصم 20%', labelEn: '20% OFF' },
-    { percent: 10, code: 'LUCKY10', color: '#FFFFFF', bgColor: '#8D7B68', labelAr: 'خصم 10%', labelEn: '10% OFF' },
-    { percent: 25, code: 'LUCKY25', color: '#FFFFFF', bgColor: '#C5A05B', labelAr: 'خصم 25% 🌟', labelEn: '25% OFF 🌟' },
-    { percent: 15, code: 'LUCKY15', color: '#1A1A1A', bgColor: '#C5A05B/30', labelAr: 'خصم 15%', labelEn: '15% OFF' }
+    { percent: 5, code: 'LUCKY5', color: '#FFFFFF', bgColor: '#1C1917', labelAr: 'خصم 5% 🎟️', labelEn: '5% OFF 🎟️' },
+    { percent: 20, code: 'LUCKY20', color: '#FFFFFF', bgColor: '#8D7B68', labelAr: 'خصم 20% 🎉', labelEn: '20% OFF 🎉' },
+    { percent: 10, code: 'LUCKY10', color: '#FFFFFF', bgColor: '#44403C', labelAr: 'خصم 10% ✨', labelEn: '10% OFF ✨' },
+    { percent: 25, code: 'LUCKY25', color: '#000000', bgColor: '#C5A05B', labelAr: 'خصم 25% 🌟', labelEn: '25% OFF 🌟' },
+    { percent: 15, code: 'LUCKY15', color: '#FFFFFF', bgColor: '#78716C', labelAr: 'خصم 15% 💎', labelEn: '15% OFF 💎' }
   ], []);
 
   const numSlices = slices.length;
@@ -300,7 +300,7 @@ export const FortuneWheel: React.FC = () => {
           onClick={() => setIsOpen(true)}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-2 px-4 py-3 rounded-full bg-brand-charcoal text-white shadow-2xl border border-[#C5A05B]/30 cursor-pointer overflow-hidden relative group"
+          className="flex items-center gap-2 px-4 py-3 rounded-full bg-[#0D0D11] text-white shadow-2xl border border-[#C5A05B]/30 cursor-pointer overflow-hidden relative group"
         >
           {/* Internal sparkle overlay */}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C5A05B]/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
@@ -322,14 +322,14 @@ export const FortuneWheel: React.FC = () => {
       {/* Backdrop & Drawer Modal Popup overlay */}
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 bg-brand-charcoal/80 backdrop-blur-md z-[200] flex items-end sm:items-center justify-center p-4 overflow-y-auto no-scrollbar pt-24 sm:pt-4">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] flex items-end sm:items-center justify-center p-4 overflow-y-auto no-scrollbar pt-24 sm:pt-4">
             
             {/* Modal Box */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 30 }}
-              className="bg-white border border-[#C5A05B]/10 rounded-[2.5rem] p-6 md:p-8 max-w-md w-full relative overflow-hidden shadow-2xl flex flex-col items-center text-center max-h-[90vh] overflow-y-auto no-scrollbar"
+              className="bg-[#0D0D11] border border-[#C5A05B]/20 rounded-[2.5rem] p-6 md:p-8 max-w-md w-full relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col items-center text-center max-h-[90vh] overflow-y-auto no-scrollbar text-white"
               dir={isRtl ? 'rtl' : 'ltr'}
             >
               {/* Close Button Button */}
@@ -338,27 +338,27 @@ export const FortuneWheel: React.FC = () => {
                   if (!isSpinning) setIsOpen(false);
                 }}
                 disabled={isSpinning}
-                className="absolute top-5 right-5 w-8 h-8 rounded-full bg-gray-100/80 hover:bg-gray-150 text-brand-charcoal/80 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40"
+                className="absolute top-5 right-5 w-8 h-8 rounded-full bg-stone-900/80 hover:bg-[#C5A05B]/25 text-[#C5A05B] border border-white/5 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40 z-40"
               >
                 <X size={15} />
               </button>
 
-              {/* Decorative background vectors */}
-              <div className="absolute -left-10 -bottom-10 w-24 h-24 bg-brand-gold/10 rounded-full blur-xl pointer-events-none" />
-              <div className="absolute -right-10 -top-10 w-32 h-32 bg-[#FAF7F2] rounded-full blur-xl pointer-events-none" />
+              {/* Decorative background luxury radial glows */}
+              <div className="absolute -left-10 -bottom-10 w-44 h-44 bg-[#C5A05B]/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -right-10 -top-10 w-44 h-44 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
 
               {/* Header Titles */}
-              <div className="space-y-2 mb-6">
+              <div className="space-y-2 mb-4 z-20">
                 <div className="flex justify-center">
-                  <span className="bg-[#FAF7F2] border border-[#C5A05B]/15 px-3.5 py-1.5 rounded-full text-[10px] font-black text-brand-gold uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles size={12} className="animate-spin-slow" />
-                    {isRtl ? 'لعبة الحظ والهدايا' : 'LUCKY REWARDS WHEEL'}
+                  <span className="bg-[#C5A05B]/10 border border-[#C5A05B]/20 px-3.5 py-1.5 rounded-full text-[10px] font-black text-brand-gold uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles size={12} className="animate-pulse" />
+                    {isRtl ? 'مكافآت الحظ والمفاجآت' : 'EXCLUSIVE REWARDS WHEEL'}
                   </span>
                 </div>
-                <h3 className="text-xl md:text-2xl font-black text-brand-charcoal tracking-tight">
+                <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">
                   {langText.windowHeader}
                 </h3>
-                <p className="text-[10px] md:text-xs text-brand-charcoal/50 leading-relaxed font-bold max-w-sm">
+                <p className="text-[10px] md:text-xs text-stone-400 leading-relaxed font-semibold max-w-sm">
                   {langText.windowSubtitle}
                 </p>
               </div>
@@ -366,11 +366,11 @@ export const FortuneWheel: React.FC = () => {
               {/* THE WHEEL CONTAINER */}
               <div className="relative w-64 h-64 md:w-72 md:h-72 my-4 flex items-center justify-center">
                 
-                {/* Outer decorative ring border */}
-                <div className="absolute inset-0 rounded-full border-8 border-brand-charcoal shadow-2xl z-10 pointer-events-none" />
+                {/* Outer decorative ring border (Luxury gold bezel edge) */}
+                <div className="absolute inset-0 rounded-full border-4 border-stone-900 shadow-[0_0_20px_rgba(197,160,91,0.3)] ring-4 ring-[#C5A05B]/30 z-10 pointer-events-none" />
                 
-                {/* Glowing light bulbs array */}
-                <div className="absolute inset-0 rounded-full p-2 z-15 pointer-events-none border border-brand-gold/20 flex items-center justify-center">
+                {/* Glowing luxury LEDs array */}
+                <div className="absolute inset-0 rounded-full p-2 z-15 pointer-events-none border border-brand-gold/15 flex items-center justify-center">
                   {[...Array(12)].map((_, i) => (
                     <div
                       key={`bulb-${i}`}
@@ -378,8 +378,10 @@ export const FortuneWheel: React.FC = () => {
                         position: 'absolute',
                         transform: `rotate(${i * 30}deg) translateY(-132px)`,
                       }}
-                      className={`w-1.5 h-1.5 rounded-full bg-brand-gold shadow-[0_0_8px_#C5A05B] ${
-                        isSpinning ? 'animate-pulse' : ''
+                      className={`w-2 h-2 rounded-full border border-white/20 transition-all duration-300 ${
+                        isSpinning 
+                          ? 'bg-amber-400 shadow-[0_0_10px_#FFA500,0_0_15px_#C5A05B] animate-pulse' 
+                          : 'bg-brand-gold shadow-[0_0_6px_#C5A05B]'
                       }`}
                     />
                   ))}
@@ -387,7 +389,9 @@ export const FortuneWheel: React.FC = () => {
 
                 {/* Arrow Pointer pinning at top center center */}
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.25)] flex flex-col items-center">
-                  <Navigation className="text-red-500 fill-red-500 transform rotate-180" size={24} />
+                  <svg className="w-6 h-6 text-red-500 fill-red-500" viewBox="0 0 24 24">
+                    <path d="M12 18l-6-10h12z" />
+                  </svg>
                   <div className="w-2.5 h-2.5 rounded-full bg-brand-charcoal -mt-1.5 border border-white" />
                 </div>
 
@@ -397,13 +401,22 @@ export const FortuneWheel: React.FC = () => {
                     transform: `rotate(${rotation}deg)`,
                     transition: isSpinning ? 'transform 4000ms cubic-bezier(0.1, 0.8, 0.1, 1)' : 'none',
                   }}
-                  className="w-full h-full rounded-full overflow-hidden shadow-inner flex items-center justify-center bg-gray-200"
+                  className="w-full h-full rounded-full overflow-hidden shadow-inner flex items-center justify-center bg-[#0D0D11]"
                 >
-                  <svg className="w-full h-full origin-center transform -rotate-90" viewBox="0 0 300 300">
+                  <svg className="w-full h-full origin-center" viewBox="0 0 300 300">
                     <defs>
                       <filter id="shadow">
                         <feDropShadow dx="-1" dy="1" stdDeviation="1" />
                       </filter>
+                      <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#FFF0D4" />
+                        <stop offset="50%" stopColor="#C5A05B" />
+                        <stop offset="100%" stopColor="#6E5020" />
+                      </linearGradient>
+                      <radialGradient id="wheelGlow" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#C5A05B" stopOpacity="0.15" />
+                        <stop offset="100%" stopColor="#0D0D11" stopOpacity="0" />
+                      </radialGradient>
                     </defs>
                     {slices.map((slice, index) => {
                       const startAngle = index * degreesPerSlice;
@@ -418,10 +431,9 @@ export const FortuneWheel: React.FC = () => {
                         <g key={`slice-${index}`}>
                           <path
                             d={drawSectorPath(150, 150, 142, startAngle, endAngle)}
-                            fill={slice.bgColor.includes('/') ? '#C5A05B' : slice.bgColor}
-                            fillOpacity={slice.bgColor.includes('/') ? 0.3 : 1}
-                            stroke="#FFFFFF"
-                            strokeWidth="1.5"
+                            fill={slice.bgColor}
+                            stroke="#0D0D11"
+                            strokeWidth="2"
                           />
                           <text
                             x={textPos.x}
@@ -430,7 +442,7 @@ export const FortuneWheel: React.FC = () => {
                             transform={`rotate(${textAngle + 90}, ${textPos.x}, ${textPos.y})`}
                             textAnchor="middle"
                             dominantBaseline="central"
-                            className="font-black text-[12px] tracking-tight filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
+                            className="font-black text-[11px] tracking-tight filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
                           >
                             {isRtl ? slice.labelAr : slice.labelEn}
                           </text>
@@ -438,18 +450,26 @@ export const FortuneWheel: React.FC = () => {
                       );
                     })}
 
-                    {/* Golden central hub button core */}
-                    <circle cx="150" cy="150" r="22" fill="#1A1A1A" stroke="#C5A05B" strokeWidth="3" />
+                    {/* Golden central hub button core with realistic layered concentric structures */}
+                    <circle cx="150" cy="150" r="24" fill="#0D0D11" stroke="#C5A05B" strokeWidth="2.5" />
+                    <circle cx="150" cy="150" r="18" fill="url(#goldGradient)" stroke="#FFFFFF" strokeWidth="0.5" strokeOpacity="0.4" />
+                    <circle cx="150" cy="150" r="8" fill="#0D0D11" />
                   </svg>
                 </div>
 
-                {/* Center Spin Trigger button on top of wheel */}
+                {/* Center Spin Trigger button on top of wheel with metallic overlay */}
                 <button
                   onClick={handleSpin}
                   disabled={isSpinning || hasSpun}
-                  className={`absolute z-30 w-11 h-11 rounded-full bg-[#C5A05B] text-[#1A1A1A] hover:bg-[#D5B06B] font-black text-[9px] shadow-xl border-2 border-white flex items-center justify-center tracking-widest uppercase transition-transform cursor-pointer hover:scale-105 active:scale-95 disabled:scale-100 disabled:opacity-40 disabled:cursor-not-allowed`}
+                  className={`absolute z-30 w-12 h-12 rounded-full bg-gradient-to-br from-[#FFF0D4] via-[#C5A05B] to-[#6E5020] text-white hover:brightness-110 font-bold text-[10px] shadow-[0_4px_15px_rgba(197,160,91,0.5)] border-2 border-[#0D0D11] flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95 disabled:scale-100 disabled:opacity-30 disabled:cursor-not-allowed`}
+                  title={isRtl ? 'اضغط لتدوير العجلة' : 'Click to spin'}
                 >
-                  <Play size={10} className="fill-[#1A1A1A] transform rotate-90 ml-0.5" />
+                  <motion.div
+                    animate={isSpinning ? { rotate: 360 } : {}}
+                    transition={isSpinning ? { repeat: Infinity, duration: 1.5, ease: 'linear' } : {}}
+                  >
+                    <Play size={14} className="fill-white text-white ml-0.5" style={{ transform: isRtl ? 'rotate(180deg) scaleX(-1)' : '' }} />
+                  </motion.div>
                 </button>
               </div>
 
@@ -461,36 +481,36 @@ export const FortuneWheel: React.FC = () => {
                   <motion.div
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-[#FAF7F2] border border-[#C5A05B]/15 rounded-3xl p-5 space-y-3 relative overflow-hidden"
+                    className="bg-[#14141A] border border-[#C5A05B]/20 rounded-3xl p-5 space-y-3 relative overflow-hidden shadow-inner"
                   >
-                    <div className="absolute top-0 right-0 w-16 h-16 bg-[#C5A05B]/5 rounded-bl-full pointer-events-none" />
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-[#C5A05B]/10 to-transparent rounded-bl-full pointer-events-none" />
                     
                     <div>
-                      <h4 className="text-xs font-black text-green-600 flex items-center justify-center gap-1.5">
-                        <Sparkles size={14} className="animate-spin-slow" />
+                      <h4 className="text-sm font-black text-[#C5A05B] flex items-center justify-center gap-1.5 tracking-wider uppercase">
+                        <Sparkles size={14} className="animate-pulse text-[#C5A05B]" />
                         {wonSlice.percent ? langText.congratsTitle : langText.alreadySpunTitle}
                       </h4>
-                      <p className="text-[10px] text-brand-charcoal/50 font-bold mt-1 max-w-sm mx-auto">
-                        {wonSlice.percent ? `${langText.wonDiscountDesc} ${wonSlice.percent}%!` : langText.alreadySpunDesc}
+                      <p className="text-[11px] text-stone-300 font-semibold mt-1 max-w-sm mx-auto">
+                        {wonSlice.percent ? `${langText.wonDiscountDesc}` : langText.alreadySpunDesc}
                       </p>
                     </div>
 
-                    {/* Giant percentage text */}
-                    <div className="text-3xl font-black text-brand-gold tracking-tight">
-                      {wonSlice.percent}% {isRtl ? 'خصم مذهل' : 'OFF!'}
+                    {/* Giant golden percentage text */}
+                    <div className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#FFF0D4] via-[#C5A05B] to-[#D5B06B] tracking-tight animate-pulse py-1">
+                      {wonSlice.percent}% {isRtl ? 'خصم إضافي الحصري' : 'EXCLUSIVE OFF!'}
                     </div>
 
                     {/* Copy Box code */}
-                    <div className="flex items-center gap-2 max-w-xs mx-auto p-2 rounded-xl bg-white border border-gray-150">
-                      <div className="flex-1 text-center font-mono text-sm font-black text-[#1A1A1A]">
+                    <div className="flex items-center gap-2 max-w-xs mx-auto p-2 rounded-xl bg-stone-900 border border-white/5 shadow-inner">
+                      <div className="flex-1 text-center font-mono text-base font-black text-[#C5A05B] tracking-widest">
                         {wonSlice.code}
                       </div>
 
                       <button
                         onClick={() => handleCopyCode(wonSlice.code)}
-                        className="px-3.5 py-1.5 bg-brand-charcoal hover:bg-brand-charcoal/90 text-white rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+                        className="px-4 py-2 bg-[#C5A05B] hover:bg-[#D5B06B] text-black rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
                       >
-                        {copied ? <Check size={11} /> : <Copy size={11} />}
+                        {copied ? <Check size={12} /> : <Copy size={12} />}
                         <span>{copied ? langText.copiedText : langText.copyBtn}</span>
                       </button>
                     </div>
@@ -499,30 +519,30 @@ export const FortuneWheel: React.FC = () => {
                     <div className="pt-2 flex flex-col gap-2">
                       <button
                         onClick={() => handleQuickApply(wonSlice.code)}
-                        className="w-full py-2.5 bg-[#C5A05B] hover:bg-[#D5B06B] text-[#1A1A1A] rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer shadow-md"
+                        className="w-full py-3 bg-gradient-to-r from-[#C5A05B] to-[#E5C07B] hover:brightness-110 text-stone-950 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-[0_4px_15px_rgba(197,160,91,0.2)] hover:shadow-[0_4px_20px_rgba(197,160,91,0.4)]"
                       >
                         {langText.applyAutoBtn}
                       </button>
                       <button
                         onClick={() => setIsOpen(false)}
-                        className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-brand-charcoal rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer"
+                        className="w-full py-2 bg-stone-900 hover:bg-stone-850 text-stone-300 hover:text-white border border-white/5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer"
                       >
-                        {isRtl ? 'إغلاق' : 'Close'}
+                        {isRtl ? 'إغلاق نافذة الحظ' : 'Close Fortune Window'}
                       </button>
                     </div>
 
                     {cooldownTimeLeft > 0 && (
-                      <div className="bg-amber-500/5 border border-[#C5A05B]/10 rounded-2xl p-2.5 text-center my-2">
-                        <span className="text-[9px] font-black text-brand-gold block uppercase mb-1">
-                          {isRtl ? 'يمكنك تدوير العجلة مرة أخرى بعد:' : 'Next Spin Available In:'}
+                      <div className="bg-[#C5A05B]/5 border border-[#C5A05B]/10 rounded-2xl p-2.5 text-center my-1">
+                        <span className="text-[9px] font-black text-[#C5A05B] block uppercase tracking-wide mb-1">
+                          {isRtl ? 'يمكنك تدوير العجلة مرة أخرى بعد:' : 'NEXT SPIN AVAILABLE IN:'}
                         </span>
-                        <span className="font-mono text-xs font-black text-brand-gold block animate-pulse">
+                        <span className="font-mono text-xs font-black text-white block animate-pulse">
                           {formatCooldown(cooldownTimeLeft)}
                         </span>
                       </div>
                     )}
 
-                    <p className="text-[8px] text-brand-charcoal/30 font-bold">
+                    <p className="text-[9px] text-stone-500 font-semibold">
                       {langText.terms}
                     </p>
                   </motion.div>
@@ -530,11 +550,11 @@ export const FortuneWheel: React.FC = () => {
 
                 {/* Case 2: Wheel is ready to spin */}
                 {!hasSpun && (
-                  <div className="space-y-2">
+                  <div className="space-y-2.5 w-full">
                     <button
                       onClick={handleSpin}
                       disabled={isSpinning}
-                      className="w-full py-3.5 bg-brand-charcoal text-white hover:bg-brand-charcoal/90 disabled:opacity-50 text-[11px] font-black uppercase tracking-widest rounded-xl shadow-lg transition-transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full py-3.5 bg-gradient-to-r from-[#C5A05B] to-[#E5C07B] text-stone-950 font-black disabled:opacity-50 text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_15px_rgba(197,160,91,0.2)] transition-all transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <span>
                         {isSpinning ? langText.buttonSpinning : langText.buttonSpinReady}
@@ -543,11 +563,11 @@ export const FortuneWheel: React.FC = () => {
                     <button
                       onClick={() => setIsOpen(false)}
                       disabled={isSpinning}
-                      className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-brand-charcoal transition-colors text-[11px] font-black uppercase tracking-widest rounded-xl cursor-pointer disabled:opacity-50"
+                      className="w-full py-2.5 bg-stone-900 hover:bg-stone-850 hover:text-white text-stone-400 border border-white/5 transition-colors text-[10px] font-black uppercase tracking-widest rounded-xl cursor-pointer disabled:opacity-50"
                     >
-                      {isRtl ? 'إلغاء' : 'Cancel'}
+                      {isRtl ? 'العودة للمتجر ✕' : 'Back to Shop ✕'}
                     </button>
-                    <p className="text-[9px] text-brand-charcoal/40 font-bold mt-1">
+                    <p className="text-[9px] text-stone-500 font-semibold mt-1">
                       {langText.terms}
                     </p>
                   </div>

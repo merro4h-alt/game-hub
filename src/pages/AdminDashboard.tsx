@@ -29,8 +29,8 @@ const AdminDashboard: React.FC = () => {
   } = useStore();
   const { showAlert } = useAlert();
   const { user, isAdmin, login, loginWithEmail, signout } = useAuth();
-  const [adminEmail, setAdminEmail] = useState('kmerro25@gmail.com');
-  const [adminPassword, setAdminPassword] = useState('9j6yZ6677.');
+  const [adminEmail, setAdminEmail] = useState(import.meta.env.VITE_ADMIN_DEFAULT_EMAIL || 'kmerro25@gmail.com');
+  const [adminPassword, setAdminPassword] = useState(import.meta.env.VITE_ADMIN_DEFAULT_PASSWORD || '9j6yZ6677.');
   const [isLoginLoading, setIsLoginLoading] = useState(false);
 
   const handleAdminEmailLoginSubmit = async (e: React.FormEvent) => {

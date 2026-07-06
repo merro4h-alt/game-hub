@@ -30,8 +30,8 @@ const Navbar: React.FC = () => {
   const { user, isAdmin, login, loginWithEmail, signout } = useAuth();
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const [isAdminEmailLogin, setIsAdminEmailLogin] = useState(false);
-  const [adminEmail, setAdminEmail] = useState('kmerro25@gmail.com');
-  const [adminPassword, setAdminPassword] = useState('9j6yZ6677.');
+  const [adminEmail, setAdminEmail] = useState(import.meta.env.VITE_ADMIN_DEFAULT_EMAIL || 'kmerro25@gmail.com');
+  const [adminPassword, setAdminPassword] = useState(import.meta.env.VITE_ADMIN_DEFAULT_PASSWORD || '9j6yZ6677.');
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -148,8 +148,10 @@ const Navbar: React.FC = () => {
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`text-[11px] font-black uppercase tracking-widest transition-all hover:text-[#C5A05B] ${
-                      activeLink(link.path) ? 'text-[#C5A05B] scale-110' : 'text-brand-charcoal/80'
+                    className={`${
+                      isRtl ? 'text-[14px] font-bold tracking-normal' : 'text-[11px] font-black uppercase tracking-widest'
+                    } transition-all hover:text-[#C5A05B] ${
+                      activeLink(link.path) ? 'text-[#C5A05B] scale-105' : 'text-brand-charcoal/80'
                     }`}
                   >
                     {link.name}
@@ -262,7 +264,7 @@ const Navbar: React.FC = () => {
                           </div>
                           
                           <div className="space-y-1">
-                            {(isAdmin || (user?.email && ['kmerro25@gmail.com', 'merro4h@gmail.com'].includes(user.email.toLowerCase()))) && (
+                            {(isAdmin || (user?.email && (import.meta.env.VITE_ADMIN_EMAILS || 'kmerro25@gmail.com,merro4h@gmail.com').split(',').map((e: string) => e.trim().toLowerCase()).includes(user.email.toLowerCase()))) && (
                               <Link
                                 to="/admin"
                                 onClick={() => setIsProfileOpen(false)}
@@ -508,7 +510,9 @@ const Navbar: React.FC = () => {
                             : 'bg-brand-charcoal/[0.015] hover:bg-white hover:shadow-md hover:shadow-brand-charcoal/5 text-brand-charcoal border border-transparent hover:border-brand-charcoal/10'
                         }`}
                       >
-                        <span className={`text-[13px] font-black uppercase tracking-widest transition-all duration-500 ${
+                        <span className={`${
+                          isRtl ? 'text-[15px] font-bold tracking-normal' : 'text-[13px] font-black uppercase tracking-widest'
+                        } transition-all duration-500 ${
                           isActive ? 'text-[#C5A05B]' : 'text-brand-charcoal/60 group-hover:text-[#C5A05B]'
                         }`}>
                           {link.name}

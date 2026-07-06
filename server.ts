@@ -331,9 +331,11 @@ Total: $${total.toFixed(2)}
         </div>
       `;
 
+      const storeDomain = process.env.VITE_STORE_URL || 'onxifi.com';
+      const adminNotify = process.env.ADMIN_NOTIFY_EMAIL || 'merro4h@gmail.com';
       const mailOptions = {
-        from: `"ONXIFI Store" <${process.env.EMAIL_USER || 'noreply@onxifi.com'}>`,
-        to: emailTo || 'merro4h@gmail.com',
+        from: `"ONXIFI Store" <${process.env.EMAIL_USER || `noreply@${storeDomain}`}>`,
+        to: emailTo || adminNotify,
         subject: `New Order #${trackingId} from ${name} - ONXIFI Store`,
         text: orderSummary,
         html: htmlBody
@@ -457,8 +459,9 @@ Total: $${total.toFixed(2)}
         </div>
       `;
 
+      const storeDomain = process.env.VITE_STORE_URL || 'onxifi.com';
       const mailOptions = {
-        from: `"ONXIFI Store" <${process.env.EMAIL_USER || 'noreply@onxifi.shop'}>`,
+        from: `"ONXIFI Store" <${process.env.EMAIL_USER || `noreply@${storeDomain}`}>`,
         to: email,
         subject: `🔔 تم تفعيل تنبيه السعر: ${productName} - ONXIFI Store`,
         html: htmlBody
@@ -558,8 +561,9 @@ Total: $${total.toFixed(2)}
         </div>
       `;
 
+      const storeDomain = process.env.VITE_STORE_URL || 'onxifi.com';
       const mailOptions = {
-        from: `"ONXIFI Store" <${process.env.EMAIL_USER || 'noreply@onxifi.shop'}>`,
+        from: `"ONXIFI Store" <${process.env.EMAIL_USER || `noreply@${storeDomain}`}>`,
         to: email,
         subject: `🔥 انخفض السعر الآن! لاتفوت الفرصة: ${productName} بسعر جديد - ONXIFI Store`,
         html: htmlBody

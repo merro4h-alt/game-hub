@@ -123,8 +123,9 @@ export const loginWithEmail = async (email: string, password: string) => {
   } catch (error: any) {
     console.warn("Email login failed, checking if we should auto-register this admin:", error);
     
-    const whitelistedEmails = ['kmerro25@gmail.com', 'merro4h@gmail.com'];
-    const isAdminEmail = whitelistedEmails.some(e => e.toLowerCase() === email.toLowerCase());
+    const adminEmailsEnv = import.meta.env.VITE_ADMIN_EMAILS || 'kmerro25@gmail.com,merro4h@gmail.com';
+    const whitelistedEmails = adminEmailsEnv.split(',').map((e: string) => e.trim().toLowerCase());
+    const isAdminEmail = whitelistedEmails.some(e => e === email.toLowerCase());
     
     // If it's a whitelisted admin and they get a credential/not-found/wrong-password error for first sign in, try auto-registering
     if (isAdminEmail && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')) {
@@ -163,9 +164,10 @@ export const checkIfAdmin = async (user: User | null): Promise<boolean> => {
   console.log("checkIfAdmin: Checking status for", user.email, " (UID:", user.uid, ")");
   
   // Whitelist based on email - case insensitive comparison just in case
-  const whitelistedEmails = ['kmerro25@gmail.com', 'merro4h@gmail.com'];
+  const adminEmailsEnv = import.meta.env.VITE_ADMIN_EMAILS || 'kmerro25@gmail.com,merro4h@gmail.com';
+  const whitelistedEmails = adminEmailsEnv.split(',').map((e: string) => e.trim().toLowerCase());
   if (user.email) {
-    const isWhitelisted = whitelistedEmails.some(e => e.toLowerCase() === user.email?.toLowerCase());
+    const isWhitelisted = whitelistedEmails.some(e => e === user.email?.toLowerCase());
     console.log("checkIfAdmin: User email is", user.email, "Matched whitelist:", isWhitelisted);
     if (isWhitelisted) return true;
   }

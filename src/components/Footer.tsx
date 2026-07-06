@@ -126,10 +126,10 @@ const Footer: React.FC = () => {
         </div>
 
         <div className="border-t border-brand-cream/10 pt-12 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-brand-cream/40 text-xs uppercase tracking-widest">
+          <p className={`text-brand-cream/40 ${i18n.language.startsWith('ar') ? 'text-sm font-medium tracking-normal' : 'text-xs uppercase tracking-widest'}`}>
             {t('footer.copyright')}
           </p>
-          <div className="flex gap-8 text-brand-cream/40 text-xs uppercase tracking-widest">
+          <div className={`flex gap-8 text-brand-cream/40 ${i18n.language.startsWith('ar') ? 'text-sm font-medium tracking-normal' : 'text-xs uppercase tracking-widest'}`}>
             <Link to="/policies" className="hover:text-[#4F46E5]">{i18n.language === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'}</Link>
             <Link to="/policies" className="hover:text-[#4F46E5]">{i18n.language === 'ar' ? 'شروط الخدمة' : 'Terms of Service'}</Link>
             <Link to="/contact" className="hover:text-[#4F46E5]">{i18n.language === 'ar' ? 'اتصل بنا' : 'Contact Us'}</Link>

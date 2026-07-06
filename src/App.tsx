@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { HelmetProvider, Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { StoreProvider } from './StoreContext';
@@ -38,6 +38,7 @@ import { NewsletterPopup } from './components/NewsletterPopup';
 import ScrollProgress from './components/ScrollProgress';
 import { useAuth } from './AuthContext';
 import { AnimatePresence } from 'motion/react';
+import { PageTransition } from './components/PageTransition';
 
 const GlobalModals = () => {
   const { isAddModalOpen, setIsAddModalOpen, editingProduct, setEditingProduct, quickViewProduct, setQuickViewProduct } = useStore();
@@ -92,6 +93,7 @@ function AppContent() {
   const { loading: authLoading } = useAuth();
   const { t, i18n } = useTranslation();
   const [isSafetyTimeoutReached, setIsSafetyTimeoutReached] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     console.log("App loading state:", { storeLoading, authLoading });
@@ -203,21 +205,23 @@ function AppContent() {
         <Navbar />
       </header>
       <main className="flex-grow pt-40 sm:pt-48">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/shop" element={<ShopPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/wishlist" element={<WishlistPage />} />
-          <Route path="/track" element={<TrackOrderPage />} />
-          <Route path="/track/:trackingId" element={<TrackOrderPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/drop-shipping" element={<DropShippingPage />} />
-          <Route path="/policies" element={<PoliciesPage />} />
-          <Route path="/product/:productId" element={<ProductDetailPage />} />
-        </Routes>
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={<PageTransition><HomePage /></PageTransition>} />
+            <Route path="/shop" element={<PageTransition><ShopPage /></PageTransition>} />
+            <Route path="/about" element={<PageTransition><AboutPage /></PageTransition>} />
+            <Route path="/contact" element={<PageTransition><ContactPage /></PageTransition>} />
+            <Route path="/cart" element={<PageTransition><CartPage /></PageTransition>} />
+            <Route path="/wishlist" element={<PageTransition><WishlistPage /></PageTransition>} />
+            <Route path="/track" element={<PageTransition><TrackOrderPage /></PageTransition>} />
+            <Route path="/track/:trackingId" element={<PageTransition><TrackOrderPage /></PageTransition>} />
+            <Route path="/orders" element={<PageTransition><OrdersPage /></PageTransition>} />
+            <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
+            <Route path="/drop-shipping" element={<PageTransition><DropShippingPage /></PageTransition>} />
+            <Route path="/policies" element={<PageTransition><PoliciesPage /></PageTransition>} />
+            <Route path="/product/:productId" element={<PageTransition><ProductDetailPage /></PageTransition>} />
+          </Routes>
+        </AnimatePresence>
       </main>
       <Footer />
       <GlobalModals />
