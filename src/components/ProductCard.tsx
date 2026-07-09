@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Star, ShoppingCart, Check, Edit2, Trash2, X, AlertTriangle, ArrowUpRight, Sparkles, Eye, Heart } from 'lucide-react';
+import { Star, ShoppingCart, Check, Edit2, Trash2, X, AlertTriangle, ArrowUpRight, Sparkles, Heart } from 'lucide-react';
 import { Product } from '../types';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../StoreContext';
@@ -21,9 +21,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
   const [selectedColor, setSelectedColor] = useState(product.colors[0]);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
+
+  const allImages = [product.image, ...(product.images || [])].filter(Boolean);
 
   const handleColorClick = (color: string) => {
     setSelectedColor(color);
+    setActiveImageIndex(null);
     // Visual feedback that the color was selected
     setShowFeedback(true);
     setTimeout(() => setShowFeedback(false), 1500);
@@ -46,6 +50,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
     e.stopPropagation();
     setIsDeleting(false);
   };
+
+  const activeImg = activeImageIndex !== null 
+    ? allImages[activeImageIndex] 
+    : (product.colorImages?.[selectedColor] || product.image);
+  
+  const activeImgKey = activeImageIndex !== null ? `img-${activeImageIndex}` : selectedColor;
 
   return (
     <motion.div
@@ -102,11 +112,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
         <div className="relative aspect-square overflow-hidden rounded-[3rem] bg-[#F4F4F5] mb-4 border border-brand-charcoal/5 group-hover:border-brand-gold/20 group-hover:shadow-2xl group-hover:shadow-brand-gold/10 transition-all duration-700">
           <AnimatePresence mode="wait">
             <motion.img
-              key={selectedColor}
+              key={activeImgKey}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              src={product.colorImages?.[selectedColor] || product.image || 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600'}
+              src={activeImg || 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600'}
               alt={product.name}
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
@@ -167,6 +177,44 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
 
         </div>
       </Link>
+
+      {/* Thumbnail Gallery */}
+      {allImages.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1.5 mb-3 pt-1">
+          {allImages.map((img, idx) => {
+            const isActive = activeImageIndex === null ? idx === 0 : activeImageIndex === idx;
+            return (
+              <button
+                key={idx}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setActiveImageIndex(idx);
+                }}
+                onMouseEnter={() => {
+                  setActiveImageIndex(idx);
+                }}
+                className={`w-10 h-12 rounded-xl overflow-hidden border transition-all flex-shrink-0 cursor-pointer ${
+                  isActive 
+                    ? 'border-brand-gold scale-105 shadow-md shadow-brand-gold/10' 
+                    : 'border-white/10 opacity-60 hover:opacity-100'
+                }`}
+              >
+                <img 
+                  src={img} 
+                  alt="" 
+                  className="w-full h-full object-cover" 
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=60&w=600';
+                  }}
+                />
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Admin Quick Actions */}
       {isAdmin && (
@@ -286,18 +334,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, isEditMode }
           >
             <ShoppingCart size={15} />
             <span>{t('shop.addToCart')}</span>
-          </button>
-          
-          <button 
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              navigate(`/product/${product.id}`);
-            }}
-            className="p-3.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl border border-white/10 transition-all duration-300 flex items-center justify-center hover:text-brand-gold hover:border-brand-gold/30 active:scale-[0.98] cursor-pointer"
-            title={i18n.language === 'ar' ? 'عرض تفاصيل المنتج' : 'View Product Details'}
-          >
-            <Eye size={18} />
           </button>
         </div>
       </div>

@@ -171,13 +171,13 @@ export const DailyBoxChallenge: React.FC = () => {
       {/* Floating Mystery Box Widget */}
       <motion.button
         id="daily-box-challenge-btn"
-        className="fixed bottom-24 right-[11rem] z-40 w-12 h-12 rounded-full bg-gradient-to-r from-yellow-400 to-amber-600 text-stone-900 shadow-2xl flex items-center justify-center cursor-pointer hover:scale-110 active:scale-95 border border-white/20"
+        className="fixed bottom-24 right-[11rem] z-40 w-12 h-12 rounded-full bg-brand-gold text-brand-charcoal shadow-2xl flex items-center justify-center cursor-pointer hover:scale-110 active:scale-95 border border-white/20"
         animate={{ 
           y: [0, -6, 0],
           boxShadow: [
-            "0px 10px 20px rgba(245, 158, 11, 0.2)",
-            "0px 15px 30px rgba(245, 158, 11, 0.4)",
-            "0px 10px 20px rgba(245, 158, 11, 0.2)"
+            "0px 10px 20px rgba(197, 160, 89, 0.2)",
+            "0px 15px 30px rgba(197, 160, 89, 0.4)",
+            "0px 10px 20px rgba(197, 160, 89, 0.2)"
           ]
         }}
         transition={{ 
@@ -188,7 +188,7 @@ export const DailyBoxChallenge: React.FC = () => {
         onClick={() => setIsOpen(true)}
         title={isRtl ? 'صناديق الحظ اليومية' : 'Daily Chest Challenge'}
       >
-        <Gift size={20} className="text-stone-900 animate-pulse" />
+        <Gift size={20} className="text-brand-charcoal animate-pulse" />
         <span className="absolute -top-1 -left-1 flex h-3 w-3">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
@@ -218,7 +218,7 @@ export const DailyBoxChallenge: React.FC = () => {
               className="relative w-full max-w-lg bg-[#0F0F10] border border-white/10 rounded-[3rem] p-6 sm:p-10 text-center overflow-hidden z-10 shadow-3xl text-white"
             >
               {/* Decorative radial gradients */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none" />
 
               {/* Close Button */}
               {!currentlyOpeningId && (
@@ -231,8 +231,8 @@ export const DailyBoxChallenge: React.FC = () => {
               )}
 
               {/* Banner / Category Icon */}
-              <div className="mx-auto w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-6">
-                <Gift className="text-amber-500" size={28} />
+              <div className="mx-auto w-16 h-16 rounded-full bg-brand-gold/10 border border-brand-gold/20 flex items-center justify-center mb-6">
+                <Gift className="text-brand-gold" size={28} />
               </div>
 
               {/* Modal State 1: Pick a Box */}
@@ -249,7 +249,7 @@ export const DailyBoxChallenge: React.FC = () => {
 
                   {/* Cooldown Info */}
                   {cooldown ? (
-                    <div className="inline-flex items-center gap-2 px-6 py-4 bg-white/[0.02] border border-white/5 rounded-2xl mb-4 max-w-xs mx-auto text-xs text-amber-500 font-mono">
+                    <div className="inline-flex items-center gap-2 px-6 py-4 bg-white/[0.02] border border-white/5 rounded-2xl mb-4 max-w-xs mx-auto text-xs text-brand-gold font-mono">
                       <Clock size={14} />
                       <span>{isRtl ? `تفتح مجدداً بعد: ${cooldown}` : `Opens again in: ${cooldown}`}</span>
                     </div>
@@ -288,7 +288,7 @@ export const DailyBoxChallenge: React.FC = () => {
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                    className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-6"
+                    className="w-16 h-16 border-4 border-brand-gold border-t-transparent rounded-full mx-auto mb-6"
                   />
                   <h4 className="text-lg font-black tracking-widest uppercase">
                     {isRtl ? 'جاري فتح صندوقك السحري...' : 'Cracking the Mystery Box...'}
@@ -332,7 +332,7 @@ export const DailyBoxChallenge: React.FC = () => {
                         className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                           hasCopied 
                             ? 'bg-green-500 text-white' 
-                            : 'bg-amber-500 text-stone-900 hover:bg-white hover:text-black shadow-lg shadow-amber-500/10'
+                            : 'bg-brand-gold text-brand-charcoal hover:bg-white hover:text-brand-charcoal shadow-lg shadow-brand-gold/10'
                         }`}
                       >
                         {hasCopied ? <Check size={12} /> : <Copy size={12} />}

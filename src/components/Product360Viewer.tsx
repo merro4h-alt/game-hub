@@ -102,8 +102,8 @@ export const Product360Viewer: React.FC<Product360ViewerProps> = ({ product, isA
 
   // Custom hotspots based on product categories
   const hotspots = useMemo<Hotspot[]>(() => {
-    const isShoe = product.category === 'Sports' || 
-                   /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker/i.test(product.name);
+    const isShoe = /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|صندل|نعال|سنيكرز|شبشب|shoe|sneaker|boot|sandal|footwear|loafers|slippers|heels/i.test(product.name || '') || 
+                   /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|صندل|نعال|سنيكرز|شبشب|shoe|sneaker|boot|sandal|footwear|loafers|slippers|heels/i.test(product.description || '');
     
     if (isShoe) {
       return [

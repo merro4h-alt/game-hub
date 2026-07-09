@@ -6,14 +6,11 @@ import {
   X, 
   Check,
   Plus,
-  Minus,
-  ArrowRight,
-  ArrowLeft
+  Minus
 } from 'lucide-react';
 import { useStore } from '../StoreContext';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
-import { Link } from 'react-router-dom';
 
 interface QuickViewModalProps {
   product: Product;
@@ -25,11 +22,11 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language === 'ar';
   
-  const isShoe = product.category === 'Sports' || 
-    /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker|nike|adidas|puma|reebok|boot|sandals|running/i.test(product.name || '') || 
-    /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker|nike|adidas|puma|reebok|boot|sandals|running/i.test(product.description || '');
+  const isShoe = 
+    /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|صندل|نعال|سنيكرز|شبشب|shoe|sneaker|boot|sandal|footwear|loafers|slippers|heels/i.test(product.name || '') || 
+    /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|صندل|نعال|سنيكرز|شبشب|shoe|sneaker|boot|sandal|footwear|loafers|slippers|heels/i.test(product.description || '');
 
-  const effectiveSizes = isShoe ? ['39', '40', '41', '42', '43', '44', '45'] : (product.sizes || []);
+  const effectiveSizes = isShoe ? ['39', '40', '41', '42', '43', '44', '45'] : [];
 
   const [selectedColor, setSelectedColor] = useState<string>(product.colors[0]);
   const [selectedSize, setSelectedSize] = useState<string>(effectiveSizes[0] || product.sizes[0] || 'Standard');
@@ -50,6 +47,17 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
     }
   }, [selectedColor]);
 
+  // Escape key listener to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const handleAddToCart = () => {
     addToCart(product, selectedColor, selectedSize, quantity);
     onClose();
@@ -68,7 +76,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-4xl bg-[#0A0A0B] rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10"
+        className="relative w-full max-w-4xl bg-[#0A0A0B] rounded-[2.5rem] shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto no-scrollbar"
       >
         <button 
           onClick={onClose}
@@ -245,15 +253,15 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
             </div>
 
             <div className="space-y-4 pt-4 border-t border-white/5 mt-auto">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center bg-white/5 rounded-2xl p-1 border border-white/10 h-14">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <div className="flex items-center justify-between sm:justify-start bg-white/5 rounded-2xl p-1 border border-white/10 h-14">
                   <button 
                     onClick={() => setQuantity(q => Math.max(1, q - 1))} 
                     className="p-3 text-white/40 hover:text-white transition-colors"
                   >
                     <Minus size={16} />
                   </button>
-                  <span className="w-8 text-center text-sm font-bold text-white">{quantity}</span>
+                  <span className="w-12 text-center text-sm font-bold text-white">{quantity}</span>
                   <button 
                     onClick={() => setQuantity(q => Math.min(product.stock || 100, q + 1))} 
                     className="p-3 text-white/40 hover:text-white transition-colors"
@@ -261,6 +269,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
                     <Plus size={16} />
                   </button>
                 </div>
+                
                 <button 
                   onClick={handleAddToCart}
                   disabled={(product.stock || 0) <= 0}
@@ -275,14 +284,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
                 </button>
               </div>
               
-              <Link
-                to={`/product/${product.id}`}
-                onClick={onClose}
-                className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-brand-gold transition-colors pt-2"
-              >
-                {t('common.viewDetails')}
-                {isArabic ? <ArrowLeft size={12} /> : <ArrowRight size={12} />}
-              </Link>
+
             </div>
           </div>
         </div>

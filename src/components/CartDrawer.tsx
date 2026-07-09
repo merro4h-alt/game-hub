@@ -224,6 +224,11 @@ export const CartDrawer: React.FC = () => {
                                       {item.selectedSize}
                                     </span>
                                   )}
+                                  {item.stock !== undefined && (
+                                    <span className="inline-flex items-center text-[9px] font-bold px-2 py-0.5 rounded-full bg-orange-50 border border-orange-100/50 text-orange-600 uppercase">
+                                      {isRtl ? `المخزن: ${item.stock}` : `Stock: ${item.stock}`}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
 

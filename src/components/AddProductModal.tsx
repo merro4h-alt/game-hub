@@ -524,9 +524,11 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
     }
   };
 
-  const currentSizeOptions = 
-    formData.category === 'New' ? SIZES_CLOTHES :
-    formData.category === 'Best Seller' ? COSMETIC_SIZES : SIZES_CLOTHES; // Defaulting to clothes for Offers too for now
+  const isShoe = formData.category === 'Sports' || 
+    /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|صندل|نعال|سنيكرز|شبشب|shoe|sneaker|boot|sandal|footwear|loafers|slippers|heels/i.test(formData.name || '') || 
+    /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|صندل|نعال|سنيكرز|شبشب|shoe|sneaker|boot|sandal|footwear|loafers|slippers|heels/i.test(formData.description || '');
+
+  const currentSizeOptions = isShoe ? SIZES_SHOES : [];
 
   return (
     <AnimatePresence>
@@ -1125,27 +1127,29 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                 </div>
               )}
 
-              <div className="space-y-4">
-                <label className="text-xs font-bold uppercase tracking-widest text-brand-charcoal/50">
-                  {isArabic ? 'المقاسات المتاحة' : 'Available Sizes'}
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {currentSizeOptions.map(size => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => toggleSelection(formData.sizes, size, 'sizes')}
-                      className={`px-4 py-1 rounded-full text-xs font-medium border transition-all ${
-                        formData.sizes.includes(size) 
-                          ? 'bg-brand-charcoal text-white border-brand-charcoal' 
-                          : 'bg-white text-brand-charcoal border-brand-charcoal/10 hover:border-brand-gold'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
+              {currentSizeOptions.length > 0 && (
+                <div className="space-y-4">
+                  <label className="text-xs font-bold uppercase tracking-widest text-brand-charcoal/50">
+                    {isArabic ? 'المقاسات المتاحة' : 'Available Sizes'}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {currentSizeOptions.map(size => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => toggleSelection(formData.sizes, size, 'sizes')}
+                        className={`px-4 py-1 rounded-full text-xs font-medium border transition-all ${
+                          formData.sizes.includes(size) 
+                            ? 'bg-brand-charcoal text-white border-brand-charcoal' 
+                            : 'bg-white text-brand-charcoal border-brand-charcoal/10 hover:border-brand-gold'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="pt-6">
                 {successMsg ? (

@@ -14,12 +14,12 @@ export const LoyaltyBanner = () => {
       viewport={{ once: true }}
       className="mt-16 relative overflow-hidden group"
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] opacity-10 blur-3xl group-hover:opacity-20 transition-opacity duration-700" />
+      <div className="absolute inset-0 bg-gradient-to-r from-brand-gold to-yellow-600 opacity-10 blur-3xl group-hover:opacity-20 transition-opacity duration-700" />
       
     <div className="relative bg-[#0A0A0B] border border-white/10 rounded-[2.5rem] p-8 sm:p-12 shadow-2xl overflow-hidden">
         {/* Animated Background Gradients */}
         <div className="absolute top-0 left-0 w-full h-full">
-          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[80%] bg-[#4F46E5]/20 blur-[120px] rounded-full animate-pulse" />
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[80%] bg-brand-gold/15 blur-[120px] rounded-full animate-pulse" />
           <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[80%] bg-brand-gold/10 blur-[120px] rounded-full" />
         </div>
 

@@ -55,15 +55,15 @@ const DiscountSection = () => {
     <section className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-20 relative overflow-hidden">
       <div className="relative rounded-[4rem] bg-[#0A0A0B] overflow-hidden p-8 md:p-20 text-center border border-white/5">
         <div className="absolute top-0 left-0 w-full h-full">
-          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[80%] bg-[#4F46E5]/20 rounded-full blur-[120px]" />
-          <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[80%] bg-[#7C3AED]/20 rounded-full blur-[120px]" />
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[80%] bg-brand-gold/15 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[80%] bg-brand-gold/10 rounded-full blur-[120px]" />
         </div>
         
         <div className="relative z-10 max-w-3xl mx-auto">
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-center gap-2 text-[#4F46E5] text-[10px] font-black uppercase tracking-[0.4em] mb-8"
+            className="flex items-center justify-center gap-2 text-brand-gold text-[10px] font-black uppercase tracking-[0.4em] mb-8"
           >
             <Clock size={14} className="animate-pulse" />
             <span>عرض الطلب الأول - ينتهي قريباً</span>
@@ -112,7 +112,7 @@ const DiscountSection = () => {
                 className={`ml-2 px-8 py-5 rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] transition-all duration-500 overflow-hidden relative ${
                   copied 
                     ? 'bg-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.4)]' 
-                    : 'bg-[#4F46E5] text-white hover:bg-white hover:text-black shadow-lg shadow-indigo-500/20'
+                    : 'bg-brand-gold text-brand-charcoal hover:bg-white hover:text-brand-charcoal shadow-lg shadow-brand-gold/20'
                 }`}
               >
                 <span className="relative z-10 flex items-center gap-2">
@@ -242,21 +242,21 @@ const HomePage: React.FC = () => {
             className="flex flex-col items-center text-center mb-12 gap-8"
           >
             <div className="flex flex-col items-center">
-              <span className="text-[#4F46E5] font-black uppercase tracking-[0.3em] text-xs mb-4 block">{t('home.selection')}</span>
+              <span className="text-brand-gold font-black uppercase tracking-[0.3em] text-xs mb-4 block">{t('home.selection')}</span>
               <h2 className="text-5xl md:text-6xl font-black tracking-tighter uppercase text-white">{t('home.featured')}</h2>
-              <div className="h-1.5 w-24 bg-gradient-to-r from-[#4F46E5] via-purple-500 to-[#4F46E5] rounded-full mt-6" />
+              <div className="h-1.5 w-24 bg-gradient-to-r from-brand-gold via-yellow-500 to-brand-gold rounded-full mt-6" />
             </div>
             
             <Link 
               to="/shop" 
-              className="group relative px-10 py-5 bg-[#0A0A0B] rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_20px_50px_rgba(79,70,229,0.2)]"
+              className="relative group cursor-pointer hover:scale-105 active:scale-95 transition-all"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-[#4F46E5] to-purple-600 opacity-90 group-hover:opacity-100 transition-opacity" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              <div className="relative flex items-center gap-4 text-white font-black text-xs uppercase tracking-[0.3em]">
-                {t('home.exploreAll')}
-                <div className="bg-white/10 p-1 rounded-full group-hover:bg-white/20 transition-colors">
-                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              <div className="absolute inset-0 bg-brand-gold blur-2xl opacity-20 group-hover:opacity-40 transition-opacity" />
+              <div className="relative px-10 py-5 bg-brand-gold border border-white/20 rounded-full overflow-hidden shadow-[0_10px_30px_-10px_rgba(197,160,91,0.5)] flex items-center gap-4 text-brand-charcoal font-black text-xs uppercase tracking-[0.3em]">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
+                <span className="relative z-10">{t('home.exploreAll')}</span>
+                <div className="relative z-10 bg-brand-charcoal/10 p-1 rounded-full group-hover:bg-brand-charcoal/20 transition-colors">
+                  <ArrowRight size={14} className="text-brand-charcoal group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             </Link>
@@ -267,7 +267,7 @@ const HomePage: React.FC = () => {
             {/* Left Arrow (visible on mobile and desktop) */}
             <button
               onClick={() => scroll('left')}
-              className="absolute left-2 md:left-10 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-full bg-brand-charcoal/90 hover:bg-[#4F46E5] text-white border border-white/10 hover:border-transparent opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg cursor-pointer"
+              className="absolute left-2 md:left-10 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-full bg-brand-charcoal/90 hover:bg-brand-gold text-white border border-white/10 hover:border-transparent opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg cursor-pointer"
               aria-label="Previous Category"
             >
               <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
@@ -308,14 +308,14 @@ const HomePage: React.FC = () => {
                 >
                   <Link
                     to={`/shop?category=${encodeURIComponent(cat.category)}`}
-                    className="group px-4 py-3 md:px-6 md:py-4 bg-[#0F0F11]/90 hover:bg-[#151518] border border-white/5 hover:border-[#4F46E5]/50 rounded-2xl hover:shadow-2xl hover:shadow-[#4F46E5]/15 hover:-translate-y-1 transition-all duration-300 flex items-center gap-3 md:gap-4.5 pointer-events-auto"
+                    className="group px-4 py-3 md:px-6 md:py-4 bg-[#0F0F11]/90 hover:bg-[#151518] border border-white/5 hover:border-brand-gold/50 rounded-2xl hover:shadow-2xl hover:shadow-brand-gold/15 hover:-translate-y-1 transition-all duration-300 flex items-center gap-3 md:gap-4.5 pointer-events-auto"
                     draggable="false"
                   >
-                    <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-xl bg-white/5 group-hover:bg-[#4F46E5]/12 text-[#4F46E5] group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-inner shrink-0">
+                    <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-xl bg-white/5 group-hover:bg-brand-gold/12 text-brand-gold group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-inner shrink-0">
                       {cat.icon}
                     </div>
                     <div className="flex flex-col text-start">
-                      <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] md:tracking-[0.15em] text-white transition-colors group-hover:text-[#4F46E5]">
+                      <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] md:tracking-[0.15em] text-white transition-colors group-hover:text-brand-gold">
                         {cat.label}
                       </span>
                       <span className="text-[7px] md:text-[8px] text-white/40 group-hover:text-white/60 transition-colors uppercase font-mono tracking-widest mt-1">
@@ -330,7 +330,7 @@ const HomePage: React.FC = () => {
             {/* Right Arrow (visible on mobile and desktop) */}
             <button
               onClick={() => scroll('right')}
-              className="absolute right-2 md:right-10 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-full bg-brand-charcoal/90 hover:bg-[#4F46E5] text-white border border-white/10 hover:border-transparent opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg cursor-pointer"
+              className="absolute right-2 md:right-10 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-full bg-brand-charcoal/90 hover:bg-brand-gold text-white border border-white/10 hover:border-transparent opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg cursor-pointer"
               aria-label="Next Category"
             >
               <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
@@ -347,7 +347,7 @@ const HomePage: React.FC = () => {
                   <div
                     key={cat.key}
                     className={`h-1 rounded-full transition-all duration-300 ${
-                      activeIdx === idx ? 'w-4 bg-[#4F46E5]' : 'w-1 bg-white/20'
+                      activeIdx === idx ? 'w-4 bg-brand-gold' : 'w-1 bg-white/20'
                     }`}
                   />
                 );
@@ -552,7 +552,7 @@ const HomePage: React.FC = () => {
 
       {/* Modern Philosophy Section */}
       <section className="py-40 bg-[#0A0A0B] overflow-hidden relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#4F46E5]/10 rounded-full blur-[120px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-gold/10 rounded-full blur-[120px]" />
         
         <div className="max-w-5xl mx-auto px-4 text-center relative z-10">
           <motion.div
@@ -562,7 +562,7 @@ const HomePage: React.FC = () => {
             viewport={{ once: true }}
           >
             <h2 className="text-4xl md:text-8xl font-black text-white tracking-tighter mb-12 leading-[1.05]">
-              Elegance is not about being noticed, it's about being <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-gold via-[#4F46E5] to-brand-gold italic font-serif">remembered.</span>
+              Elegance is not about being noticed, it's about being <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-gold via-yellow-500 to-brand-gold italic font-serif">remembered.</span>
             </h2>
             <Link 
               to="/about"
@@ -603,7 +603,7 @@ const HomePage: React.FC = () => {
                   {Array.from({ length: 5 }).map((_, i) => (
                     <span 
                       key={i} 
-                      className={`text-sm ${i < Number(t(`reviews.items.${num}.stars`)) ? 'text-[#4F46E5]' : 'text-white/10'}`}
+                      className={`text-sm ${i < Number(t(`reviews.items.${num}.stars`)) ? 'text-brand-gold' : 'text-white/10'}`}
                     >
                       ★
                     </span>
@@ -613,7 +613,7 @@ const HomePage: React.FC = () => {
                    "{t(`reviews.items.${num}.comment`)}"
                 </p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#4F46E5]/10 text-[#4F46E5] flex items-center justify-center text-xs font-bold border border-[#4F46E5]/20">
+                  <div className="w-10 h-10 rounded-full bg-brand-gold/10 text-brand-gold flex items-center justify-center text-xs font-bold border border-brand-gold/20">
                     {t(`reviews.items.${num}.name`)[0]}
                   </div>
                   <div>
@@ -629,7 +629,7 @@ const HomePage: React.FC = () => {
           <div className="text-center mt-12">
             <button
               onClick={() => setIsReviewOpen(true)}
-              className="px-10 py-5 bg-[#4F46E5] text-white rounded-full font-bold tracking-widest uppercase text-xs hover:bg-white hover:text-black transition-all duration-500 shadow-lg flex items-center gap-3 mx-auto group"
+              className="px-10 py-5 bg-brand-gold text-brand-charcoal rounded-full font-bold tracking-widest uppercase text-xs hover:bg-white hover:text-brand-charcoal transition-all duration-500 shadow-lg flex items-center gap-3 mx-auto group"
             >
               <Quote size={16} className="text-brand-gold" />
               {t('reviews.addReview')}

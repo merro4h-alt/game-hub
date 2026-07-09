@@ -141,7 +141,7 @@ const ShopPage: React.FC = () => {
             {/* Left Scroll Button */}
             <button
               onClick={() => scroll('left')}
-              className="absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-[#151518]/90 hover:bg-[#4F46E5] text-white border border-white/5 opacity-0 group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg hidden md:block cursor-pointer"
+              className="absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-[#151518]/90 hover:bg-brand-gold text-white border border-white/5 opacity-0 group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg hidden md:block cursor-pointer"
               aria-label="Previous Category"
             >
               <ChevronLeft size={16} />
@@ -204,7 +204,7 @@ const ShopPage: React.FC = () => {
             {/* Right Scroll Button */}
             <button
               onClick={() => scroll('right')}
-              className="absolute right-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-[#151518]/90 hover:bg-[#4F46E5] text-white border border-white/5 opacity-0 group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg hidden md:block cursor-pointer"
+              className="absolute right-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-[#151518]/90 hover:bg-brand-gold text-white border border-white/5 opacity-0 group-hover/slider:opacity-100 hover:scale-110 transition-all duration-300 pointer-events-auto z-30 shadow-lg hidden md:block cursor-pointer"
               aria-label="Next Category"
             >
               <ChevronRight size={16} />

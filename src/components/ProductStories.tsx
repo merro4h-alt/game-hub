@@ -876,7 +876,7 @@ export const ProductStories: React.FC = () => {
                     </div>
 
                     {/* Username */}
-                    <span className="text-[10px] md:text-[11px] font-bold text-white/80 group-hover:text-[#4F46E5] transition-colors">
+                    <span className="text-[10px] md:text-[11px] font-bold text-white/80 group-hover:text-brand-gold transition-colors">
                       {isArabic ? story.usernameAr : story.usernameEn}
                     </span>
                   </button>
@@ -897,7 +897,7 @@ export const ProductStories: React.FC = () => {
               <div
                 key={story.id}
                 className={`h-1 rounded-full transition-all duration-300 ${
-                  activeIdx === idx ? 'w-4 bg-[#4F46E5]' : 'w-1 bg-white/20'
+                  activeIdx === idx ? 'w-4 bg-brand-gold' : 'w-1 bg-white/20'
                 }`}
               />
             );

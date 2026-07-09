@@ -129,9 +129,9 @@ const Navbar: React.FC = () => {
             <div className="flex flex-col min-w-0">
               <Link to="/" className="flex items-center gap-2 sm:gap-3 group flex-shrink-0" onClick={() => setIsOpen(false)}>
                 {isRtl ? (
-                  <div dir="rtl" className="flex items-center font-arabic tracking-wide font-extrabold text-xl sm:text-2xl lg:text-3xl select-none leading-none drop-shadow-sm uppercase gap-1.5">
+                  <div dir="rtl" className="flex items-center font-arabic tracking-wide font-extrabold text-xl sm:text-2xl lg:text-3xl select-none leading-normal drop-shadow-sm uppercase gap-1.5 overflow-visible">
                     <span className="text-black">اونكس</span>
-                    <span className="inline-block px-1.5 py-0.5 text-transparent bg-clip-text bg-gradient-to-r from-[#C5A05B] to-[#D4AF37]">فاي</span>
+                    <span className="inline-block px-2.5 py-1 pb-2 text-transparent bg-clip-text bg-gradient-to-r from-[#C5A05B] to-[#D4AF37] overflow-visible">فاي</span>
                   </div>
                 ) : (
                   <div dir="ltr" className="flex items-baseline font-logo tracking-wider font-extrabold text-xl sm:text-2xl lg:text-3xl select-none leading-none drop-shadow-sm uppercase">

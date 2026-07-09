@@ -39,6 +39,7 @@ const ProductDetailPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { showAlert } = useAlert();
+  const isArabic = i18n.language === 'ar';
   
   const product = useMemo(() => products.find(p => p.id === productId), [products, productId]);
   
@@ -46,9 +47,8 @@ const ProductDetailPage: React.FC = () => {
   
   const isShoe = useMemo(() => {
     if (!product) return false;
-    const searchTerms = /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker|nike|adidas|puma|reebok|boot|sandals|running/i;
+    const searchTerms = /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|صندل|نعال|سنيكرز|شبشب|shoe|sneaker|boot|sandal|footwear|loafers|slippers|heels/i;
     return (
-      product.category === 'Sports' || 
       searchTerms.test(product.name || '') || 
       searchTerms.test(product.description || '')
     );
@@ -59,7 +59,7 @@ const ProductDetailPage: React.FC = () => {
     if (isShoe) {
       return ['39', '40', '41', '42', '43', '44', '45'];
     }
-    return product.sizes || [];
+    return []; // Only show sizes for shoe products!
   }, [product, isShoe]);
 
   const [selectedSize, setSelectedSize] = useState<string>('');
@@ -92,8 +92,8 @@ const ProductDetailPage: React.FC = () => {
         if (p.colors && p.colors.length > 0) {
           initialColors[p.id] = p.colors[0];
         }
-        const pIsShoe = p.category === 'Sports' || /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker|nike|adidas|puma|reebok|boot|sandals|running/i.test(p.name || '') || /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker|nike|adidas|puma|reebok|boot|sandals|running/i.test(p.description || '');
-        const pSizes = pIsShoe ? ['39', '40', '41', '42', '43', '44', '45'] : (p.sizes || []);
+        const pIsShoe = /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|صندل|نعال|سنيكرز|شبشب|shoe|sneaker|boot|sandal|footwear|loafers|slippers|heels/i.test(p.name || '') || /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|صندل|نعال|سنيكرز|شبشب|shoe|sneaker|boot|sandal|footwear|loafers|slippers|heels/i.test(p.description || '');
+        const pSizes = pIsShoe ? ['39', '40', '41', '42', '43', '44', '45'] : [];
         if (pSizes && pSizes.length > 0) {
           initialSizes[p.id] = pSizes[0];
         }
@@ -180,6 +180,27 @@ const ProductDetailPage: React.FC = () => {
           })}
         </script>
       </Helmet>
+
+      {/* Back Button / Cancel Button */}
+      <div className="mb-8 flex justify-start">
+        <button
+          onClick={() => navigate(-1)}
+          className="group flex items-center gap-2.5 px-6 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 hover:border-white/20 transition-all duration-300 text-xs font-black uppercase tracking-widest cursor-pointer shadow-lg active:scale-[0.98]"
+        >
+          {isArabic ? (
+            <>
+              <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
+              <span>إلغاء والعودة</span>
+            </>
+          ) : (
+            <>
+              <ChevronLeft size={16} className="transition-transform group-hover:-translate-x-1" />
+              <span>Cancel & Go Back</span>
+            </>
+          )}
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
         
         {/* Advanced Gallery Section */}
@@ -684,8 +705,8 @@ const ProductDetailPage: React.FC = () => {
                 {recommendedProducts.map((p, idx) => {
                   const isChecked = !!checkedPromo[p.id];
                   const chosenColor = selectedPromoColors[p.id] || p.colors[0] || '';
-                  const pIsShoe = p.category === 'Sports' || /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker|nike|adidas|puma|reebok|boot|sandals|running/i.test(p.name || '') || /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|سبورت|رياضي|shoe|sneaker|nike|adidas|puma|reebok|boot|sandals|running/i.test(p.description || '');
-                  const pEffectiveSizes = pIsShoe ? ['39', '40', '41', '42', '43', '44', '45'] : (p.sizes || []);
+                  const pIsShoe = /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|صندل|نعال|سنيكرز|شبشب|shoe|sneaker|boot|sandal|footwear|loafers|slippers|heels/i.test(p.name || '') || /حذاء|حذأ|أحذية|احذية|جزمة|كوتش|حذائيه|حذائية|صندل|نعال|سنيكرز|شبشب|shoe|sneaker|boot|sandal|footwear|loafers|slippers|heels/i.test(p.description || '');
+                  const pEffectiveSizes = pIsShoe ? ['39', '40', '41', '42', '43', '44', '45'] : [];
                   const chosenSize = selectedPromoSizes[p.id] || pEffectiveSizes[0] || '';
                   const basePrice = p.colorDiscountPrices?.[chosenColor] ?? p.discountPrice ?? p.colorPrices?.[chosenColor] ?? p.price;
                   const discountedPromoPrice = basePrice * 0.8; // 20% discount on cross-sell items!
