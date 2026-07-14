@@ -360,7 +360,7 @@ export const CartDrawer: React.FC = () => {
                       <div id="cart-drawer-return-policy" className="mt-1 p-2.5 bg-[#FDFBF7]/80 border border-[#C5A05B]/10 rounded-xl space-y-1.5 text-start">
                         <div className="flex items-center gap-2 text-brand-charcoal/75 text-[10px] font-bold">
                           <Truck size={12} className="text-[#C5A05B] shrink-0" />
-                          <span>{isRtl ? 'سياسة الشحن: وقت التوصيل قد يتراوح بين 8-15 يوماً' : 'Shipping Policy: Delivery time may range between 8-15 days'}</span>
+                          <span>{isRtl ? 'سياسة الشحن: توصيل سريع خلال 2-4 أيام عبر شركة الوسيط' : 'Shipping Policy: Fast delivery within 2-4 days via Al-Waseet'}</span>
                         </div>
                         <div className="flex items-center gap-2 text-brand-charcoal/75 text-[10px] font-bold">
                           <ShieldCheck size={12} className="text-[#C5A05B] shrink-0" />

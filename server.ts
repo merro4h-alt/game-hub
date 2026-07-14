@@ -3,6 +3,7 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import Stripe from "stripe";
 import axios from "axios";
+import fs from "fs";
 
 // Initialize Stripe
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
@@ -19,7 +20,51 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: "100mb" }));
+  app.use(express.urlencoded({ limit: "100mb", extended: true }));
+
+  // Create uploads directory if it doesn't exist
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  // Serve uploads statically
+  app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
+
+  // Video Upload API
+  app.post("/api/upload-video", async (req, res) => {
+    try {
+      const { videoData, fileName } = req.body;
+      if (!videoData) {
+        return res.status(400).json({ error: "No video data provided" });
+      }
+
+      if (videoData.startsWith('data:')) {
+        const matches = videoData.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) {
+          return res.status(400).json({ error: "Invalid base64 video format" });
+        }
+        
+        const fileExtension = fileName ? path.extname(fileName) : '.mp4';
+        const uniqueFileName = `video_${Date.now()}_${Math.random().toString(36).substring(2, 9)}${fileExtension}`;
+        const filePath = path.join(uploadsDir, uniqueFileName);
+        
+        const buffer = Buffer.from(matches[2], 'base64');
+        await fs.promises.writeFile(filePath, buffer);
+        
+        return res.json({ 
+          success: true, 
+          url: `/uploads/${uniqueFileName}` 
+        });
+      } else {
+        return res.json({ success: true, url: videoData });
+      }
+    } catch (error: any) {
+      console.error("Video upload error:", error);
+      res.status(500).json({ error: error.message || "Failed to upload video" });
+    }
+  });
   
   // Simulated database for orders
   const orders: any[] = [];
@@ -88,9 +133,7 @@ async function startServer() {
 
   // Shipping providers logic (Simulated rates for Dropshipping Model)
   const SHIPPING_PROVIDERS = [
-    { id: 'standard', name: 'شحن قياسي (Standard Shipping)', base: 0, multiplier: 1.0, speed: '10-15 days' },
-    { id: 'express', name: 'شحن سريع (Express Shipping)', base: 15, multiplier: 1.2, speed: '5-9 days' },
-    { id: 'al-waseet', name: 'شركة الوسيط - توصيل محلي (Al-Waseet)', base: 5, multiplier: 1.0, speed: '2-4 days' }
+    { id: 'al-waseet', name: 'شركة الوسيط - توصيل محلي (Al-Waseet)', base: 0, multiplier: 1.0, speed: '2-4 days' }
   ];
 
   const COUNTRY_ADJUSTMENT: Record<string, number> = {
@@ -110,7 +153,7 @@ async function startServer() {
     const country = req.query.country as string;
     const providerId = req.query.provider as string;
     
-    const provider = SHIPPING_PROVIDERS.find(p => p.id === providerId) || SHIPPING_PROVIDERS[1]; // Fallback to Aramex
+    const provider = SHIPPING_PROVIDERS.find(p => p.id === providerId) || SHIPPING_PROVIDERS[0]; // Fallback
     const countryMod = COUNTRY_ADJUSTMENT[country] || COUNTRY_ADJUSTMENT['DEFAULT'];
     
     const rate = Math.round(provider.base * provider.multiplier * countryMod);

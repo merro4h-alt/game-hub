@@ -837,10 +837,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return [...prev, { ...product, image: itemImage, quantity: requestedQuantity, selectedColor: color, selectedSize: size }];
     });
 
-    showAlert(i18n.language === 'ar'
-      ? `تمت إضافة المنتج إلى السلة بنجاح! الكمية المتوفرة في المخزن: ${product.stock}`
-      : `Product successfully added to cart! Available stock: ${product.stock}`, 'success');
-
     setIsCartOpen(true);
   };
 

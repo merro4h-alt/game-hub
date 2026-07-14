@@ -73,6 +73,53 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
   };
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  const uploadVideoFile = async (file: File) => {
+    setIsProcessing(true);
+    setSuccessMsg(isArabic ? 'جاري رفع الفيديو وحفظه بدون قيود على الحجم...' : 'Uploading video with no size limits...');
+    setErrorMsg(null);
+    
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const response = await fetch('/api/upload-video', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              videoData: reader.result as string,
+              fileName: file.name
+            })
+          });
+          
+          const result = await response.json();
+          if (result.success && result.url) {
+            setFormData(prev => ({ ...prev, videoUrl: result.url }));
+            setSuccessMsg(isArabic ? 'تم رفع الفيديو وحفظه بنجاح!' : 'Video uploaded and saved successfully!');
+            showAlert(isArabic ? 'تم رفع الفيديو بنجاح وحفظه على الخادم!' : 'Video uploaded successfully to store servers!', 'success');
+          } else {
+            throw new Error(result.error || 'Upload failed');
+          }
+        } catch (uploadErr: any) {
+          console.error("Upload error:", uploadErr);
+          setErrorMsg(isArabic ? `فشل رفع الفيديو: ${uploadErr.message}` : `Video upload failed: ${uploadErr.message}`);
+        } finally {
+          setIsProcessing(false);
+          setTimeout(() => setSuccessMsg(null), 3000);
+        }
+      };
+      reader.onerror = () => {
+        setErrorMsg(isArabic ? 'فشل في قراءة ملف الفيديو' : 'Failed to read video file');
+        setIsProcessing(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setErrorMsg(isArabic ? `فشل رفع الفيديو: ${err.message}` : `Video upload failed: ${err.message}`);
+      setIsProcessing(false);
+    }
+  };
+
   useEffect(() => {
     if (editingProduct) {
       setFormData({
@@ -737,19 +784,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                 <input id="video-upload" type="file" className="hidden" onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    setIsProcessing(true);
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                      setFormData(prev => ({ ...prev, videoUrl: reader.result as string }));
-                      setSuccessMsg(isArabic ? 'تم إرفاق الفيديو بنجاح!' : 'Video attached successfully!');
-                      setIsProcessing(false);
-                      setTimeout(() => setSuccessMsg(null), 3000);
-                    };
-                    reader.onerror = () => {
-                      setErrorMsg(isArabic ? 'فشل في قراءة ملف الفيديو' : 'Failed to read video file');
-                      setIsProcessing(false);
-                    };
-                    reader.readAsDataURL(file);
+                    uploadVideoFile(file);
                   }
                 }} accept="video/*" />
               </div>
@@ -879,21 +914,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, edit
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setFormData(prev => ({ ...prev, videoUrl: reader.result as string }));
-                                };
-                                reader.readAsDataURL(file);
+                                uploadVideoFile(file);
                               }
                             }}
                           />
                         </label>
                       </div>
                     </div>
-                    <p className={`text-[10px] mt-1 font-bold ${formData.videoUrl.startsWith('data:') ? 'text-red-500' : 'text-brand-charcoal/40 italic'}`}>
-                      {formData.videoUrl.startsWith('data:') 
-                        ? (isArabic ? '* تحذير: ملف الفيديو المرفق يجب أن يكون صغيراً جداً (أقل من 1MB). يفضل استخدام رابط بدلاً من ذلك.' : '* WARNING: Attached video files must be very small (<1MB). Better use a URL instead.')
-                        : (isArabic ? '* الملاحظة: يفضل استخدام روابط YouTube أو Google Drive للفيديوهات الكبيرة.' : '* Note: Use YouTube or Google Drive links for large videos.')}
+                    <p className="text-[10px] mt-1 font-bold text-brand-gold italic">
+                      {isArabic ? '✓ تم تفعيل الرفع السحابي للفيديوهات بدون أي حدود للمساحة أو الحجم!' : '✓ Cloud video uploading active with no space or size limits!'}
                     </p>
                   </div>
                 </div>

@@ -159,7 +159,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [phonePrefix, setPhonePrefix] = useState("+966");
   const [shippingProviders, setShippingProviders] =
     useState<any[]>(SHIPPING_PROVIDERS);
-  const [selectedProvider, setSelectedProvider] = useState("standard");
+  const [selectedProvider, setSelectedProvider] = useState("al-waseet");
   const [shippingFee, setShippingFee] = useState(0);
   const [shippingSpeed, setShippingSpeed] = useState("");
   const [formData, setFormData] = useState({
@@ -238,14 +238,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     const country = countries.find((c) => c.code === selectedCountry);
     if (country) {
       setPhonePrefix(country.dialCode);
-      if (selectedCountry === "IQ") {
-        setSelectedProvider("al-waseet");
-      } else {
-        setSelectedProvider("standard");
-        // Reset payment method to card if COD was chosen for a non-Iraq country
-        if (paymentMethod === "cod") {
-          setPaymentMethod("card");
-        }
+      setSelectedProvider("al-waseet");
+      // Reset payment method to card if COD was chosen for a non-Iraq country
+      if (selectedCountry !== "IQ" && paymentMethod === "cod") {
+        setPaymentMethod("card");
       }
 
       /* 
