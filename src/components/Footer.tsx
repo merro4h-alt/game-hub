@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Instagram, Twitter, Facebook, ArrowUpRight, MessageCircle, ShieldCheck, Banknote, Coins, Bitcoin } from 'lucide-react';
+import { Instagram, Twitter, Facebook, ArrowUpRight, MessageCircle, ShieldCheck, Banknote, Coins, Bitcoin, Truck } from 'lucide-react';
 import Logo from './Logo';
 
 const Footer: React.FC = () => {
@@ -156,9 +156,11 @@ const Footer: React.FC = () => {
                </div>
                <span className="text-[9px] font-black tracking-widest text-white/40 group-hover:text-white uppercase transition-colors">Google Pay</span>
              </div>
-             <div className="bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 transition-all group">
-               <Banknote size={14} className="text-brand-gold opacity-50 group-hover:opacity-100" />
-               <span className="text-[9px] font-black tracking-widest text-white/40 group-hover:text-white uppercase">CASH</span>
+             <div className="bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/30 flex items-center gap-2 transition-all group">
+               <Truck size={14} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+               <span className="text-[9px] font-black tracking-widest text-emerald-300 group-hover:text-white uppercase transition-colors">
+                 {i18n.language.startsWith('ar') ? 'الدفع عند الاستلام' : 'Cash on Delivery'}
+               </span>
              </div>
           </div>
         </div>

@@ -360,6 +360,10 @@ const CartPage: React.FC = () => {
                     <ShieldCheck size={16} />
                     <span className="text-[10px] font-bold uppercase tracking-widest">{isArabic ? 'دفع آمن 100%' : '100% SECURE PAYMENT'}</span>
                   </div>
+                  <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                    <Truck size={14} />
+                    <span className="text-[9.5px] uppercase tracking-widest">{texts.codAvailable}</span>
+                  </div>
                   <div className="flex items-center gap-2 text-white/40">
                     <Banknote size={14} />
                     <span className="text-[9px] font-bold uppercase tracking-widest">{texts.bankAvailable}</span>

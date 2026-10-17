@@ -9,7 +9,6 @@ import {
   MapPin,
   Globe,
   Banknote,
-  Building2,
   Smartphone,
   Coins,
   Upload,
@@ -95,7 +94,6 @@ const paymentMethodColors: Record<string, string> = {
   applepay: "#000000", // black
   crypto: "#f7931a", // bitcoin-orange
   cod: "#059669", // emerald-600
-  bank: "#3b82f6", // blue-500
 };
 
 // Elegant locally simulated brand logos for bulletproof loading with no raw wikimedia dependency
@@ -153,10 +151,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const isArabic = i18n.language === "ar";
 
   const [paymentMethod, setPaymentMethod] = useState<
-    "card" | "cod" | "crypto" | "bank" | "googlepay" | "applepay"
+    "card" | "cod" | "crypto" | "googlepay" | "applepay"
   >("card");
-  const [selectedCountry, setSelectedCountry] = useState("SA"); // Default to SA for better payment coverage
-  const [phonePrefix, setPhonePrefix] = useState("+966");
+  const [selectedCountry, setSelectedCountry] = useState("IQ"); // Default to IQ (Iraq) with COD and global cards
+  const [phonePrefix, setPhonePrefix] = useState("+964");
   const [shippingProviders, setShippingProviders] =
     useState<any[]>(SHIPPING_PROVIDERS);
   const [selectedProvider, setSelectedProvider] = useState("al-waseet");
@@ -238,31 +236,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     const country = countries.find((c) => c.code === selectedCountry);
     if (country) {
       setPhonePrefix(country.dialCode);
-      setSelectedProvider("al-waseet");
-      // Reset payment method to card if COD was chosen for a non-Iraq country
-      if (selectedCountry !== "IQ" && paymentMethod === "cod") {
-        setPaymentMethod("card");
-      }
-
-      /* 
-      // Automatically set currency based on country - Disabled as per user request to keep USD as primary
-      let newCurrency = 'USD';
-      if (selectedCountry === 'IQ') newCurrency = 'IQD';
-      else if (selectedCountry === 'SA') newCurrency = 'SAR';
-      else if (selectedCountry === 'AE') newCurrency = 'AED';
-      else if (selectedCountry === 'TR') newCurrency = 'TRY';
-      else if (selectedCountry === 'EG') newCurrency = 'EGP';
-      else if (selectedCountry === 'JO') newCurrency = 'JOD';
-      else if (selectedCountry === 'KW') newCurrency = 'KWD';
-      else if (selectedCountry === 'QA') newCurrency = 'QAR';
-      else if (selectedCountry === 'BH') newCurrency = 'BHD';
-      else if (selectedCountry === 'OM') newCurrency = 'OMR';
-      else if (selectedCountry === 'GB') newCurrency = 'GBP';
-      else if (['DE', 'FR'].includes(selectedCountry)) newCurrency = 'EUR';
-      
-      setCurrency(newCurrency);
-      localStorage.setItem('trendifi_currency_manual', 'true');
-      */
+      setSelectedProvider(selectedCountry === "IQ" ? "al-waseet" : "dhl");
     }
   }, [selectedCountry, setCurrency, paymentMethod]);
 
@@ -347,19 +321,15 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             ? isArabic
               ? "عملات رقمية 🪙"
               : "Cryptocurrency 🪙"
-            : paymentMethod === "bank"
+            : paymentMethod === "applepay"
               ? isArabic
-                ? "تحويل بنكي 🏦"
-                : "Bank Transfer 🏦"
-              : paymentMethod === "applepay"
+                ? "آبل باي 🍏"
+                : "Apple Pay 🍏"
+              : paymentMethod === "googlepay"
                 ? isArabic
-                  ? "آبل باي 🍏"
-                  : "Apple Pay 🍏"
-                : paymentMethod === "googlepay"
-                  ? isArabic
-                    ? "جوجل باي (الدفع السريع) 📱"
-                    : "Google Pay (Rapid) 📱"
-                  : t("checkout.paypal");
+                  ? "جوجل باي (الدفع السريع) 📱"
+                  : "Google Pay (Rapid) 📱"
+                : t("checkout.paypal");
 
     // Formatting items with price
     const itemsText = (info.items || [])
@@ -1163,135 +1133,60 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </p>
           </div>
         );
-      case "bank":
+      case "cod":
         return (
           <div className="space-y-6">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-gold flex items-center gap-2 mb-4">
-              <Building2 size={12} />{" "}
-              {isArabic ? "بيانات التحويل البنكي" : "Bank Transfer Details"}
+            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#059669] flex items-center gap-2 mb-4">
+              <Truck size={14} className="text-[#059669]" />{" "}
+              {isArabic ? "الدفع عند الاستلام (COD) 🤝" : "Cash on Delivery (COD) 🤝"}
             </h4>
 
-            <div className="bg-brand-charcoal/[0.03] p-8 rounded-[2.5rem] border border-brand-charcoal/10 space-y-6 text-center">
-              <div className="w-20 h-20 bg-brand-gold rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-brand-gold/20">
-                <Building2 size={40} className="text-white" />
-              </div>
+            {/* Informational luxury card */}
+            <div className="relative w-full rounded-[1.8rem] bg-gradient-to-br from-[#064E3B] via-[#043d2e] to-[#022c22] p-6 text-white shadow-2xl flex flex-col justify-between overflow-hidden border border-emerald-500/30">
+              <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-28 h-28 bg-[#C5A037]/10 rounded-full blur-2xl pointer-events-none" />
 
-              <div className="space-y-4">
-                <div className="p-4 bg-white rounded-2xl border border-brand-charcoal/5 shadow-sm space-y-1">
-                  <span className="text-[9px] font-black uppercase text-brand-charcoal/30 tracking-[0.2em]">
-                    {isArabic ? "اسم البنك" : "Bank Name"}
-                  </span>
-                  <p className="text-sm font-black text-brand-charcoal">
-                    {settings.bankDetails.bankName || "N/A"}
-                  </p>
+              <div className="flex items-center gap-3.5 mb-4 relative z-10">
+                <div className="w-13 h-13 rounded-2xl bg-emerald-400/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shadow-inner shrink-0">
+                  <Truck size={26} strokeWidth={2} />
                 </div>
-                <div className="p-4 bg-white rounded-2xl border border-brand-charcoal/5 shadow-sm space-y-1">
-                  <span className="text-[9px] font-black uppercase text-brand-charcoal/30 tracking-[0.2em]">
-                    {isArabic ? "صاحب الحساب" : "Account Holder"}
+                <div>
+                  <span className="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-300/80">
+                    {isArabic ? "طلب بدون بطاقة مصرفية" : "Zero Prepayment Required"}
                   </span>
-                  <p className="text-sm font-black text-brand-charcoal">
-                    {settings.bankDetails.accountHolder || "N/A"}
-                  </p>
-                </div>
-                <div
-                  className="p-5 bg-white rounded-2xl border-2 border-brand-charcoal/5 shadow-sm space-y-1 relative group cursor-pointer"
-                  onClick={() => {
-                    navigator.clipboard.writeText(settings.bankDetails.iban);
-                    showAlert(
-                      isArabic ? "تم نسخ IBAN!" : "IBAN Copied!",
-                      "success",
-                    );
-                  }}
-                >
-                  <span className="text-[9px] font-black uppercase text-brand-charcoal/30 tracking-[0.2em]">
-                    IBAN
-                  </span>
-                  <p className="text-sm sm:text-lg font-mono font-black text-brand-charcoal break-all leading-relaxed">
-                    {settings.bankDetails.iban || "N/A"}
-                  </p>
-                  <div className="absolute inset-0 bg-brand-gold opacity-0 group-hover:opacity-10 transition-opacity flex items-center justify-center rounded-2xl">
-                    <span className="bg-brand-charcoal text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-black/20">
-                      {isArabic ? "إضغط لنسخ الآيبان" : "Tap to Copy IBAN"}
-                    </span>
-                  </div>
+                  <h5 className="text-base font-black text-white mt-0.5">
+                    {isArabic ? "ادفع نقداً لمندوب التوصيل" : "Pay with Cash upon Doorstep Delivery"}
+                  </h5>
                 </div>
               </div>
 
-              <div className="bg-brand-gold/5 p-4 rounded-2xl border border-brand-gold/10">
-                <p className="text-[10px] text-brand-gold font-bold leading-relaxed italic">
-                  {isArabic
-                    ? "يرجى تحويل المبلغ ومن ثم إرفاق صورة من إيصال التحويل أدناه."
-                    : "Please transfer the amount and then attach a photo of the transfer receipt below."}
-                </p>
-              </div>
-            </div>
-
-            {/* MANDATORY RECEIPT UPLOAD */}
-            <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold flex items-center gap-2">
-                <Upload size={12} />{" "}
+              <p className="text-xs text-white/80 leading-relaxed mb-4 relative z-10">
                 {isArabic
-                  ? "ارفاق ايصال الحوالة (إجباري)"
-                  : "Attach Transfer Receipt (Mandatory)"}
-              </label>
+                  ? "تسوق بكل طمأنينة! عاين منتجك وافحصه أولاً عند استلامه من مندوب شركة الشحن قبل دفع أي مبلغ."
+                  : "Shop with peace of mind. Inspect your items upon delivery before handing cash to the courier."}
+              </p>
 
-              <div
-                className={`relative group transition-all ${receiptFile ? "border-brand-gold/20 bg-brand-gold/5" : "border-dashed border-2 border-brand-charcoal/10 bg-brand-charcoal/[0.02] hover:bg-brand-charcoal/[0.04]"} rounded-3xl p-6 text-center`}
-              >
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
-
-                {receiptPreview ? (
-                  <div className="flex flex-col items-center gap-3 relative z-20">
-                    <div className="relative">
-                      <img
-                        src={receiptPreview}
-                        alt="Receipt Preview"
-                        className="w-24 h-24 object-cover rounded-2xl shadow-lg border-2 border-white"
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeReceipt();
-                        }}
-                        className="absolute -top-2 -right-2 bg-brand-charcoal text-white rounded-full p-1 shadow-lg hover:bg-red-500 transition-colors"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                    <p className="text-[10px] font-bold text-brand-charcoal truncate max-w-[200px]">
-                      {receiptFile?.name}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2 py-4">
-                    <div className="w-12 h-12 rounded-full bg-brand-gold/10 flex items-center justify-center text-brand-gold mb-2">
-                      <Upload size={24} />
-                    </div>
-                    <p className="text-xs font-bold text-brand-charcoal">
-                      {isArabic
-                        ? "اضغط لرفع الايصال"
-                        : "Click to upload receipt"}
-                    </p>
-                    <p className="text-[9px] text-brand-charcoal/40 font-bold uppercase tracking-widest">
-                      {isArabic
-                        ? "الصور فقط (الحد الأقصى 5 ميجابايت)"
-                        : "Images only (Max 5MB)"}
-                    </p>
-                  </div>
-                )}
+              <div className="space-y-2 border-t border-emerald-500/25 pt-4 text-[11px] text-emerald-100/90 relative z-10">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <span>{isArabic ? "معاينة المنتج وفحصه قبل الدفع والتسليم" : "Full item inspection prior to payment"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <span>{isArabic ? "توصيل سريع ومباشر حتى باب منزلك" : "Fast & safe doorstep courier delivery"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <span>{isArabic ? "المبلغ المطلوب تجهيزه نقداً:" : "Exact cash to prepare:"} <strong className="text-emerald-300 font-black text-xs">{formatPrice(finalTotal)}</strong></span>
+                </div>
               </div>
             </div>
 
             <button
-              disabled={isProcessing || !receiptFile}
+              disabled={isProcessing}
               onClick={() => handleSubmit()}
-              className="w-full bg-brand-charcoal text-white font-black py-6 rounded-2xl shadow-xl shadow-brand-charcoal/20 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed group text-xs"
+              type="button"
+              className="w-full bg-gradient-to-r from-[#059669] via-[#047857] to-[#065F46] hover:brightness-110 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-emerald-900/40 transition-all disabled:opacity-50 active:scale-95 cursor-pointer text-xs uppercase tracking-widest group"
             >
               {isProcessing ? (
                 <span className="flex items-center gap-2">
@@ -1300,11 +1195,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 </span>
               ) : (
                 <>
-                  <Lock
-                    size={16}
-                    className="group-hover:scale-110 transition-transform"
-                  />
-                  {isArabic ? "تأكيد الحوالة البنكية" : "Confirm Bank Transfer"}
+                  <Truck size={18} className="group-hover:translate-x-1 transition-transform" />
+                  <span>{isArabic ? "تأكيد الطلب والدفع عند الاستلام" : "Confirm Cash on Delivery Order"}</span>
                 </>
               )}
             </button>
@@ -1474,22 +1366,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                       {(
                         [
                           "card",
-                          "crypto",
-                          "applepay",
-                          "bank",
-                          "googlepay",
                           "cod",
+                          "applepay",
+                          "googlepay",
+                          "crypto",
                         ] as const
                       ).map((method) => {
-                        if (
-                          method === "bank" &&
-                          !settings.bankDetails.isAvailable
-                        )
-                          return null;
-
-                        if (method === "cod" && selectedCountry !== "IQ")
-                          return null;
-
                         const isSelected = paymentMethod === method;
 
                         let containerClass = `flex items-center justify-center h-14 w-14 rounded-2xl transition-all duration-300 select-none ${
@@ -1509,8 +1391,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                             containerClass += " bg-gradient-to-br from-[#F7931A] to-[#E85C0F] shadow-orange-500/25";
                           } else if (method === "cod") {
                             containerClass += " bg-gradient-to-br from-[#059669] to-[#047857] shadow-emerald-500/25";
-                          } else if (method === "bank") {
-                            containerClass += " bg-gradient-to-br from-[#C5A037] to-[#8C6F23] shadow-neutral-500/15";
                           }
                         }
 
@@ -1547,10 +1427,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                     {/* Beautiful simulated gold microchip */}
                                     <div className={`absolute top-1 left-0.5 w-2 h-1.5 rounded-[1.5px] transition-all duration-300 ${isSelected ? "bg-[#FFEFA6] shadow-sm animate-pulse" : "bg-[#C5A037]/40"}`} />
                                   </div>
-                                </div>
-                              ) : method === "bank" ? (
-                                <div className="flex flex-col items-center justify-center">
-                                  <Building2 size={24} strokeWidth={1.8} className={isSelected ? "text-white" : "text-[#4B5563]"} />
                                 </div>
                               ) : method === "cod" ? (
                                 <div
@@ -1610,15 +1486,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                               </div>
                             )}
 
-                            {method === "bank" && (
-                              <div className="text-[8px] font-mono font-black text-[#C5A037] bg-amber-50/50 px-1.5 py-0.5 rounded border border-amber-200/20">
-                                IBAN DIRECT
-                              </div>
-                            )}
-
                             {method === "cod" && (
                               <div className="text-[8px] font-sans font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/20">
-                                {isArabic ? "نقدي" : "HAND CASH"}
+                                {isArabic ? "استلام باليد" : "HAND CASH"}
                               </div>
                             )}
                             
@@ -1641,11 +1511,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                     ? isArabic
                                       ? "عملات رقمية"
                                       : "Crypto"
-                                    : method === "bank"
-                                      ? isArabic
-                                        ? "تحويل بنكي"
-                                        : "Bank Transfer"
-                                      : texts[method as keyof typeof texts]}
+                                    : texts[method as keyof typeof texts]}
                             </span>
                           </button>
                         );
