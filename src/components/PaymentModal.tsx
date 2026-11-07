@@ -17,6 +17,9 @@ import {
   Clock,
   AlertTriangle,
   Info,
+  MessageCircle,
+  Copy,
+  Check,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +30,10 @@ import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { SHIPPING_PROVIDERS } from "../constants";
 import StripePayment from "./StripePayment";
 import GooglePayButton from "@google-pay/button-react";
+import {
+  normalizeWhatsAppPhone,
+  DEFAULT_STORE_WHATSAPP_LOCAL,
+} from "../utils/whatsapp";
 
 const countries = [
   { code: "IQ", name: "Iraq", nameAr: "العراق", dialCode: "+964" },
@@ -266,13 +273,25 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const [orderInfo, setOrderInfo] = useState<{
     trackingId: string;
     trackingLink: string;
+    total: number;
+    customerName?: string;
+    customerPhone?: string;
+    shippingAddress?: string;
+    paymentMethod?: string;
     cardholderName?: string;
-    whatsappSent?: boolean;
+    cleanWa?: string;
     items?: any[];
   } | null>(null);
+
+  const handleCopyOrder = (textToCopy: string) => {
+    navigator.clipboard?.writeText(textToCopy);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2500);
+  };
 
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
@@ -302,62 +321,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     setReceiptPreview(null);
   };
 
-  const WHATSAPP_NUMBER = settings.whatsappNumber;
-
-  const getWhatsAppMessage = (info: any) => {
-    const maskedCard = cardNumber
-      ? `•••• •••• •••• ${cardNumber.replace(/\s/g, "").slice(-4)}`
-      : "";
-    const methodLabel =
-      paymentMethod === "cod"
-        ? isArabic
-          ? "الدفع عند الاستلام (افحص واستلم) 🤝"
-          : "Cash on Delivery (Check & Collect) 🤝"
-        : paymentMethod === "card"
-          ? isArabic
-            ? `بطاقة بنكية 💳\n• الاسم على البطاقة: ${cardName}\n• رقم البطاقة: ${maskedCard}`
-            : `Bank Card 💳\n• Cardholder: ${cardName}\n• Card: ${maskedCard}`
-          : paymentMethod === "crypto"
-            ? isArabic
-              ? "عملات رقمية 🪙"
-              : "Cryptocurrency 🪙"
-            : paymentMethod === "applepay"
-              ? isArabic
-                ? "آبل باي 🍏"
-                : "Apple Pay 🍏"
-              : paymentMethod === "googlepay"
-                ? isArabic
-                  ? "جوجل باي (الدفع السريع) 📱"
-                  : "Google Pay (Rapid) 📱"
-                : t("checkout.paypal");
-
-    // Formatting items with price
-    const itemsText = (info.items || [])
-      .map(
-        (item: any) =>
-          `▫️ ${item.name} (${item.quantity}x) - ${formatPrice((item.discountPrice ?? item.price) * item.quantity)}`,
-      )
-      .join("\n");
-
-    return encodeURIComponent(
-      `🛍️ *طلب جديد من ONXIFI: ${info.trackingId}*\n\n` +
-        `👤 *معلومات العميل:*\n` +
-        `• الاسم: ${formData.name}\n` +
-        `• الهاتف: ${fullPhoneNumber}\n` +
-        `• البريد: ${formData.email || "N/A"}\n\n` +
-        `📍 *العنوان:* \n${countries.find((c) => c.code === selectedCountry)?.name || selectedCountry} - ${formData.address}\n\n` +
-        `📦 *المنتجات:*\n${itemsText}\n\n` +
-        `💳 *طريقة الدفع:* ${methodLabel}${receiptFile ? (isArabic ? "\n✅ تم إرفاق إيصال الدفع" : "\n✅ Payment Receipt Attached") : ""}\n` +
-        `🚚 *شركة الشحن:* ${paymentMethod === "cod" ? shippingProviders.find((p) => p.id === selectedProvider)?.name || selectedProvider : isArabic ? "شحن إلكتروني" : "Electronic Shipping"}\n` +
-        `--------------------------\n` +
-        `💰 *المجموع:* ${formatPrice(total)}\n` +
-        `🚚 *الشحن:* ${isArabic ? "مجانًا 🎁" : "FREE Shipping 🎁"}\n` +
-        `✨ *الإجمالي:* ${formatPrice(finalTotal)}\n` +
-        `--------------------------\n` +
-        `🔗 *رابط التتبع:* ${info.trackingLink}\n` +
-        `⏰ *التاريخ:* ${new Date().toLocaleString()}`,
-    );
-  };
+  const WHATSAPP_NUMBER = settings.whatsappNumber || DEFAULT_STORE_WHATSAPP_LOCAL;
 
   const handleSubmit = async (e?: React.FormEvent, cardholderName?: string) => {
     if (e) e.preventDefault();
@@ -491,18 +455,56 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         );
       }
 
+      const capturedTotal = finalTotal;
+      const cleanWa = normalizeWhatsAppPhone(WHATSAPP_NUMBER);
+
+      // Sanitize items without base64 or heavy image fields for fast and reliable backend dispatch
+      const sanitizedItems = (orderData.items || []).map((it: any) => ({
+        id: it.id || "",
+        name: it.name || "",
+        price: Number(it.price || 0),
+        quantity: Number(it.quantity || 1),
+        selectedColor: it.selectedColor || null,
+        selectedSize: it.selectedSize || null,
+      }));
+
+      // Forward order details to backend server for store notification dispatch
+      const serverPayload = {
+        trackingId,
+        trackingLink: `${window.location.origin}/track/${trackingId}`,
+        shippingAddress: orderData.shippingAddress,
+        total: capturedTotal,
+        subtotal: total,
+        shippingFee: effectiveShippingFee,
+        paymentMethod,
+        items: sanitizedItems,
+        cardholderName: cardholderName || cardName || null,
+        whatsappNumber: cleanWa,
+        createdAt: new Date().toISOString(),
+      };
+
+      try {
+        await fetch("/api/confirm-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(serverPayload),
+        });
+      } catch (dispatchErr) {
+        console.error("Order forward error:", dispatchErr);
+      }
+
       const newOrderInfo = {
         trackingId,
         trackingLink: `${window.location.origin}/track/${trackingId}`,
-        whatsappSent: true,
-        items: [...cart],
+        total: capturedTotal,
+        customerName: formData.name,
+        customerPhone: `${phonePrefix} ${formData.phone}`.trim(),
+        shippingAddress: `${formData.address}${formData.city ? `, ${formData.city}` : ""}`,
+        paymentMethod,
         cardholderName: cardholderName,
+        cleanWa,
+        items: sanitizedItems,
       };
-
-      // Send detailed WhatsApp notification
-      const msg = getWhatsAppMessage(newOrderInfo);
-      const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
-      window.open(waUrl, "_blank");
 
       setOrderInfo(newOrderInfo);
       setIsProcessing(false);
@@ -1296,7 +1298,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   {t("checkout.orderTotal")}
                 </span>
                 <span className="text-xl font-mono font-black text-[#b12704] tracking-tight">
-                  {formatPrice(finalTotal)}
+                  {formatPrice(orderInfo ? orderInfo.total : finalTotal)}
                 </span>
               </div>
 
@@ -1341,12 +1343,52 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                         <p className="text-3xl font-mono font-bold text-brand-gold mb-8 tracking-tighter">
                           {orderInfo.trackingId}
                         </p>
-                        <div className="mb-4 text-sm font-bold text-brand-charcoal/60">
+                        <div className="mb-6 text-sm font-bold text-brand-charcoal/60">
                           {t("checkout.total")}:{" "}
-                          <span className="text-brand-charcoal">
-                            {formatPrice(finalTotal)}
+                          <span className="text-brand-charcoal font-bold">
+                            {formatPrice(orderInfo.total)}
                           </span>
                         </div>
+
+                        {/* Direct WhatsApp Notification Button */}
+                        <a
+                          href={`https://wa.me/${orderInfo.cleanWa || "9647837814009"}?text=${encodeURIComponent(
+                            `🛒 *طلب جديد من المتجر: #${orderInfo.trackingId}*\n` +
+                            `👤 العميل: ${orderInfo.customerName || formData.name}\n` +
+                            `📞 الهاتف: ${orderInfo.customerPhone || formData.phone}\n` +
+                            `📍 العنوان: ${orderInfo.shippingAddress || formData.address}\n` +
+                            `💳 الدفع: ${(orderInfo.paymentMethod || paymentMethod || "COD").toUpperCase()}\n` +
+                            `💰 الإجمالي: ${formatPrice(orderInfo.total)}\n` +
+                            `🔗 رابط التتبع: ${orderInfo.trackingLink}`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full bg-[#25D366] hover:bg-[#20ba59] text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 text-sm mb-3"
+                        >
+                          <MessageCircle size={18} />
+                          <span>{isArabic ? "إرسال إشعار الطلب عبر الواتساب" : "Send Order via WhatsApp"}</span>
+                        </a>
+
+                        {/* Copy Order Details Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const details =
+                              `🛒 طلب جديد من المتجر: #${orderInfo.trackingId}\n` +
+                              `👤 العميل: ${orderInfo.customerName || formData.name}\n` +
+                              `📞 الهاتف: ${orderInfo.customerPhone || formData.phone}\n` +
+                              `📍 العنوان: ${orderInfo.shippingAddress || formData.address}\n` +
+                              `💳 الدفع: ${(orderInfo.paymentMethod || paymentMethod || "COD").toUpperCase()}\n` +
+                              `💰 الإجمالي: ${formatPrice(orderInfo.total)}\n` +
+                              `🔗 ${orderInfo.trackingLink}`;
+                            handleCopyOrder(details);
+                          }}
+                          className="w-full bg-white border border-brand-charcoal/10 hover:bg-brand-charcoal/5 text-brand-charcoal font-bold py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95 text-xs mb-3"
+                        >
+                          {isCopied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
+                          <span>{isCopied ? (isArabic ? "تم نسخ تفاصيل الطلب بنجاح ✓" : "Copied!") : (isArabic ? "نسخ تفاصيل الطلب" : "Copy Order Details")}</span>
+                        </button>
+
                         <button
                           onClick={() => {
                             navigate(`/track/${orderInfo.trackingId}`);

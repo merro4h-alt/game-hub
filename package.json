@@ -19,6 +19,7 @@
     "@stripe/stripe-js": "^9.4.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
     "autoprefixer": "^10.4.21",
     "axios": "^1.16.1",
     "checkout-sdk-node": "^3.3.0",
@@ -34,6 +35,8 @@
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "nodemailer": "^8.0.7",
+    "pino": "^10.4.0",
+    "qrcode": "^1.5.4",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "react-helmet-async": "^3.0.0",
@@ -53,6 +56,7 @@
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/nodemailer": "^8.0.0",
+    "@types/qrcode": "^1.5.6",
     "@types/twilio": "^3.19.2"
   }
 }

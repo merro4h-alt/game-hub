@@ -51,6 +51,7 @@ interface StoreContextType {
     googlePayMerchantId: string;
     storeName: string;
     whatsappNumber: string;
+    whatsappTargetV2?: boolean;
     baseShippingRate: number;
     stripePublicKey: string;
     bankDetails: import('./types').BankDetails;
@@ -72,7 +73,7 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { i18n, t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { showAlert } = useAlert();
   const [products, setProducts] = useState<Product[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => {
@@ -339,10 +340,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return saved === 'true' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
 
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<StoreContextType['settings']>({
     googlePayMerchantId: 'BCR2DN5TROGI7Q2U',
     storeName: 'ONXIFI Store',
-    whatsappNumber: '9647837814009',
+    whatsappNumber: '07837814009',
+    whatsappTargetV2: false,
     baseShippingRate: 20,
     stripePublicKey: '',
     bankDetails: {
@@ -368,7 +370,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             const data = snapshot.data();
             setSettings(prev => ({
               ...prev,
-              ...data
+              ...data,
+              whatsappNumber: data.whatsappTargetV2 && data.whatsappNumber
+                ? data.whatsappNumber
+                : '07837814009',
+              whatsappTargetV2: Boolean(data.whatsappTargetV2),
             }));
           }
         }, (error) => {
@@ -391,7 +397,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const { db } = await import('./lib/firebase');
       const { doc, setDoc } = await import('firebase/firestore');
-      const updated = { ...settings, ...newSettings };
+      const updated = {
+        ...settings,
+        ...newSettings,
+        ...(newSettings.whatsappNumber !== undefined ? { whatsappTargetV2: true } : {}),
+      };
       await setDoc(doc(db, 'settings', 'general'), updated, { merge: true });
       setSettings(updated);
       showAlert(i18n.language === 'ar' ? 'تم تحديث الإعدادات!' : 'Settings updated!', 'success');

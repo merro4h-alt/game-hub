@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
-import { Truck, Sparkles, Tag, Gift, ShieldCheck } from 'lucide-react';
+import { Truck, Gift, ShieldCheck } from 'lucide-react';
 
 export const PromotionBar = () => {
   const { i18n } = useTranslation();
@@ -12,7 +12,6 @@ export const PromotionBar = () => {
     { text: isArabic ? 'ضمان استرجاع 100% في حال عدم تطابق المواصفات' : '100% money back if specs don\'t match', icon: <ShieldCheck size={12} className="text-green-500" /> },
     { text: isArabic ? 'توصيل مجاني للطلبات أكثر من $100' : 'Free shipping on orders over $100', icon: <Truck size={12} /> },
     { text: isArabic ? 'اشترِ قطعتين واحصل على الثالثة مجاناً!' : 'Buy 2, Get the 3rd FREE!', icon: <Gift size={12} className="text-brand-gold" /> },
-    { text: isArabic ? 'خصم 15% باستخدام كود: START15' : '15% OFF with code: START15', icon: <Tag size={12} /> },
   ];
 
   return (

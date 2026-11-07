@@ -6,7 +6,7 @@ import { useStore } from '../StoreContext';
 import { INITIAL_PRODUCTS } from '../constants';
 import { ListingSkeleton } from '../components/ProductSkeleton';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Quote, Sparkles, Flame, Tag, Clock, Copy, Check, Globe, Play, Flower2, Crown, Dumbbell, ChevronLeft, ChevronRight, Gift, ShieldCheck, Lock, RotateCcw, Truck, Award, MessageCircle } from 'lucide-react';
+import { ArrowRight, Quote, Sparkles, Flame, Tag, Clock, Copy, Check, Play, Flower2, Crown, Dumbbell, ChevronLeft, ChevronRight, Gift, ShieldCheck, Lock, RotateCcw, Truck, Award, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ReviewModal } from '../components/ReviewModal';
 import { ShopTheLook } from '../components/ShopTheLook';
@@ -204,7 +204,6 @@ const HomePage: React.FC = () => {
     { key: 'offers', label: t('categories.offers'), icon: <Tag size={14} />, category: 'Offers' },
     { key: 'fashionBeauty', label: t('categories.fashionBeauty'), icon: <Crown size={14} />, category: 'Fashion & Beauty' },
     { key: 'sports', label: t('categories.sports'), icon: <Dumbbell size={14} />, category: 'Sports' },
-    { key: 'imported', label: i18n.language === 'ar' ? 'مستوردة' : 'Imported', icon: <Globe size={14} />, category: 'Imported' },
   ];
 
   return (

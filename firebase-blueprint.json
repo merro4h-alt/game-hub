@@ -80,6 +80,7 @@
         "googlePayMerchantId": { "type": "string" },
         "storeName": { "type": "string" },
         "whatsappNumber": { "type": "string" },
+        "whatsappTargetV2": { "type": "boolean" },
         "baseShippingRate": { "type": "number" },
         "stripePublicKey": { "type": "string" },
         "bankDetails": { "type": "object" }

@@ -359,7 +359,9 @@ const resources = {
         "cancel": "Cancel",
         "orderTotal": "Order Total:",
         "processedViaNetwork": "Processed via Global Supplier Network",
-        "cardholder": "Cardholder"
+        "cardholder": "Cardholder",
+        "sentToOrdersApp": "Order details automatically sent to onxifi.orders.app",
+        "openInOrdersApp": "Open in Orders App"
       },
       "colors": {
         "White": "White",
@@ -736,7 +738,9 @@ const resources = {
         "cancel": "إلغاء",
         "orderTotal": "إجمالي الطلب:",
         "processedViaNetwork": "تتم المعالجة عبر شبكة الموردين العالمية",
-        "cardholder": "صاحب البطاقة"
+        "cardholder": "صاحب البطاقة",
+        "sentToOrdersApp": "تم إرسال تفاصيل الطلب بنجاح إلى onxifi.orders.app",
+        "openInOrdersApp": "فتح في onxifi.orders.app"
       },
       "colors": {
         "White": "أبيض",

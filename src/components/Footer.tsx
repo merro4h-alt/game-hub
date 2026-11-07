@@ -1,11 +1,13 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Instagram, Twitter, Facebook, ArrowUpRight, MessageCircle, ShieldCheck, Banknote, Coins, Bitcoin, Truck } from 'lucide-react';
 import Logo from './Logo';
 
 const Footer: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const location = useLocation();
+  const isHomePage = location.pathname === '/';
   return (
     <footer className="bg-black text-brand-cream pt-24 pb-12 border-t border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -69,22 +71,15 @@ const Footer: React.FC = () => {
               <li><Link to="/contact" className="hover:text-[#4F46E5] transition-colors">{t('nav.contact')}</Link></li>
               <li><Link to="/track" className="hover:text-[#4F46E5] transition-colors">{t('nav.trackOrder')}</Link></li>
               <li><Link to="/policies" className="hover:text-[#4F46E5] transition-colors">{i18n.language === 'ar' ? 'سياسات المتجر' : 'Store Policies'}</Link></li>
-              <li className="pt-2">
-                <Link 
-                  to="/admin" 
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-[#4F46E5] transition-all text-[10px] font-black uppercase tracking-widest rounded-lg border border-white/5 hover:border-[#4F46E5]/30"
-                >
-                  <ShieldCheck size={10} />
-                  {t('admin.dashboard')}
-                </Link>
-              </li>
-              <li className="pt-4 mt-4 border-t border-white/5">
-                <span className="block text-xs uppercase tracking-widest text-white/30 mb-1">{t('footer.emailLabel')}</span>
-                <div className="flex flex-col gap-1">
-                  <a href="mailto:merro4h@gmail.com" className="text-[#4F46E5] hover:underline font-medium text-sm transition-all">merro4h@gmail.com</a>
-                  <a href="mailto:kmerro25@gmail.com" className="text-[#4F46E5] hover:underline font-medium text-sm transition-all">kmerro25@gmail.com</a>
-                </div>
-              </li>
+              {!isHomePage && (
+                <li className="pt-4 mt-4 border-t border-white/5">
+                  <span className="block text-xs uppercase tracking-widest text-white/30 mb-1">{t('footer.emailLabel')}</span>
+                  <div className="flex flex-col gap-1">
+                    <a href="mailto:merro4h@gmail.com" className="text-[#4F46E5] hover:underline font-medium text-sm transition-all">merro4h@gmail.com</a>
+                    <a href="mailto:kmerro25@gmail.com" className="text-[#4F46E5] hover:underline font-medium text-sm transition-all">kmerro25@gmail.com</a>
+                  </div>
+                </li>
+              )}
             </ul>
           </div>
 

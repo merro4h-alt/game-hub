@@ -49,6 +49,9 @@ export interface Order {
   trackingId?: string;
   courierTrackingNumber?: string;
   paymentMethod?: 'cod' | 'bank_transfer' | 'card' | 'crypto' | 'bank' | 'googlepay' | 'applepay';
+  sentToApp?: string;
+  appForwarded?: boolean;
+  appForwardedAt?: string;
 }
 
 export interface BankDetails {

@@ -1,9 +1,152 @@
+import "dotenv/config";
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import Stripe from "stripe";
 import axios from "axios";
 import fs from "fs";
+import {
+  autoRestoreDirectWhatsAppOnBoot,
+  disconnectDirectWhatsApp,
+  enqueueWhatsAppNotification,
+  flushPendingNotificationsNow,
+  getDirectWhatsAppStatus,
+  sendViaDirectWhatsApp,
+  startDirectWhatsAppPairingCode,
+  startDirectWhatsAppQr,
+} from "./server-whatsapp";
+
+function normalizeStoreWhatsAppDigits(rawInput?: string): string {
+  const rawWa = String(
+    rawInput ||
+    process.env.TWILIO_WHATSAPP_TO ||
+    process.env.WHATSAPP_NUMBER ||
+    "07837814009"
+  ).replace(/^whatsapp:/i, "");
+  let cleanDigits = rawWa.replace(/[^\d]/g, "");
+  if (cleanDigits.startsWith("00")) cleanDigits = cleanDigits.slice(2);
+  if (cleanDigits.startsWith("07") && cleanDigits.length === 11) {
+    cleanDigits = "964" + cleanDigits.slice(1);
+  } else if (cleanDigits.startsWith("7") && cleanDigits.length === 10) {
+    cleanDigits = "964" + cleanDigits;
+  } else if (cleanDigits.startsWith("05") && cleanDigits.length === 10) {
+    cleanDigits = "966" + cleanDigits.slice(1);
+  }
+  return cleanDigits.length >= 8 ? cleanDigits : "9647837814009";
+}
+
+function getActiveWhatsAppProvider(): "whatsapp_direct" | "twilio" | "whatsapp_cloud" | "callmebot" | null {
+  if (getDirectWhatsAppStatus().connected) {
+    return "whatsapp_direct";
+  }
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_WHATSAPP_FROM) {
+    return "twilio";
+  }
+  if (process.env.WHATSAPP_CLOUD_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) {
+    return "whatsapp_cloud";
+  }
+  if (process.env.CALLMEBOT_API_KEY) {
+    return "callmebot";
+  }
+  return null;
+}
+
+async function sendStoreWhatsAppMessage(
+  rawRecipient: string | undefined,
+  messageBody: string,
+  queueOrderId?: string
+) {
+  const cleanDigits = normalizeStoreWhatsAppDigits(rawRecipient);
+
+  // 1. Direct Linked WhatsApp Session (verified phone JID + self chat)
+  const directRes = await sendViaDirectWhatsApp(cleanDigits, messageBody);
+  if (directRes.sent) {
+    return {
+      sent: true,
+      provider: "whatsapp_direct",
+      recipient: `+${cleanDigits}`,
+      queued: false,
+    };
+  }
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromWhatsApp = process.env.TWILIO_WHATSAPP_FROM;
+  const waCloudToken = process.env.WHATSAPP_CLOUD_TOKEN;
+  const waPhoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const callMeBotApiKey = process.env.CALLMEBOT_API_KEY;
+
+  let lastError = "";
+
+  if (accountSid && authToken && fromWhatsApp) {
+    try {
+      const twilio = (await import("twilio")).default;
+      const client = twilio(accountSid, authToken);
+      const formattedTo = `whatsapp:+${cleanDigits}`;
+      const formattedFrom = fromWhatsApp.startsWith("whatsapp:") ? fromWhatsApp : `whatsapp:${fromWhatsApp}`;
+
+      await client.messages.create({
+        body: messageBody,
+        from: formattedFrom,
+        to: formattedTo,
+      });
+      console.log(`WhatsApp notification sent via Twilio to ${formattedTo}`);
+      return { sent: true, provider: "twilio", recipient: `+${cleanDigits}` };
+    } catch (twErr: any) {
+      lastError = twErr?.message || String(twErr);
+      console.error("Twilio WhatsApp notification error:", lastError);
+    }
+  }
+
+  if (waCloudToken && waPhoneNumberId) {
+    try {
+      await axios.post(
+        `https://graph.facebook.com/v19.0/${waPhoneNumberId}/messages`,
+        {
+          messaging_product: "whatsapp",
+          to: cleanDigits,
+          type: "text",
+          text: { body: messageBody },
+        },
+        { headers: { Authorization: `Bearer ${waCloudToken}` }, timeout: 8000 }
+      );
+      console.log(`WhatsApp notification sent via Cloud API to +${cleanDigits}`);
+      return { sent: true, provider: "whatsapp_cloud", recipient: `+${cleanDigits}` };
+    } catch (cloudErr: any) {
+      lastError = JSON.stringify(cloudErr?.response?.data || cloudErr?.message || cloudErr);
+      console.error("WhatsApp Cloud API notification error:", lastError);
+    }
+  }
+
+  if (callMeBotApiKey) {
+    try {
+      await axios.get("https://api.callmebot.com/whatsapp.php", {
+        params: {
+          phone: cleanDigits,
+          text: messageBody,
+          apikey: callMeBotApiKey,
+        },
+        timeout: 8000,
+      });
+      console.log(`WhatsApp notification sent via CallMeBot to +${cleanDigits}`);
+      return { sent: true, provider: "callmebot", recipient: `+${cleanDigits}` };
+    } catch (cmbErr: any) {
+      lastError = cmbErr?.message || String(cmbErr);
+      console.error("CallMeBot WhatsApp notification error:", lastError);
+    }
+  }
+
+  if (queueOrderId) {
+    enqueueWhatsAppNotification(queueOrderId, cleanDigits, messageBody);
+  }
+
+  return {
+    sent: false,
+    queued: Boolean(queueOrderId),
+    provider: getActiveWhatsAppProvider(),
+    recipient: `+${cleanDigits}`,
+    error: lastError || "WHATSAPP_NOT_LINKED",
+  };
+}
 
 // Initialize Stripe
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
@@ -19,6 +162,8 @@ const PAYONEER_BASE_URL = PAYONEER_ENV === 'live'
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  autoRestoreDirectWhatsAppOnBoot();
 
   app.use(express.json({ limit: "100mb" }));
   app.use(express.urlencoded({ limit: "100mb", extended: true }));
@@ -292,8 +437,8 @@ async function startServer() {
   app.post("/api/confirm-order", async (req, res) => {
     const orderData = req.body;
     
-    // Generate tracking ID
-    const trackingId = "AH-" + Math.random().toString(36).substring(2, 6).toUpperCase() + "-" + Math.random().toString(36).substring(2, 6).toUpperCase();
+    // Reuse provided tracking ID or generate one
+    const trackingId = orderData.trackingId || ("AH-" + Math.random().toString(36).substring(2, 6).toUpperCase() + "-" + Math.random().toString(36).substring(2, 6).toUpperCase());
     
     // Multi-Channel Fulfillment Sync
     const autoDSInfo = autoDS.syncOrder({ ...orderData, trackingId });
@@ -308,21 +453,29 @@ async function startServer() {
         dsers: dsersInfo,
         strategy: 'DSers_API_Prefered'
       },
-      createdAt: new Date().toISOString()
+      createdAt: orderData.createdAt || new Date().toISOString()
     };
     
     orders.push(newOrder);
     console.log("Order saved:", trackingId);
 
-    const { name, phone, address, total, items, emailTo } = orderData;
+    const name = orderData.shippingAddress?.fullName || orderData.name || "Customer";
+    const phone = orderData.shippingAddress?.phone || orderData.phone || "";
+    const address = orderData.shippingAddress?.address || orderData.address || "";
+    const city = orderData.shippingAddress?.city || "";
+    const country = orderData.shippingAddress?.country || "";
+    const total = Number(orderData.total || 0);
+    const items = orderData.items || [];
+    const emailTo = orderData.shippingAddress?.email || orderData.emailTo || orderData.email;
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers.host;
-    const trackingLink = `${protocol}://${host}/track/${trackingId}`;
+    const trackingLink =
+      orderData.trackingLink ||
+      `${process.env.APP_URL || `${protocol}://${host}`}/track/${trackingId}`;
 
     try {
-      // Lazy import nodemailer and twilio
+      // Lazy import nodemailer
       const nodemailer = await import("nodemailer");
-      const twilio = (await import("twilio")).default;
       
       // Email transporter
       const transporter = nodemailer.createTransport({
@@ -338,48 +491,74 @@ async function startServer() {
 New Order from ${name}
 Tracking ID: ${trackingId}
 Tracking Link: ${trackingLink}
+Forwarded to: onxifi.orders.app
 Phone: ${phone}
-Address: ${address}
+Address: ${address} ${city ? `(${city}, ${country})` : ''}
+Payment Method: ${orderData.paymentMethod || 'COD'}
 Items:
 ${itemsList}
 Total: $${total.toFixed(2)}
       `;
 
-      // 1. Try sending Email
+      // HTML Body
       let emailSent = false;
       const htmlBody = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee;">
-          <h1 style="color: #c5a059;">Order Confirmed!</h1>
-          <p>You have a new "Cash on Delivery" order.</p>
-          <div style="background: #c5a059; color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
-            <h2 style="margin: 0; font-size: 14px; text-transform: uppercase;">Tracking Number</h2>
-            <div style="font-size: 32px; font-weight: bold; border: 2px dashed rgba(255,255,255,0.3); margin-top: 10px; padding: 10px;">${trackingId}</div>
-            <a href="${trackingLink}" style="display: inline-block; margin-top: 15px; background: white; color: #c5a059; padding: 10px 20px; border-radius: 4px; text-decoration: none; font-weight: bold;">Track Your Order</a>
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff;">
+          <div style="text-align: center; border-bottom: 2px solid #C5A059; padding-bottom: 16px; margin-bottom: 20px;">
+            <h1 style="color: #111827; margin: 0; font-size: 24px; font-weight: 800;">ONXIFI STORE</h1>
+            <p style="color: #6B7280; margin: 4px 0 0 0; font-size: 14px;">طلب جديد تم توجيهه إلى <strong style="color: #C5A059;">onxifi.orders.app</strong></p>
+          </div>
+
+          <div style="background: linear-gradient(135deg, #111827, #1f2937); color: white; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #C5A059; font-weight: bold;">رقم تتبع الطلب / Tracking ID</div>
+            <div style="font-size: 28px; font-weight: 900; letter-spacing: 2px; margin: 8px 0; color: #ffffff;">${trackingId}</div>
+            <a href="${trackingLink}" style="display: inline-block; margin-top: 10px; background: #C5A059; color: #111827; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: 800; font-size: 13px;">تتبع تفاصيل الطلب</a>
           </div>
           
-          <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h2 style="margin-top: 0;">Customer Details</h2>
-            <p><strong>Name:</strong> ${name}</p>
-            <p><strong>Phone:</strong> ${phone}</p>
-            <p><strong>Address:</strong> ${address}</p>
+          <div style="background: #f9fafb; padding: 16px; border-radius: 12px; margin: 16px 0; border: 1px solid #f3f4f6;">
+            <h3 style="margin: 0 0 10px 0; font-size: 15px; color: #111827;">معلومات العميل والشحن</h3>
+            <p style="margin: 4px 0; font-size: 13px; color: #4B5563;"><strong>الاسم:</strong> ${name}</p>
+            <p style="margin: 4px 0; font-size: 13px; color: #4B5563;"><strong>رقم الهاتف:</strong> ${phone}</p>
+            <p style="margin: 4px 0; font-size: 13px; color: #4B5563;"><strong>العنوان:</strong> ${address} ${city ? `- ${city}, ${country}` : ''}</p>
+            <p style="margin: 4px 0; font-size: 13px; color: #4B5563;"><strong>طريقة الدفع:</strong> ${orderData.paymentMethod || 'الدفع عند الاستلام'}</p>
+            <p style="margin: 4px 0; font-size: 13px; color: #4B5563;"><strong>تطبيق الاستلام:</strong> <span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-family: monospace;">onxifi.orders.app</span></p>
           </div>
 
           <div style="margin: 20px 0;">
-            <h2>Order Summary</h2>
-            <ul>
-              ${items.map((item: any) => `<li><strong>${item.name}</strong> - ${item.quantity} x $${item.price.toFixed(2)}</li>`).join("")}
+            <h3 style="margin: 0 0 10px 0; font-size: 15px; color: #111827;">المنتجات المطلوبة</h3>
+            <ul style="list-style: none; padding: 0; margin: 0;">
+              ${items.map((item: any) => `
+                <li style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; font-size: 13px;">
+                  <span><strong>${item.name}</strong> ${item.selectedColor ? `(${item.selectedColor})` : ''} ${item.selectedSize ? `[${item.selectedSize}]` : ''} × ${item.quantity}</span>
+                  <span style="font-weight: bold; color: #111827;">$${(Number(item.price) * Number(item.quantity)).toFixed(2)}</span>
+                </li>
+              `).join("")}
             </ul>
-            <h3 style="border-top: 1px solid #eee; padding-top: 10px;">Total: $${total.toFixed(2)}</h3>
+            <div style="margin-top: 14px; text-align: right; border-top: 2px solid #e5e7eb; padding-top: 10px;">
+              <div style="font-size: 18px; font-weight: 800; color: #111827;">الإجمالي الكلي: $${total.toFixed(2)}</div>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #f3f4f6; font-size: 11px; color: #9CA3AF;">
+            تم إرسال هذا الإشعار تلقائياً إلى onxifi.orders.app و بريد المتجر.
           </div>
         </div>
       `;
 
       const storeDomain = process.env.VITE_STORE_URL || 'onxifi.com';
       const adminNotify = process.env.ADMIN_NOTIFY_EMAIL || 'merro4h@gmail.com';
+      
+      // Recipients include onxifi.orders.app, admin email, and customer email
+      const primaryRecipients = [
+        'onxifi.orders.app@gmail.com',
+        adminNotify,
+        emailTo
+      ].filter(Boolean).join(", ");
+
       const mailOptions = {
         from: `"ONXIFI Store" <${process.env.EMAIL_USER || `noreply@${storeDomain}`}>`,
-        to: emailTo || adminNotify,
-        subject: `New Order #${trackingId} from ${name} - ONXIFI Store`,
+        to: primaryRecipients,
+        subject: `[onxifi.orders.app] طلب جديد #${trackingId} من ${name} - ONXIFI`,
         text: orderSummary,
         html: htmlBody
       };
@@ -388,33 +567,42 @@ Total: $${total.toFixed(2)}
         try {
           await transporter.sendMail(mailOptions);
           emailSent = true;
-          logSentEmail(mailOptions.to, mailOptions.subject, mailOptions.html, "Sent (SMTP)");
-          console.log("Order confirmation email sent.");
+          logSentEmail(mailOptions.to, mailOptions.subject, mailOptions.html, "Sent (onxifi.orders.app & Admin)");
+          console.log("Order confirmation email sent to onxifi.orders.app.");
         } catch (smtpErr: any) {
           console.error("SMTP Delivery error:", smtpErr);
           logSentEmail(mailOptions.to, mailOptions.subject, mailOptions.html, `SMTP Failed: ${smtpErr.message || smtpErr}`);
         }
       } else {
-        logSentEmail(mailOptions.to, mailOptions.subject, mailOptions.html, "Simulated Inbox");
-        console.log("Logged simulated order email successfully.");
+        logSentEmail("onxifi.orders.app", mailOptions.subject, mailOptions.html, "Simulated Dispatch to onxifi.orders.app");
+        console.log("Logged simulated order dispatch to onxifi.orders.app successfully.");
       }
 
-      // 2. Try sending WhatsApp via Twilio
-      let whatsappSent = false;
-      const accountSid = process.env.TWILIO_ACCOUNT_SID;
-      const authToken = process.env.TWILIO_AUTH_TOKEN;
-      const fromWhatsApp = process.env.TWILIO_WHATSAPP_FROM;
-      const toWhatsApp = process.env.TWILIO_WHATSAPP_TO || 'whatsapp:+9647837814009';
+      // 2. Normalize store WhatsApp recipient (07837814009 -> 9647837814009) and send automatic WhatsApp notification
+      const waItemsSummary = items
+        .map((it: any) => `▫️ ${it.name} (${it.quantity || 1}x) - $${Number(it.price || 0).toFixed(2)}`)
+        .join('\n');
+      const waMessageBody =
+        `🛒 *طلب جديد من المتجر: #${trackingId}*\n` +
+        `👤 العميل: ${name || 'عميل المتجر'}\n` +
+        `📞 الهاتف: ${phone || 'غير محدد'}\n` +
+        `📍 العنوان: ${address}${city ? `, ${city}` : ''}\n` +
+        `💳 الدفع: ${(orderData.paymentMethod || 'cod').toUpperCase()}\n` +
+        `💰 الإجمالي: $${total.toFixed(2)}\n` +
+        (waItemsSummary ? `\n📦 المنتجات:\n${waItemsSummary}\n` : '') +
+        `\n🔗 رابط التتبع: ${trackingLink}`;
 
-      if (accountSid && authToken && fromWhatsApp) {
-        const client = twilio(accountSid, authToken);
-        await client.messages.create({
-          body: `*ONXIFI Store - New Order #${trackingId}*\n\nTrack here: ${trackingLink}\n\n${orderSummary}`,
-          from: fromWhatsApp,
-          to: toWhatsApp
-        });
-        whatsappSent = true;
-        console.log("WhatsApp notification sent to:", toWhatsApp);
+      const waResult = await sendStoreWhatsAppMessage(
+        req.body.whatsappNumber,
+        waMessageBody,
+        trackingId
+      );
+      const whatsappSent = waResult.sent;
+
+      if (!whatsappSent) {
+        console.warn(
+          `WhatsApp notification queued for ${waResult.recipient} (order #${trackingId}): ${waResult.error}`
+        );
       }
 
       res.json({ 
@@ -423,12 +611,249 @@ Total: $${total.toFixed(2)}
         trackingId,
         trackingLink,
         emailSent,
-        whatsappSent
+        whatsappSent,
+        whatsappQueued: Boolean((waResult as any).queued),
+        whatsappProvider: waResult.provider,
+        whatsappError: whatsappSent ? null : waResult.error
       });
 
     } catch (error) {
       console.error("Error processing order notifications:", error);
       res.status(500).json({ success: false, error: "Failed to send notifications." });
+    }
+  });
+
+  app.get("/api/whatsapp/status", (_req, res) => {
+    const provider = getActiveWhatsAppProvider();
+    const direct = getDirectWhatsAppStatus();
+    res.json({
+      configured: Boolean(provider),
+      provider,
+      defaultRecipient: `+${normalizeStoreWhatsAppDigits()}`,
+      direct,
+    });
+  });
+
+  app.post("/api/whatsapp/connect-code", async (req, res) => {
+    try {
+      const direct = await startDirectWhatsAppPairingCode(req.body?.whatsappNumber || "07837814009");
+      res.json({ success: Boolean(direct.pairingCode || direct.connected), direct });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || "Failed to generate pairing code" });
+    }
+  });
+
+  app.post("/api/whatsapp/connect-qr", async (_req, res) => {
+    try {
+      const direct = await startDirectWhatsAppQr();
+      res.json({ success: Boolean(direct.qrDataUrl || direct.connected), direct });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || "Failed to generate QR code" });
+    }
+  });
+
+  app.post("/api/whatsapp/disconnect", async (_req, res) => {
+    try {
+      const direct = await disconnectDirectWhatsApp();
+      res.json({ success: true, direct });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || "Failed to disconnect WhatsApp" });
+    }
+  });
+
+  app.post("/api/whatsapp/flush", async (_req, res) => {
+    try {
+      const flushResult = await flushPendingNotificationsNow();
+      res.json({
+        success: true,
+        ...flushResult,
+        direct: getDirectWhatsAppStatus(),
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || "Failed to flush pending notifications" });
+    }
+  });
+
+  app.post("/api/whatsapp/test", async (req, res) => {
+    const targetNumber = req.body?.whatsappNumber;
+    const testMessage =
+      `🔔 *رسالة تجريبية تلقائية من متجر ONXIFI*\n` +
+      `✅ تم ربط رقم الواتساب بنجاح!\n` +
+      `ستصلك تفاصيل جميع الطلبات والرسائل الجديدة تلقائياً هنا فور إتمام أي طلب.`;
+    const result = await sendStoreWhatsAppMessage(targetNumber, testMessage);
+    res.json(result);
+  });
+
+  app.post("/api/whatsapp/chat", async (req, res) => {
+    try {
+      const {
+        customerPhone = "",
+        customerName = "",
+        customerEmail = "",
+        message = "",
+        pageUrl = "",
+        whatsappNumber,
+      } = req.body || {};
+
+      const trimmedPhone = String(customerPhone).trim();
+      const trimmedMessage = String(message).trim();
+      const trimmedName = String(customerName).trim();
+
+      if (!trimmedPhone || trimmedPhone.replace(/[^\d]/g, "").length < 8) {
+        return res.status(400).json({
+          success: false,
+          error: "Valid customer phone number is required",
+        });
+      }
+
+      const inquiryId = `CHAT-${Date.now().toString(36).toUpperCase()}`;
+
+      // Normalize customer phone for 1-tap WhatsApp reply link inside owner's message
+      let customerWaDigits = trimmedPhone.replace(/[^\d]/g, "");
+      if (customerWaDigits.startsWith("00")) customerWaDigits = customerWaDigits.slice(2);
+      if (customerWaDigits.startsWith("07") && customerWaDigits.length === 11) {
+        customerWaDigits = "964" + customerWaDigits.slice(1);
+      } else if (customerWaDigits.startsWith("7") && customerWaDigits.length === 10) {
+        customerWaDigits = "964" + customerWaDigits;
+      } else if (customerWaDigits.startsWith("05") && customerWaDigits.length === 10) {
+        customerWaDigits = "966" + customerWaDigits.slice(1);
+      }
+
+      try {
+        const inquiriesDir = path.join(process.cwd(), ".whatsapp-auth");
+        const inquiriesFile = path.join(inquiriesDir, "chat-inquiries.json");
+        fs.mkdirSync(inquiriesDir, { recursive: true });
+        let existingInquiries: any[] = [];
+        if (fs.existsSync(inquiriesFile)) {
+          existingInquiries = JSON.parse(fs.readFileSync(inquiriesFile, "utf-8"));
+          if (!Array.isArray(existingInquiries)) existingInquiries = [];
+        }
+        existingInquiries.unshift({
+          inquiryId,
+          customerPhone: trimmedPhone,
+          customerWaDigits,
+          customerName: trimmedName,
+          customerEmail: String(customerEmail).trim(),
+          message: trimmedMessage || "مرحباً، أود التواصل معكم بخصوص المتجر.",
+          pageUrl: String(pageUrl).trim(),
+          createdAt: new Date().toISOString(),
+        });
+        fs.writeFileSync(
+          inquiriesFile,
+          JSON.stringify(existingInquiries.slice(0, 200), null, 2),
+          "utf-8"
+        );
+      } catch (persistErr) {
+        console.warn("[WhatsApp Chat Endpoint] Failed to persist inquiry log:", persistErr);
+      }
+
+      const effectiveMessage =
+        trimmedMessage || "مرحباً، أود التواصل معكم بخصوص المتجر.";
+
+      const waChatBody =
+        `💬 *رسالة جديدة من دردشة واتساب المتجر (ONXIFI)*\n` +
+        (trimmedName ? `👤 الاسم: ${trimmedName}\n` : "") +
+        (trimmedPhone ? `📞 رقم العميل: ${trimmedPhone}\n` : "") +
+        (customerEmail ? `📧 البريد: ${customerEmail}\n` : "") +
+        `✉️ الرسالة:\n${effectiveMessage}` +
+        (customerWaDigits.length >= 10
+          ? `\n\n📲 للرد المباشر على العميل عبر واتساب:\nhttps://wa.me/${customerWaDigits}`
+          : "") +
+        (pageUrl ? `\n🔗 الصفحة: ${pageUrl}` : "");
+
+      const waResult = await sendStoreWhatsAppMessage(
+        whatsappNumber,
+        waChatBody,
+        inquiryId
+      );
+
+      // Backup admin email log / SMTP dispatch
+      const subject = `💬 رسالة واتساب جديدة من ${trimmedName || trimmedPhone || "عميل"} - ONXIFI`;
+      const htmlLog = `
+        <div style="font-family: sans-serif; direction: rtl; text-align: right; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
+          <h2 style="margin-top: 0; color: #111827;">رسالة جديدة من دردشة المتجر</h2>
+          ${trimmedName ? `<p><strong>الاسم:</strong> ${trimmedName}</p>` : ""}
+          ${trimmedPhone ? `<p><strong>رقم الهاتف:</strong> ${trimmedPhone}</p>` : ""}
+          ${customerEmail ? `<p><strong>البريد الإلكتروني:</strong> ${customerEmail}</p>` : ""}
+          <p><strong>الرسالة:</strong> ${effectiveMessage}</p>
+          ${customerWaDigits.length >= 10 ? `<p><a href="https://wa.me/${customerWaDigits}">الرد على العميل عبر واتساب</a></p>` : ""}
+        </div>
+      `;
+
+      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        try {
+          const nodemailer = await import("nodemailer");
+          const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+              user: process.env.EMAIL_USER,
+              pass: process.env.EMAIL_PASS,
+            },
+          });
+          const adminNotify = process.env.ADMIN_NOTIFY_EMAIL || "merro4h@gmail.com";
+          await transporter.sendMail({
+            from: `"ONXIFI Chat" <${process.env.EMAIL_USER}>`,
+            to: adminNotify,
+            subject,
+            html: htmlLog,
+          });
+          logSentEmail(adminNotify, subject, htmlLog, "Sent (WhatsApp Chat Backup)");
+        } catch (mailErr: any) {
+          logSentEmail("merro4h@gmail.com", subject, htmlLog, `Logged (${mailErr?.message || "SMTP skipped"})`);
+        }
+      } else {
+        logSentEmail("merro4h@gmail.com", subject, htmlLog, waResult.sent ? "WhatsApp Delivered" : "Queued for WhatsApp");
+      }
+
+      return res.json({
+        success: true,
+        inquiryId,
+        whatsappSent: waResult.sent,
+        whatsappQueued: Boolean((waResult as any).queued),
+        provider: waResult.provider,
+      });
+    } catch (err: any) {
+      console.error("[WhatsApp Chat Endpoint] Error:", err);
+      return res.status(500).json({
+        success: false,
+        error: err?.message || "Failed to send chat message",
+      });
+    }
+  });
+
+  // Dedicated endpoint for dispatching an order directly to onxifi.orders.app
+  app.post("/api/orders/forward-to-app", async (req, res) => {
+    try {
+      const orderData = req.body;
+      const trackingId = orderData.trackingId || `ONX-${Date.now().toString(36).toUpperCase()}`;
+      
+      console.log(`[onxifi.orders.app] Explicit forward requested for order #${trackingId}`);
+
+      const payload = {
+        source: "ONXIFI Store",
+        destination: "onxifi.orders.app",
+        order: orderData,
+        timestamp: new Date().toISOString()
+      };
+
+      // Send to webhook / API
+      await Promise.allSettled([
+        axios.post("https://onxifi.orders.app/api/orders", payload, { timeout: 4000 }),
+        axios.post("https://onxifi.orders.app/webhook", payload, { timeout: 4000 }),
+        axios.post("https://onxifi.orders.app", payload, { timeout: 4000 })
+      ]);
+
+      logSentEmail("onxifi.orders.app", `Direct Forward: Order #${trackingId}`, JSON.stringify(orderData, null, 2), "Forwarded");
+
+      return res.json({
+        success: true,
+        sentTo: "onxifi.orders.app",
+        trackingId,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err: any) {
+      console.error("Forwarding to onxifi.orders.app failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
     }
   });
 

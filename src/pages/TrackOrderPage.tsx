@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Search, Package, MapPin, Clock, CheckCircle2, ArrowRight, Truck, Globe, ExternalLink } from 'lucide-react';
+import { Search, Package, MapPin, Clock, CheckCircle2, ArrowRight, Truck, Globe } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../lib/firebase';

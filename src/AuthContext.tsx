@@ -85,10 +85,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const errorPrefix = i18n.language === 'ar' ? 'فشل تسجيل الدخول: ' : 'Login failed: ';
     const errorCode = error.code || 'unknown';
     
-    if (errorCode === 'auth/popup-closed-by-user') {
-      showAlert(i18n.language === 'ar' 
-        ? 'تم إغلاق نافذة تسجيل الدخول قبل اكتمال العملية. يرجى المحاولة مرة أخرى.' 
-        : 'Login popup was closed before completion. Please try again.');
+    if (errorCode === 'auth/popup-closed-by-user' || errorCode === 'auth/cancelled-popup-request') {
+      // The user voluntarily closed the login popup or cancelled the operation.
+      // We log it quietly without displaying an intrusive alert dialog.
+      console.log("Login popup was closed before completion.");
+      return;
+    } else if (errorCode === 'auth/popup-blocked') {
+      showAlert(i18n.language === 'ar'
+        ? 'قام المتصفح بحظر النافذة المنبثقة لتسجيل الدخول. يرجى السماح بالنوافذ المنبثقة (Popups) والمحاولة مجدداً.'
+        : 'The login popup was blocked by your browser. Please allow popups and try again.');
     } else if (errorCode === 'auth/unauthorized-domain') {
       showAlert(i18n.language === 'ar'
         ? `هذا النطاق (${currentDomain}) غير مصرح به في Firebase.\n\nيرجى فتح رابط مشروعك في Firebase Console وإضافة هذا النطاق:\nhttps://console.firebase.google.com/project/${projectId}/authentication/settings`

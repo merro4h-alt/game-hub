@@ -17,8 +17,9 @@ import {
   Clock, CheckCircle, Truck, AlertCircle, ArrowUpRight,
   Plus, Edit, Trash2, Search as SearchIcon, Filter, ExternalLink,
   ChevronRight, ChevronDown, Wand2, Loader2, Sparkles, Save, Clipboard, Settings,
-  Image as ImageIcon, MessageCircle, Mail, Download, Award, Percent, Globe, Lock
+  Image as ImageIcon, MessageCircle, Mail, Download, Award, Percent, Globe, Lock, Smartphone, Bell, X
 } from 'lucide-react';
+import { normalizeWhatsAppPhone, formatWhatsAppDisplay, DEFAULT_STORE_WHATSAPP_LOCAL } from '../utils/whatsapp';
 
 const AdminDashboard: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -29,8 +30,8 @@ const AdminDashboard: React.FC = () => {
   } = useStore();
   const { showAlert } = useAlert();
   const { user, isAdmin, login, loginWithEmail, signout } = useAuth();
-  const [adminEmail, setAdminEmail] = useState(import.meta.env.VITE_ADMIN_DEFAULT_EMAIL || 'kmerro25@gmail.com');
-  const [adminPassword, setAdminPassword] = useState(import.meta.env.VITE_ADMIN_DEFAULT_PASSWORD || '9j6yZ6677.');
+  const [adminEmail, setAdminEmail] = useState(import.meta.env.VITE_ADMIN_DEFAULT_EMAIL || '');
+  const [adminPassword, setAdminPassword] = useState(import.meta.env.VITE_ADMIN_DEFAULT_PASSWORD || '');
   const [isLoginLoading, setIsLoginLoading] = useState(false);
 
   const handleAdminEmailLoginSubmit = async (e: React.FormEvent) => {
@@ -58,6 +59,213 @@ const AdminDashboard: React.FC = () => {
   const [extractionStatus, setExtractionStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [newTrackingNumber, setNewTrackingNumber] = useState('');
+  const [liveNewOrder, setLiveNewOrder] = useState<Order | null>(null);
+  const [waServerStatus, setWaServerStatus] = useState<{
+    configured: boolean;
+    provider: string | null;
+    direct?: {
+      status: string;
+      connected: boolean;
+      connectedPhone: string | null;
+      qrDataUrl: string | null;
+      pairingCode: string | null;
+      pairingPhone: string | null;
+      pendingOrdersCount: number;
+      lastError: string | null;
+    };
+  } | null>(null);
+  const [isTestingWaServer, setIsTestingWaServer] = useState(false);
+  const [isLinkingWa, setIsLinkingWa] = useState<'code' | 'qr' | 'disconnect' | null>(null);
+
+  const refreshWaStatus = React.useCallback(async () => {
+    try {
+      const res = await fetch('/api/whatsapp/status');
+      if (!res.ok) return null;
+      const data = await res.json();
+      setWaServerStatus((prev) => {
+        const wasConnected = Boolean(prev?.configured);
+        const nowConnected = Boolean(data.configured);
+        if (prev !== null && !wasConnected && nowConnected) {
+          playOrderNotificationChime();
+          showAlert(
+            i18n.language === 'ar'
+              ? '✅ تم ربط واتساب المتجر بنجاح! ستصلك جميع الطلبات الجديدة تلقائياً.'
+              : '✅ Store WhatsApp linked! All new orders will arrive automatically.',
+            'success'
+          );
+        }
+        return data;
+      });
+      return data;
+    } catch {
+      return null;
+    }
+  }, [i18n.language, showAlert]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    refreshWaStatus();
+  }, [isAdmin, activeTab, refreshWaStatus]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const directStatus = waServerStatus?.direct?.status;
+    const shouldPoll =
+      directStatus === 'pairing_code_ready' ||
+      directStatus === 'qr_ready' ||
+      directStatus === 'connecting';
+    if (!shouldPoll) return;
+
+    const timer = setInterval(() => {
+      refreshWaStatus();
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [isAdmin, waServerStatus?.direct?.status, refreshWaStatus]);
+
+  const handleConnectWhatsAppCode = async () => {
+    setIsLinkingWa('code');
+    try {
+      const res = await fetch('/api/whatsapp/connect-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ whatsappNumber: settings.whatsappNumber || DEFAULT_STORE_WHATSAPP_LOCAL }),
+      });
+      const data = await res.json();
+      await refreshWaStatus();
+      if (!data.success && !data.direct?.connected) {
+        showAlert(
+          i18n.language === 'ar'
+            ? 'تعذر إنشاء رمز الربط حالياً، يرجى المحاولة مرة أخرى.'
+            : 'Could not generate pairing code right now, please retry.',
+          'error'
+        );
+      }
+    } catch {
+      showAlert(
+        i18n.language === 'ar' ? 'تعذر الاتصال بالخادم لإنشاء رمز الربط' : 'Failed to connect to server',
+        'error'
+      );
+    } finally {
+      setIsLinkingWa(null);
+    }
+  };
+
+  const handleConnectWhatsAppQr = async () => {
+    setIsLinkingWa('qr');
+    try {
+      const res = await fetch('/api/whatsapp/connect-qr', { method: 'POST' });
+      const data = await res.json();
+      await refreshWaStatus();
+      if (!data.success && !data.direct?.connected) {
+        showAlert(
+          i18n.language === 'ar'
+            ? 'تعذر إنشاء باركود QR حالياً، يرجى المحاولة مرة أخرى.'
+            : 'Could not generate QR code right now, please retry.',
+          'error'
+        );
+      }
+    } catch {
+      showAlert(
+        i18n.language === 'ar' ? 'تعذر الاتصال بالخادم لإنشاء باركود QR' : 'Failed to connect to server',
+        'error'
+      );
+    } finally {
+      setIsLinkingWa(null);
+    }
+  };
+
+  const handleDisconnectWhatsApp = async () => {
+    setIsLinkingWa('disconnect');
+    try {
+      await fetch('/api/whatsapp/disconnect', { method: 'POST' });
+      await refreshWaStatus();
+      showAlert(
+        i18n.language === 'ar' ? 'تم إلغاء ربط جلسة الواتساب' : 'WhatsApp session disconnected',
+        'info'
+      );
+    } catch {
+      // ignore
+    } finally {
+      setIsLinkingWa(null);
+    }
+  };
+
+  const handleCopyPairingCode = (code: string) => {
+    const clean = code.replace(/[^A-Z0-9]/gi, '');
+    navigator.clipboard?.writeText(clean);
+    showAlert(
+      i18n.language === 'ar' ? `تم نسخ رمز الربط: ${clean}` : `Pairing code copied: ${clean}`,
+      'success'
+    );
+  };
+
+  const handleTestServerWhatsApp = async () => {
+    setIsTestingWaServer(true);
+    try {
+      const res = await fetch('/api/whatsapp/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          whatsappNumber: settings.whatsappNumber,
+        }),
+      });
+      const data = await res.json();
+      await refreshWaStatus();
+      if (data.sent) {
+        showAlert(
+          i18n.language === 'ar'
+            ? `✅ وصلت الرسالة التجريبية إلى ${data.recipient} عبر الواتساب بنجاح!`
+            : `✅ Test WhatsApp message delivered to ${data.recipient}!`,
+          'success'
+        );
+      } else {
+        showAlert(
+          i18n.language === 'ar'
+            ? 'يرجى ربط رقم الواتساب أولاً بالضغط على "ربط برمز الهاتف" أو "مسح باركود QR" لتفعيل الإرسال التلقائي.'
+            : 'Please link your WhatsApp first via Phone Code or QR Code to enable automatic delivery.',
+          'error'
+        );
+      }
+    } catch {
+      showAlert(
+        i18n.language === 'ar' ? 'تعذر الاتصال بالخادم لاختبار الإشعار' : 'Failed to reach server for WhatsApp test',
+        'error'
+      );
+    } finally {
+      setIsTestingWaServer(false);
+    }
+  };
+
+  const handleFlushPendingWhatsApp = async () => {
+    setIsTestingWaServer(true);
+    try {
+      const res = await fetch('/api/whatsapp/flush', { method: 'POST' });
+      const data = await res.json();
+      await refreshWaStatus();
+      if (data.success && data.delivered > 0) {
+        showAlert(
+          i18n.language === 'ar'
+            ? `✅ تم إرسال (${data.delivered}) إشعار طلب معلق إلى الواتساب بنجاح!`
+            : `✅ Delivered ${data.delivered} pending WhatsApp notification(s)!`,
+          'success'
+        );
+      } else {
+        showAlert(
+          i18n.language === 'ar'
+            ? 'لا توجد إشعارات معلقة حالياً أو يرجى التأكد من اكتمال ربط الجهاز.'
+            : 'No pending notifications or device is not yet linked.',
+          'info'
+        );
+      }
+    } catch {
+      showAlert(
+        i18n.language === 'ar' ? 'تعذر إرسال الإشعارات المعلقة حالياً' : 'Failed to flush pending notifications',
+        'error'
+      );
+    } finally {
+      setIsTestingWaServer(false);
+    }
+  };
 
   const getWhatsAppTrackingLink = (phone: string, clientName: string, orderId: string, trackingNo: string) => {
     let cleaned = phone.replace(/[^\d]/g, '');
@@ -108,7 +316,47 @@ const AdminDashboard: React.FC = () => {
     const message = i18n.language === 'ar' ? messageAr : messageEn;
     return `https://api.whatsapp.com/send?phone=${cleaned}&text=${encodeURIComponent(message)}`;
   };
-  
+
+  const playOrderNotificationChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      const now = ctx.currentTime;
+      osc.frequency.setValueAtTime(587.33, now); // D5
+      osc.frequency.setValueAtTime(880, now + 0.15); // A5
+      osc.frequency.setValueAtTime(1174.66, now + 0.3); // D6
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+      osc.start(now);
+      osc.stop(now + 0.9);
+    } catch (e) {
+      console.log('Audio chime error:', e);
+    }
+  };
+  const getSendToOrdersAppWhatsAppLink = (order: Order) => {
+    const cleanStoreWa = normalizeWhatsAppPhone(settings.whatsappNumber || DEFAULT_STORE_WHATSAPP_LOCAL);
+    const itemsText = (order.items || [])
+      .map((item: any) => `▫️ ${item.name} (${item.quantity || 1}x) - $${item.price}`)
+      .join('\n');
+    const trackingCode = order.trackingId || order.id;
+    const msg = `📦 *إشعار طلب جديد - ONXIFI*\n\n` +
+      `🔢 *رقم التتبع:* ${trackingCode}\n` +
+      `👤 *العميل:* ${order.shippingAddress.fullName}\n` +
+      `📞 *الهاتف:* ${order.shippingAddress.phone}\n` +
+      `📍 *العنوان:* ${order.shippingAddress.address}, ${order.shippingAddress.city}\n` +
+      `💳 *طريقة الدفع:* ${order.paymentMethod?.toUpperCase()}\n` +
+      `💰 *المجموع:* $${order.total.toFixed(2)}\n\n` +
+      `🛍️ *المنتجات:*\n${itemsText}\n\n` +
+      `🌐 *رابط التتبع:* ${window.location.origin}/track/${trackingCode}`;
+    return `https://wa.me/${cleanStoreWa}?text=${encodeURIComponent(msg)}`;
+  };
+
   // Campaign form state
   const [editingCampaign, setEditingCampaign] = useState<Partial<Campaign> | null>(null);
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
@@ -257,6 +505,7 @@ const AdminDashboard: React.FC = () => {
 
     const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
     
+    let isInitialLoad = true;
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const ordersData = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -265,6 +514,21 @@ const AdminDashboard: React.FC = () => {
           id: doc.id
         };
       }) as Order[];
+
+      if (!isInitialLoad && snapshot.docChanges().some(c => c.type === 'added')) {
+        const addedDoc = snapshot.docChanges().find(c => c.type === 'added')?.doc;
+        if (addedDoc) {
+          setLiveNewOrder({ ...(addedDoc.data() as Order), id: addedDoc.id });
+        }
+        playOrderNotificationChime();
+        showAlert(
+          i18n.language === 'ar' 
+            ? `🔔 طلب جديد وصل الآن! جاهز للإرسال إلى واتساب ${formatWhatsAppDisplay(settings.whatsappNumber)}` 
+            : `🔔 New order received! Ready for WhatsApp alert`,
+          'success'
+        );
+      }
+      isInitialLoad = false;
       setOrders(ordersData);
       setRecentOrders(ordersData.slice(0, 5));
       setLoading(false);
@@ -783,6 +1047,148 @@ const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
+      {waServerStatus && !waServerStatus.configured && (
+        <div className="mb-8 bg-[#151816] border border-emerald-500/30 rounded-3xl p-6 space-y-5 shadow-xl">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                <MessageCircle size={24} />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white">
+                  {i18n.language === 'ar'
+                    ? `إعادة تفعيل استلام الطلبات تلقائياً على واتساب (${formatWhatsAppDisplay(settings.whatsappNumber)})`
+                    : `Activate Automatic WhatsApp Order Delivery (${formatWhatsAppDisplay(settings.whatsappNumber)})`}
+                </h3>
+                <p className="text-xs text-white/60 mt-1 leading-relaxed">
+                  {i18n.language === 'ar'
+                    ? 'انتهت جلسة ربط الجهاز السابقة بعد إعادة تشغيل الخادم. اربط رقمك الآن عبر رمز الهاتف المكون من 8 خانات أو باركود QR وسيتم حفظ الجلسة بشكل دائم دون انقطاع.'
+                    : 'Your previous linked device session ended. Link once via 8-digit phone code or QR code and the session will remain saved permanently.'}
+                </p>
+                {Boolean(waServerStatus.direct?.pendingOrdersCount) && (
+                  <p className="text-xs text-brand-gold font-bold mt-1.5">
+                    {i18n.language === 'ar'
+                      ? `📦 يوجد (${waServerStatus.direct?.pendingOrdersCount}) إشعار طلب/رسالة محفوظة بالانتظار ستصلك تلقائياً على واتساب فور إتمام الربط.`
+                      : `${waServerStatus.direct?.pendingOrdersCount} pending order/chat notification(s) will be delivered automatically upon linking.`}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleConnectWhatsAppCode}
+                disabled={isLinkingWa !== null}
+                className="px-5 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-black text-xs rounded-2xl transition-all flex items-center gap-2 cursor-pointer"
+              >
+                {isLinkingWa === 'code' ? <Loader2 size={15} className="animate-spin" /> : <Smartphone size={15} />}
+                <span>{i18n.language === 'ar' ? 'ربط برقم الهاتف (رمز 8 خانات)' : 'Link via Phone Code'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConnectWhatsAppQr}
+                disabled={isLinkingWa !== null}
+                className="px-5 py-3 bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-bold text-xs rounded-2xl transition-all flex items-center gap-2 border border-white/10 cursor-pointer"
+              >
+                {isLinkingWa === 'qr' ? <Loader2 size={15} className="animate-spin" /> : <MessageCircle size={15} />}
+                <span>{i18n.language === 'ar' ? 'مسح باركود QR' : 'Scan QR Code'}</span>
+              </button>
+            </div>
+          </div>
+
+          {waServerStatus.direct?.pairingCode && (
+            <div className="bg-black/50 border border-emerald-500/30 rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-5">
+              <div className="space-y-2 text-xs text-white/80">
+                <p className="font-black text-emerald-400 text-sm">
+                  {i18n.language === 'ar' ? 'خطوات إدخال الرمز في هاتفك:' : 'Enter this code in WhatsApp on your phone:'}
+                </p>
+                <ol className="list-decimal list-inside space-y-1 text-white/70 leading-relaxed">
+                  <li>{i18n.language === 'ar' ? `افتح تطبيق واتساب على الرقم (${settings.whatsappNumber || DEFAULT_STORE_WHATSAPP_LOCAL}).` : 'Open WhatsApp on your phone.'}</li>
+                  <li>{i18n.language === 'ar' ? 'ادخل إلى الأجهزة المرتبطة (Linked Devices) ← ربط جهاز.' : 'Go to Linked Devices -> Link a Device.'}</li>
+                  <li>{i18n.language === 'ar' ? 'اضغط "الربط برقم الهاتف بدلاً من ذلك" وأدخل هذا الرمز:' : 'Tap "Link with phone number instead" and enter this code:'}</li>
+                </ol>
+              </div>
+              <div className="flex flex-col items-center gap-2.5 shrink-0">
+                <div
+                  dir="ltr"
+                  className="px-6 py-3.5 rounded-2xl bg-emerald-500/15 border-2 border-emerald-400/50 font-mono text-2xl sm:text-3xl font-black tracking-[0.25em] text-emerald-300 select-all"
+                >
+                  {waServerStatus.direct.pairingCode}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopyPairingCode(waServerStatus.direct!.pairingCode!)}
+                  className="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Clipboard size={13} />
+                  <span>{i18n.language === 'ar' ? 'نسخ الرمز' : 'Copy Code'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {waServerStatus.direct?.qrDataUrl && (
+            <div className="bg-black/50 border border-emerald-500/30 rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-6">
+              <img
+                src={waServerStatus.direct.qrDataUrl}
+                alt="WhatsApp QR Code"
+                className="w-48 h-48 rounded-2xl bg-white p-2 shrink-0"
+              />
+              <div className="space-y-2 text-xs text-white/80">
+                <p className="font-black text-emerald-400 text-sm">
+                  {i18n.language === 'ar' ? 'امسح الباركود من تطبيق واتساب:' : 'Scan this QR code from WhatsApp:'}
+                </p>
+                <p className="text-white/70 leading-relaxed">
+                  {i18n.language === 'ar'
+                    ? 'افتح واتساب على هاتفك ← الأجهزة المرتبطة (Linked Devices) ← ربط جهاز ← وجّه الكاميرا نحو هذا الباركود.'
+                    : 'Open WhatsApp -> Linked Devices -> Link a Device -> Point your camera at this QR code.'}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {liveNewOrder && (
+        <div className="mb-8 bg-emerald-500/15 border-2 border-emerald-500/40 rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-lg">
+              <MessageCircle size={24} className="fill-current" />
+            </div>
+            <div>
+              <div className="text-sm font-black text-white flex items-center gap-2">
+                <span>{i18n.language === 'ar' ? `طلب جديد وصل الآن (#${liveNewOrder.trackingId || liveNewOrder.id})` : `New Order Received (#${liveNewOrder.trackingId || liveNewOrder.id})`}</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              </div>
+              <p className="text-xs text-white/70 mt-1">
+                {liveNewOrder.shippingAddress?.fullName} • ${liveNewOrder.total?.toFixed(2)} • <span dir="ltr" className="font-mono text-emerald-300">{formatWhatsAppDisplay(settings.whatsappNumber)}</span>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <a
+              href={getSendToOrdersAppWhatsAppLink(liveNewOrder)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs rounded-2xl transition-all shadow-lg"
+            >
+              <MessageCircle size={16} />
+              <span>{i18n.language === 'ar' ? 'إرسال الطلب إلى واتساب الآن' : 'Send to WhatsApp Now'}</span>
+            </a>
+            <button
+              type="button"
+              onClick={() => setLiveNewOrder(null)}
+              className="p-3 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white rounded-2xl transition-colors"
+              aria-label="Close"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
           {activeTab === 'marketing' && (
                <motion.div 
@@ -1026,14 +1432,117 @@ const AdminDashboard: React.FC = () => {
                         onChange={(e) => updateSettings({ storeName: e.target.value })}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-white/30">{i18n.language === 'ar' ? 'رقم الواتساب' : 'WhatsApp Number'}</label>
+                    <div className="space-y-3 pt-2">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-white/30">
+                          {i18n.language === 'ar' ? 'رقم الواتساب لاستقبال إشعارات الطلبات' : 'WhatsApp Number for Order Notifications'}
+                        </label>
+                        {waServerStatus && (
+                          <span className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1 ${
+                            waServerStatus.configured
+                              ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                              : 'text-amber-300 bg-amber-500/10 border-amber-500/20'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${waServerStatus.configured ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                            {waServerStatus.configured
+                              ? (i18n.language === 'ar' ? 'متصل وجاهز للإرسال التلقائي' : 'Connected for Auto-Delivery')
+                              : (i18n.language === 'ar' ? 'بانتظار ربط الجهاز' : 'Awaiting Device Link')}
+                          </span>
+                        )}
+                      </div>
                       <input 
                         type="text"
-                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-brand-gold transition-all text-sm font-bold"
+                        dir="ltr"
+                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-brand-gold transition-all text-sm font-bold font-mono"
+                        placeholder="07837814009"
                         value={settings.whatsappNumber}
                         onChange={(e) => updateSettings({ whatsappNumber: e.target.value })}
                       />
+                      <p className="text-[11px] text-emerald-400/90 font-mono" dir="ltr">
+                        WhatsApp Target: {formatWhatsAppDisplay(settings.whatsappNumber)}
+                      </p>
+
+                      {!waServerStatus?.configured ? (
+                        <div className="p-4 rounded-2xl bg-black/40 border border-white/10 space-y-3">
+                          <p className="text-xs text-white/70 leading-relaxed">
+                            {i18n.language === 'ar'
+                              ? 'اربط واتساب المتجر مباشرة عبر رمز الهاتف المكون من 8 خانات أو باركود QR ليتم إرسال كل طلب جديد تلقائياً إلى هذا الرقم مع حفظ الجلسة بشكل دائم.'
+                              : 'Link your WhatsApp directly via 8-digit phone code or QR code so every new order is automatically delivered to this number.'}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={handleConnectWhatsAppCode}
+                              disabled={isLinkingWa !== null}
+                              className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer"
+                            >
+                              {isLinkingWa === 'code' ? <Loader2 size={14} className="animate-spin" /> : <Smartphone size={14} />}
+                              <span>{i18n.language === 'ar' ? 'ربط برقم الهاتف (8 خانات)' : 'Link with Phone Code'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleConnectWhatsAppQr}
+                              disabled={isLinkingWa !== null}
+                              className="px-4 py-2.5 bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 border border-white/10 cursor-pointer"
+                            >
+                              {isLinkingWa === 'qr' ? <Loader2 size={14} className="animate-spin" /> : <MessageCircle size={14} />}
+                              <span>{i18n.language === 'ar' ? 'ربط عبر باركود QR' : 'Link via QR Code'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          <button
+                            type="button"
+                            onClick={handleTestServerWhatsApp}
+                            disabled={isTestingWaServer}
+                            className="px-4 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 disabled:opacity-50 text-emerald-300 hover:text-emerald-200 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border border-emerald-500/30 cursor-pointer"
+                          >
+                            {isTestingWaServer ? <Loader2 size={14} className="animate-spin" /> : <MessageCircle size={14} />}
+                            <span>{i18n.language === 'ar' ? 'إرسال رسالة تجريبية الآن' : 'Send Test Alert Now'}</span>
+                          </button>
+
+                          {Boolean(waServerStatus.direct?.pendingOrdersCount) && (
+                            <button
+                              type="button"
+                              onClick={handleFlushPendingWhatsApp}
+                              disabled={isTestingWaServer}
+                              className="px-4 py-2.5 bg-brand-gold/20 hover:bg-brand-gold/30 disabled:opacity-50 text-brand-gold rounded-xl text-xs font-bold transition-all flex items-center gap-2 border border-brand-gold/30 cursor-pointer"
+                            >
+                              <ShoppingBag size={14} />
+                              <span>
+                                {i18n.language === 'ar'
+                                  ? `إرسال الطلبات المعلقة (${waServerStatus.direct?.pendingOrdersCount})`
+                                  : `Deliver Pending (${waServerStatus.direct?.pendingOrdersCount})`}
+                              </span>
+                            </button>
+                          )}
+
+                          {waServerStatus.direct?.connected && (
+                            <button
+                              type="button"
+                              onClick={handleDisconnectWhatsApp}
+                              disabled={isLinkingWa !== null}
+                              className="px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border border-red-500/20 cursor-pointer"
+                            >
+                              <X size={14} />
+                              <span>{i18n.language === 'ar' ? 'إلغاء ربط الجهاز' : 'Unlink Device'}</span>
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              playOrderNotificationChime();
+                              showAlert(i18n.language === 'ar' ? '🔔 تم تشغيل نغمة تنبيه الطلبات!' : 'Order alert chime tested!', 'success');
+                            }}
+                            className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 border border-white/10 cursor-pointer"
+                          >
+                            <Bell size={14} className="text-brand-gold" />
+                            <span>{i18n.language === 'ar' ? '🔔 تجربة صوت التنبيه' : 'Test Alert Sound'}</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2516,8 +3025,17 @@ const AdminDashboard: React.FC = () => {
                 exit={{ opacity: 0, y: -20 }}
               >
                 <div className="bg-[#1A1A1A] rounded-[2.5rem] border border-white/5 overflow-hidden">
-                    <div className="p-8 border-b border-white/5 flex justify-between items-center">
-                        <h3 className="text-lg font-black uppercase tracking-widest text-white/40">Consolidated Orders</h3>
+                    <div className="p-8 border-b border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h3 className="text-lg font-black uppercase tracking-widest text-white/40">Consolidated Orders</h3>
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span className="text-xs text-brand-gold font-bold">{i18n.language === 'ar' ? 'إشعار الطلبات بالواتساب مفعل إلى:' : 'WhatsApp order alerts active to:'}</span>
+                                <span dir="ltr" className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-lg border border-emerald-500/20">
+                                    {formatWhatsAppDisplay(settings.whatsappNumber)}
+                                </span>
+                            </div>
+                        </div>
                         <div className="flex items-center gap-4">
                             <span className="text-[10px] font-bold text-white/30">{orders.length} total entries</span>
                         </div>
@@ -2541,8 +3059,11 @@ const AdminDashboard: React.FC = () => {
                                     <tr key={order.id} className="hover:bg-white/5 transition-colors group">
                                         <td className="px-8 py-6">
                                             <span className="text-xs font-mono font-bold text-brand-gold">#{order.id.slice(-8).toUpperCase()}</span>
-                                            <div className="flex gap-1 mt-1">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse"></div>
+                                            <div className="flex flex-col gap-1 mt-1">
+                                                <div className="flex items-center gap-1">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse"></div>
+                                                    <span className="text-[8px] text-white/40 font-mono">Synced</span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
@@ -2575,13 +3096,23 @@ const AdminDashboard: React.FC = () => {
                                                         onClick={() => {
                                                             const text = `${order.shippingAddress.fullName}\n${order.shippingAddress.phone}\n${order.shippingAddress.address}\n${order.shippingAddress.city}\n${order.shippingAddress.zipCode}\n${order.shippingAddress.country}`;
                                                             navigator.clipboard.writeText(text);
-                                                            alert(i18n.language === 'ar' ? 'تم نسخ بيانات العنوان!' : 'Shipping info copied!');
+                                                            showAlert(i18n.language === 'ar' ? 'تم نسخ بيانات العنوان!' : 'Shipping info copied!', 'success');
                                                         }}
                                                         className="w-full mt-3 py-2 bg-brand-gold/20 text-brand-gold rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-brand-gold hover:text-white transition-all flex items-center justify-center gap-2"
                                                     >
                                                         <Save size={10} />
                                                         {i18n.language === 'ar' ? 'نسخ لـ علي إكسبريس' : 'Copy for AliExpress'}
                                                     </button>
+
+                                                    <a
+                                                        href={getSendToOrdersAppWhatsAppLink(order)}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="w-full mt-2 py-2 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border border-emerald-500/30 cursor-pointer shadow-xs"
+                                                    >
+                                                        <MessageCircle size={11} />
+                                                        {i18n.language === 'ar' ? 'إشعار واتساب للطلب' : 'WhatsApp Order Alert'}
+                                                    </a>
                                                 </div>
                                             </div>
                                         </td>
